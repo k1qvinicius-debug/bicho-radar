@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>BICHO RADAR - Área Administrativa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-24 md:pb-12 antialiased">
+
+  <!-- Header Superior -->
+  <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <a href="/" class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-lg font-black shadow-lg shadow-indigo-500/20">
+          🎲
+        </a>
+        <div>
+          <h1 class="text-base font-black tracking-tight text-white flex items-center gap-1.5">
+            Painel Administrativo
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">MASTER</span>
+          </h1>
+          <p class="text-[11px] text-slate-400">Resultados, testadores multi-tenants e calibração de pesos</p>
+        </div>
+      </div>
+
+      <!-- Navegação Desktop -->
+      <nav class="hidden md:flex items-center gap-2">
+        <a href="/" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">🎯 Palpites</a>
+        <a href="/historico" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">Histórico</a>
+        <button type="button" id="btn-admin-logout" onclick="adminLogout()" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-300 hover:bg-rose-950/50 border border-rose-800/60 transition-colors flex items-center gap-1">
+          <span>🔒</span> <span>Sair</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       TELA DE BLOQUEIO / AUTENTICAÇÃO MASTER ADMIN (SE NÃO ESTIVER LOGADO)
+       ========================================================================= -->
+  <div id="admin-auth-gate" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="card-glass max-w-md w-full p-6 sm:p-7 rounded-2xl border border-indigo-500/40 shadow-2xl space-y-5 bg-slate-900/95 text-center">
+      <div class="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-3xl mx-auto shadow-inner">
+        🔒
+      </div>
+      <div>
+        <h2 class="text-lg font-black text-white">Acesso Exclusivo do Administrador</h2>
+        <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+          Esta área é restrita exclusivamente ao Administrador Master. Digite sua senha ou chave master para gerenciar a plataforma.
+        </p>
+      </div>
+
+      <form id="form-admin-login" onsubmit="handleAdminLogin(event)" class="space-y-3.5 text-left">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Usuário</label>
+          <input type="text" id="input-admin-username" required value="admin"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 font-mono focus:border-indigo-500 focus:outline-none transition-colors" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Senha Master</label>
+          <input type="password" id="input-admin-password" required placeholder="Digite a senha master..."
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 font-mono focus:border-indigo-500 focus:outline-none transition-colors" />
+        </div>
+        <div id="admin-login-error" class="text-xs text-rose-400 font-semibold hidden"></div>
+
+        <button type="submit" id="btn-submit-admin-login"
+          class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs transition-all shadow-lg shadow-indigo-600/30 active:scale-98">
+          Entrar no Painel Master
+        </button>
+      </form>
+
+      <div class="pt-2 border-t border-slate-800 text-center">
+        <a href="/" class="text-xs text-slate-400 hover:text-slate-200 transition-colors">← Voltar ao Dashboard de Palpites</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conteúdo Principal (visível após login master) -->
+  <main id="admin-dashboard-container" class="max-w-4xl mx-auto px-4 pt-4 space-y-4">
+
+    <!-- Seletor de Abas Administrativas -->
+    <div class="flex overflow-x-auto gap-1.5 p-1 bg-slate-900/80 border border-slate-800 rounded-xl no-scrollbar">
+      <button data-tab-target="tab-tenants" class="px-3 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow whitespace-nowrap flex items-center gap-1.5">
+        <span>👥</span> <span>Testadores (Multi-Tenants)</span>
+      </button>
+      <button data-tab-target="tab-cadastro" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 whitespace-nowrap flex items-center gap-1.5">
+        <span>✍️</span> <span>Cadastrar Resultado</span>
+      </button>
+      <button data-tab-target="tab-importar" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 whitespace-nowrap flex items-center gap-1.5">
+        <span>📥</span> <span>Importar Dados</span>
+      </button>
+      <button data-tab-target="tab-pesos" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 whitespace-nowrap flex items-center gap-1.5">
+        <span>⚙️</span> <span>Calibrar Pesos</span>
+      </button>
+      <button data-tab-target="tab-gerenciar" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 whitespace-nowrap flex items-center gap-1.5">
+        <span>🗄️</span> <span>Gerenciar Sorteios</span>
+      </button>
+    </div>
+
+    <!-- =========================================================================
+         NOVA ABA: GESTÃO DE TESTADORES / MULTI-TENANTS
+         ========================================================================= -->
+    <div id="tab-tenants" class="tab-content card-glass p-4 sm:p-5 space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+        <div>
+          <h2 class="text-base font-black text-white flex items-center gap-2">
+            <span>👥</span> Gestão de Testadores & Multi-Tenants
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Crie links e chaves exclusivas para compartilhar a plataforma com seus testadores convidados sem dar acesso ao painel admin.
+          </p>
+        </div>
+        <button type="button" onclick="loadTenantsTable()" class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors">
+          🔄 Atualizar Lista
+        </button>
+      </div>
+
+      <!-- Formulário de Criação de Testador -->
+      <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800/90 space-y-3">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+          <span>➕</span> Cadastrar Novo Testador Convidado
+        </h3>
+        <form id="form-add-tenant" onsubmit="handleCreateTenant(event)" class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-400 mb-1">Nome do Testador *</label>
+              <input type="text" id="tenant-name" required placeholder="Ex: Carlos (WhatsApp)"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-semibold focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-400 mb-1">Chave Personalizada (opcional)</label>
+              <input type="text" id="tenant-key" placeholder="Deixe em branco p/ gerar automática"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-mono focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-400 mb-1">Notas / Observação</label>
+              <input type="text" id="tenant-notes" placeholder="Ex: Testando no RJ (Grupo VIP)"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-1">
+            <button type="submit" id="btn-create-tenant"
+              class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all active:scale-95 flex items-center gap-1.5">
+              <span>🚀</span> <span>Gerar Acesso e Link de Teste</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tabela / Lista de Testadores -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <span>📋</span> Testadores Cadastrados (<span id="tenants-count">0</span>)
+          </h3>
+          <span class="text-[11px] text-slate-500">Cada testador possui suas próprias análises isoladas</span>
+        </div>
+        <div id="tenants-table-container" class="space-y-2.5">
+          <!-- Renderizado via JS -->
+          <div class="text-center py-8 text-xs text-slate-500">Carregando testadores...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 1: CADASTRAR RESULTADO -->
+    <div id="tab-cadastro" class="tab-content card-glass p-4 sm:p-5 space-y-4 hidden">
+      <div>
+        <h2 class="text-base font-bold text-slate-100">Cadastrar Novo Sorteio</h2>
+        <p class="text-xs text-slate-400">Ao cadastrar, o sistema audita automaticamente as previsões que estavam salvas para este horário.</p>
+      </div>
+
+      <form id="form-add-result" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1">Data do Sorteio</label>
+            <input type="date" id="admin-draw-date" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-mono focus:border-indigo-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1">Horário / Extração</label>
+            <select id="admin-draw-slot" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-semibold focus:border-indigo-500 focus:outline-none">
+              <option value="PPT">PPT - 09:20</option>
+              <option value="PTM">PTM - 11:20</option>
+              <option value="PT" selected>PT - 14:20</option>
+              <option value="PTV">PTV - 16:20</option>
+              <option value="PTN">PTN - 18:20</option>
+              <option value="COR">Coruja - 21:20</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="space-y-2.5 pt-2 border-t border-slate-800">
+          <label class="block text-xs font-bold text-slate-300">Prêmios Oficiais (Digite a milhar de 4 dígitos)</label>
+
+          <!-- 1º Prêmio com destaque -->
+          <div class="p-3 bg-indigo-950/30 border border-indigo-500/30 rounded-xl">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-indigo-300">1º Prêmio (Cabeça) *</span>
+              <span id="badge-prize-1" class="hidden text-xs font-bold text-indigo-400 px-2 py-0.5 rounded bg-indigo-950 border border-indigo-800"></span>
+            </div>
+            <input type="text" id="prize-1" required maxlength="4" placeholder="Ex: 4821" pattern="\d{1,4}"
+              class="w-full bg-slate-900 border border-indigo-500/50 rounded-lg p-2 text-sm font-mono font-bold tracking-widest text-indigo-200 focus:border-indigo-400 focus:outline-none" />
+          </div>
+
+          <!-- 2º ao 5º Prêmios -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-xs text-slate-400">2º Prêmio *</span>
+                <span id="badge-prize-2" class="hidden text-[11px] text-slate-300 font-semibold"></span>
+              </div>
+              <input type="text" id="prize-2" required maxlength="4" placeholder="Ex: 9312" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono font-bold text-slate-200 focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-xs text-slate-400">3º Prêmio *</span>
+                <span id="badge-prize-3" class="hidden text-[11px] text-slate-300 font-semibold"></span>
+              </div>
+              <input type="text" id="prize-3" required maxlength="4" placeholder="Ex: 0145" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono font-bold text-slate-200 focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-xs text-slate-400">4º Prêmio *</span>
+                <span id="badge-prize-4" class="hidden text-[11px] text-slate-300 font-semibold"></span>
+              </div>
+              <input type="text" id="prize-4" required maxlength="4" placeholder="Ex: 5678" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono font-bold text-slate-200 focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-xs text-slate-400">5º Prêmio *</span>
+                <span id="badge-prize-5" class="hidden text-[11px] text-slate-300 font-semibold"></span>
+              </div>
+              <input type="text" id="prize-5" required maxlength="4" placeholder="Ex: 2390" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono font-bold text-slate-200 focus:border-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <!-- 6º e 7º Prêmios (Opcionais) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">6º Prêmio (Opcional)</label>
+              <input type="text" id="prize-6" maxlength="4" placeholder="Ex: 2346" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs font-mono text-slate-300 focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">7º Prêmio (Opcional)</label>
+              <input type="text" id="prize-7" maxlength="3" placeholder="Ex: 789" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs font-mono text-slate-300 focus:border-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow transition-all">
+          Gravar Resultado & Auditar Previsões
+        </button>
+      </form>
+    </div>
+
+    <!-- ABA 2: IMPORTAR DADOS -->
+    <div id="tab-importar" class="tab-content card-glass p-4 sm:p-5 space-y-4 hidden">
+      <div>
+        <h2 class="text-base font-bold text-slate-100">Importação em Massa</h2>
+        <p class="text-xs text-slate-400">Importe histórico passado através de arquivos CSV ou JSON.</p>
+      </div>
+
+      <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2 text-xs text-slate-300">
+        <p class="font-bold text-indigo-300">Formato esperado do CSV:</p>
+        <code class="block p-2 bg-slate-950 rounded font-mono text-[11px] text-slate-300 overflow-x-auto">
+          draw_date,slot,prize_1,prize_2,prize_3,prize_4,prize_5<br/>
+          2026-03-01,PT,4821,9312,0145,5678,2390
+        </code>
+      </div>
+
+      <form id="form-import" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-400 mb-2">Selecione o arquivo (.csv ou .json)</label>
+          <input type="file" id="import-file" accept=".csv,.json" required
+            class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer" />
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow transition-all">
+          Processar Arquivo
+        </button>
+      </form>
+    </div>
+
+    <!-- ABA 3: CALIBRAR PESOS DO ALGORITMO -->
+    <div id="tab-pesos" class="tab-content card-glass p-4 sm:p-5 space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-100">Ajuste de Pesos do Motor</h2>
+          <p class="text-xs text-slate-400">Calibre a importância de cada variável estatística em tempo real.</p>
+        </div>
+        <button id="btn-recalc" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-indigo-400 border border-slate-700 transition-colors">
+          Reavaliar Snapshots
+        </button>
+      </div>
+
+      <form id="form-weights" class="space-y-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <div class="flex justify-between font-bold mb-1 text-slate-300">
+              <span>Peso Frequência Total:</span>
+              <span id="weight-freq-tot-val" class="text-indigo-400 font-mono">15</span>
+            </div>
+            <input type="range" id="weight-freq-tot" min="0" max="100" step="1" value="15" class="w-full accent-indigo-500" />
+            <p class="text-[10px] text-slate-500">Histórico completo de ocorrências na cabeça.</p>
+          </div>
+
+          <div>
+            <div class="flex justify-between font-bold mb-1 text-slate-300">
+              <span>Peso Frequência Recente:</span>
+              <span id="weight-freq-rec-val" class="text-indigo-400 font-mono">25</span>
+            </div>
+            <input type="range" id="weight-freq-rec" min="0" max="100" step="1" value="25" class="w-full accent-indigo-500" />
+            <p class="text-[10px] text-slate-500">Momentum com decaimento exponencial.</p>
+          </div>
+
+          <div>
+            <div class="flex justify-between font-bold mb-1 text-slate-300">
+              <span>Peso Atraso:</span>
+              <span id="weight-delay-val" class="text-indigo-400 font-mono">25</span>
+            </div>
+            <input type="range" id="weight-delay" min="0" max="100" step="1" value="25" class="w-full accent-indigo-500" />
+            <p class="text-[10px] text-slate-500">Pressão por tempo sem ser sorteado.</p>
+          </div>
+
+          <div>
+            <div class="flex justify-between font-bold mb-1 text-slate-300">
+              <span>Peso Afinidade por Horário:</span>
+              <span id="weight-slot-val" class="text-indigo-400 font-mono">20</span>
+            </div>
+            <input type="range" id="weight-slot" min="0" max="100" step="1" value="20" class="w-full accent-indigo-500" />
+            <p class="text-[10px] text-slate-500">Tendência de sair no horário específico (ex: PT).</p>
+          </div>
+
+          <div>
+            <div class="flex justify-between font-bold mb-1 text-slate-300">
+              <span>Peso Repetição:</span>
+              <span id="weight-rep-val" class="text-indigo-400 font-mono">10</span>
+            </div>
+            <input type="range" id="weight-rep" min="0" max="100" step="1" value="10" class="w-full accent-indigo-500" />
+            <p class="text-[10px] text-slate-500">Probabilidade de repetir animal do último sorteio.</p>
+          </div>
+
+          <div>
+            <div class="flex justify-between font-bold mb-1 text-slate-300">
+              <span>Peso Dia da Semana:</span>
+              <span id="weight-day-val" class="text-indigo-400 font-mono">5</span>
+            </div>
+            <input type="range" id="weight-day" min="0" max="100" step="1" value="5" class="w-full accent-indigo-500" />
+            <p class="text-[10px] text-slate-500">Padrão de saída em dias específicos da semana.</p>
+          </div>
+
+          <div>
+            <div class="flex justify-between font-bold mb-1 text-slate-300">
+              <span>Taxa de Decaimento Exponencial (&lambda;):</span>
+              <span id="weight-decay-val" class="text-indigo-400 font-mono">0.08</span>
+            </div>
+            <input type="range" id="weight-decay" min="0.01" max="0.30" step="0.01" value="0.08" class="w-full accent-indigo-500" />
+            <p class="text-[10px] text-slate-500">Velocidade de esquecimento dos resultados mais antigos.</p>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow transition-all">
+          Salvar Calibração
+        </button>
+      </form>
+    </div>
+
+    <!-- ABA 4: GERENCIAR SORTEIOS -->
+    <div id="tab-gerenciar" class="tab-content card-glass p-4 sm:p-5 space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-100">Base de Resultados Cadastrados</h2>
+          <p class="text-xs text-slate-400">Consulte, edite ou exclua sorteios armazenados.</p>
+        </div>
+      </div>
+
+      <div id="results-table-container">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Bottom Navigation Mobile -->
+  <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-6 py-2 bottom-nav">
+    <div class="flex items-center justify-around">
+      <a href="/" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="text-[10px] font-bold">Análise</span>
+      </a>
+      <a href="/historico" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span class="text-[10px] font-bold">Histórico</span>
+      </a>
+      <a href="/admin" class="flex flex-col items-center gap-1 text-indigo-400">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span class="text-[10px] font-bold">Admin</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="/js/api.js?v=9.0"></script>
+  <script src="/js/admin.js?v=9.0"></script>
+</body>
+</html>

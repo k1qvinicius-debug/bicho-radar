@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>BICHO RADAR - Histórico e Auditoria</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-24 md:pb-12 antialiased">
+
+  <!-- Header Superior -->
+  <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <a href="/" class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-lg font-black shadow-lg shadow-indigo-500/20" title="Voltar ao Painel Principal">
+          📡
+        </a>
+        <div>
+          <h1 class="text-base font-black tracking-tight text-white flex items-center gap-1.5">
+            BICHO RADAR
+            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">AUDITORIA</span>
+          </h1>
+          <p class="text-[11px] text-slate-400">Aferição de acertos prévios vs resultados reais</p>
+        </div>
+      </div>
+
+      <!-- Navegação Desktop -->
+      <nav class="hidden md:flex items-center gap-1">
+        <a href="/" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">🏠 Início / Análise</a>
+        <a href="/historico" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-sm">Histórico & Auditoria</a>
+        <a href="/admin" id="nav-admin-link" class="hidden px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-300 hover:text-white hover:bg-slate-800 transition-colors">⚙️ Administração</a>
+        <div id="user-badge-desktop" class="ml-2 flex items-center gap-1.5"></div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="max-w-4xl mx-auto px-4 pt-4 space-y-4">
+
+    <!-- Seção de Ações & Resumo -->
+    <div class="flex items-center justify-between">
+      <h2 class="text-base font-bold text-slate-100">Indicadores Globais de Assertividade</h2>
+      <button id="btn-recalculate-evals" class="hidden px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Recalcular Auditoria
+      </button>
+    </div>
+
+    <!-- Cards de Métricas Principais (Grid Responsivo) -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+      <div class="card-glass p-3 text-center">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Análises</span>
+        <span id="metric-total-evals" class="text-xl font-black text-indigo-300 font-mono">0</span>
+        <span class="text-[9px] text-slate-500 block mt-0.5">Auditadas</span>
+      </div>
+
+      <div class="card-glass p-3 text-center border-emerald-500/20">
+        <span class="text-[10px] uppercase font-bold text-emerald-400 block mb-0.5">Grupo 1º</span>
+        <span id="metric-group-1st" class="text-xl font-black text-emerald-400 font-mono">0%</span>
+        <span class="text-[9px] text-slate-500 block mt-0.5">Na Cabeça</span>
+      </div>
+
+      <div class="card-glass p-3 text-center">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Grupo Cercado</span>
+        <span id="metric-group-cercado" class="text-xl font-black text-cyan-300 font-mono">0%</span>
+        <span class="text-[9px] text-slate-500 block mt-0.5">1º ao 5º</span>
+      </div>
+
+      <div class="card-glass p-3 text-center">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Dezena 1º</span>
+        <span id="metric-ten-1st" class="text-xl font-black text-amber-300 font-mono">0%</span>
+        <span class="text-[9px] text-slate-500 block mt-0.5">Na Cabeça</span>
+      </div>
+
+      <div class="card-glass p-3 text-center">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Centena 1º</span>
+        <span id="metric-hundred-1st" class="text-xl font-black text-purple-300 font-mono">0%</span>
+        <span class="text-[9px] text-slate-500 block mt-0.5">Na Cabeça</span>
+      </div>
+
+      <div class="card-glass p-3 text-center">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Score Médio</span>
+        <span id="metric-avg-score" class="text-xl font-black text-white font-mono">0.0</span>
+        <span class="text-[9px] text-slate-500 block mt-0.5">Algoritmo</span>
+      </div>
+    </div>
+
+    <!-- Desempenho por Horário -->
+    <div class="card-glass p-4">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-1.5">
+        <span>⏱️</span> Desempenho por Horário de Sorteio
+      </h3>
+      <div id="slot-metrics-container">
+        <!-- Renderizado via JS -->
+      </div>
+    </div>
+
+    <!-- Histórico de Análises Salvas (Timeline) com Filtros Interativos -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+          <span>📜</span> Histórico de Auditoria das Previsões
+        </h3>
+        <span class="text-[11px] text-slate-400">Verificação automática pós-resultado</span>
+      </div>
+
+      <!-- Barra de Filtros Interativos: Loteria, Data e Pontuação -->
+      <div class="card-glass p-3.5 sm:p-4 space-y-3 border border-slate-800">
+        <!-- Linha 0: Filtro por Loteria -->
+        <div class="pb-2.5 border-b border-slate-800/80">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <span>🎲</span> Filtrar por Loteria
+            </label>
+            <span class="text-[10px] text-slate-500">Separado por praça</span>
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap" id="history-lottery-filters">
+            <button type="button" onclick="setHistoryLotteryFilter('all')" id="btn-lottery-all"
+              class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all bg-indigo-600 text-white shadow-sm">
+              Todas
+            </button>
+            <button type="button" onclick="setHistoryLotteryFilter('RJ')" id="btn-lottery-rj"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              🌴 Rio (RJ)
+            </button>
+            <button type="button" onclick="setHistoryLotteryFilter('LOOK')" id="btn-lottery-look"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              🌾 Look Goiás
+            </button>
+            <button type="button" onclick="setHistoryLotteryFilter('NACIONAL')" id="btn-lottery-nacional"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              🇧🇷 Nacional
+            </button>
+            <button type="button" onclick="setHistoryLotteryFilter('SP')" id="btn-lottery-sp"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              🏙️ São Paulo
+            </button>
+            <button type="button" onclick="setHistoryLotteryFilter('FEDERAL')" id="btn-lottery-federal"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              🏛️ Federal
+            </button>
+          </div>
+        </div>
+
+        <!-- Linha 1: Filtro por Data -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <span>📅</span> Filtrar por Data
+            </label>
+            <span id="history-filter-count" class="text-[11px] text-indigo-400 font-mono font-semibold">Carregando análises...</span>
+          </div>
+
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onclick="setHistoryDateFilter('all')" id="btn-date-all"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-indigo-600 text-white shadow-sm">
+              Todas as Datas
+            </button>
+            <button type="button" onclick="setHistoryDateFilter('today')" id="btn-date-today"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 transition-all">
+              Hoje
+            </button>
+            <button type="button" onclick="setHistoryDateFilter('yesterday')" id="btn-date-yesterday"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 transition-all">
+              Ontem
+            </button>
+
+            <!-- Seletor de data específica -->
+            <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs">
+              <span class="text-slate-400 font-medium">Outra data:</span>
+              <input type="date" id="history-custom-date" onchange="setHistoryCustomDate(this.value)"
+                class="bg-transparent text-slate-100 font-mono text-xs focus:outline-none" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Linha 2: Filtro por Pontuação / Tipo de Acerto & Ordenação -->
+        <div class="pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <!-- Botões de Pontuação -->
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+              <span>🎯</span> Pontuação:
+            </span>
+            <button type="button" onclick="setHistoryScoreFilter('all')" id="btn-score-all"
+              class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all bg-indigo-600 text-white shadow-sm">
+              Todas
+            </button>
+            <button type="button" onclick="setHistoryScoreFilter('hits')" id="btn-score-hits"
+              class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              🔥 Com Acertos (> 0)
+            </button>
+            <button type="button" onclick="setHistoryScoreFilter('strong')" id="btn-score-strong"
+              class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              🏆 Pontuação Alta (≥ 25 pts)
+            </button>
+            <button type="button" onclick="setHistoryScoreFilter('head')" id="btn-score-head"
+              class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              👑 Na Cabeça (1º)
+            </button>
+          </div>
+
+          <!-- Seletor de Ordenação -->
+          <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            <label for="history-sort-order" class="text-[11px] font-bold text-slate-400">Ordenar:</label>
+            <select id="history-sort-order" onchange="setHistorySortOrder(this.value)"
+              class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-semibold focus:outline-none focus:border-indigo-500">
+              <option value="recent">⏱️ Mais Recentes</option>
+              <option value="score_desc">🔥 Maior Pontuação (Mais Fortes)</option>
+              <option value="score_asc">📉 Menor Pontuação</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="snapshots-timeline">
+        <!-- Renderizado via JS -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal de Detalhes da Auditoria -->
+  <div id="snapshot-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="card-glass w-full max-w-lg p-5 animate-fade-in border border-slate-700 max-h-[90vh] flex flex-col">
+      <div class="flex items-start justify-between pb-3 border-b border-slate-800">
+        <div>
+          <h3 class="font-bold text-base text-slate-100">Conferência Detalhada</h3>
+          <p class="text-xs text-slate-400">Comparação exata entre o palpite congelado e o resultado ocorrido</p>
+        </div>
+        <button onclick="closeSnapshotModal()" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="py-3 overflow-y-auto flex-1" id="snapshot-modal-content">
+        <!-- Conteúdo preenchido dinamicamente -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 text-right">
+        <button onclick="closeSnapshotModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Mobile -->
+  <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-6 py-2 bottom-nav">
+    <div class="flex items-center justify-around">
+      <a href="/" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="text-[10px] font-bold">Análise</span>
+      </a>
+      <a href="/historico" class="flex flex-col items-center gap-1 text-indigo-400">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span class="text-[10px] font-bold">Histórico</span>
+      </a>
+      <a href="/admin" id="mob-admin-link" class="hidden flex flex-col items-center gap-1 text-amber-400 hover:text-amber-200">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span class="text-[10px] font-bold">Admin</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="/js/api.js?v=11.0"></script>
+  <script src="/js/history.js?v=11.0"></script>
+</body>
+</html>
