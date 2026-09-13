@@ -55,7 +55,7 @@ def get_tenant_by_key(key: str) -> Optional[Dict[str, Any]]:
         if row:
             return dict(row)
         # Fallback de compatibilidade para a chave master do administrador
-        if key.strip() in ("0203040", "admin123"):
+        if key.strip() in ("0203040", "admin123", "admin", "adminmaster"):
             cursor.execute("SELECT * FROM tenants WHERE role = 'admin' LIMIT 1")
             row = cursor.fetchone()
             if row:

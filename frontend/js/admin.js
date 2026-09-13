@@ -64,7 +64,7 @@ window.handleAdminLogin = async function(event) {
   btn.textContent = 'Verificando...';
 
   try {
-    const res = await api.login(password);
+    const res = await api.login({ username, password, key: password });
     const role = res.role || (res.tenant && res.tenant.role);
     if (role !== 'admin') {
       api.logout();

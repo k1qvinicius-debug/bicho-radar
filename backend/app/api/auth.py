@@ -27,10 +27,11 @@ def login(payload: LoginRequestModel):
     tenant = None
 
     # Caso 1: Login por Usuário e Senha (Admin)
+    # Caso 1: Login por Usuário e Senha (Admin)
     if payload.username and payload.password:
         u = payload.username.strip().lower()
         p = payload.password.strip()
-        if u == "admin" and (p == "0203040" or p == "admin123"):
+        if u == "admin" and (p in ("0203040", "admin123", "admin", "adminmaster")):
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT * FROM tenants WHERE role = 'admin' LIMIT 1")
@@ -41,7 +42,7 @@ def login(payload: LoginRequestModel):
     # Caso 2: Login por Chave de Acesso direta
     if not tenant and payload.key:
         key = payload.key.strip()
-        if key == "0203040" or key == "admin123":
+        if key in ("0203040", "admin123", "admin", "adminmaster"):
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT * FROM tenants WHERE role = 'admin' LIMIT 1")

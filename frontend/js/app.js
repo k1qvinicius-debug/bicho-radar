@@ -2649,7 +2649,7 @@ window.handleGateAdminLogin = async function(event) {
   }
 
   try {
-    const tenant = await api.login(password);
+    const tenant = await api.login({ username, password, key: password });
     if (!tenant || tenant.role !== 'admin') {
       api.logout();
       throw new Error('Credenciais não autorizadas para perfil Administrador.');
