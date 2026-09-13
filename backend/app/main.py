@@ -62,20 +62,24 @@ FRONTEND_DIR = os.path.join(
     "frontend"
 )
 
-# Rotas diretas para páginas HTML principais
+# Rotas diretas para páginas HTML principais (aceita com ou sem .html)
 @app.get("/")
+@app.get("/index.html")
 def serve_home():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 @app.get("/historico")
+@app.get("/historico.html")
 def serve_historico():
     return FileResponse(os.path.join(FRONTEND_DIR, "historico.html"))
 
 @app.get("/admin")
+@app.get("/admin.html")
 def serve_admin():
     return FileResponse(os.path.join(FRONTEND_DIR, "admin.html"))
 
 @app.get("/preview")
+@app.get("/preview.html")
 def serve_preview():
     return FileResponse(os.path.join(FRONTEND_DIR, "preview.html"))
 
