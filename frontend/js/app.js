@@ -2346,12 +2346,12 @@ function renderDrawSlotCard(draw, slotInfo) {
       ];
 
   const tensBadges = (p1.tens || [])
-    .map((t) => `<span class="px-1.5 py-0.2 rounded bg-amber-950/50 border border-amber-500/30 text-amber-300 font-mono text-[11px] font-bold">${t}</span>`)
+    .map((t) => `<span class="px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold shrink-0 min-w-[22px] text-center">${t}</span>`)
     .join(' ');
 
   const otherPrizesHtml = otherPrizes
     .map((p) => `
-      <div class="px-2 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-1.5">
+      <div class="px-2 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-1.5 min-w-0 overflow-hidden">
         <div class="flex items-center gap-1.5 min-w-0">
           <span class="text-[10px] text-slate-400 font-bold shrink-0">${p.label || p.order + 'º'}</span>
           <span class="text-xs shrink-0">${p.animal_emoji || '🐾'}</span>
@@ -2363,12 +2363,12 @@ function renderDrawSlotCard(draw, slotInfo) {
     .join('');
 
   return `
-    <div class="p-3.5 sm:p-4 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-amber-500/30 transition-all animate-fade-in space-y-2.5">
+    <div class="p-3.5 sm:p-4 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-amber-500/30 transition-all animate-fade-in space-y-2.5 overflow-hidden">
       <!-- Topo do Card do Horário -->
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
+      <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-800/80">
         <div class="flex items-center gap-2">
           <span class="text-xs font-black uppercase tracking-wider text-slate-100">${slotInfo.name}</span>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1 shrink-0">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> APURADO
           </span>
         </div>
@@ -2379,26 +2379,32 @@ function renderDrawSlotCard(draw, slotInfo) {
       </div>
 
       <!-- 1º Prêmio (Cabeça) -->
-      <div class="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/30 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-xl flex items-center justify-center text-2xl animal-badge shrink-0 bg-amber-500/20 border border-amber-500/40 shadow-inner">
+      <div class="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 overflow-hidden">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-xl sm:text-2xl animal-badge shrink-0 bg-amber-500/20 border border-amber-500/40 shadow-inner">
             ${p1.animal_emoji || '🐾'}
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-500/25 text-amber-300 border border-amber-500/40">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-300 border border-amber-500/40 shrink-0">
                 1º Prêmio (Cabeça)
               </span>
-              <span class="text-xs text-slate-300 font-mono font-bold">Grupo ${String(p1.group).padStart(2, '0')}</span>
+              <span class="text-xs text-slate-300 font-mono font-bold shrink-0">Grupo ${String(p1.group).padStart(2, '0')}</span>
             </div>
-            <div class="text-base font-black text-white mt-0.5">${p1.animal_name}</div>
+            <div class="text-sm sm:text-base font-black text-white truncate mt-0.5">${p1.animal_name}</div>
           </div>
         </div>
 
-        <div class="text-right shrink-0">
-          <div class="text-2xl sm:text-3xl font-black text-amber-400 font-mono tracking-widest leading-none drop-shadow">${p1.number}</div>
-          <div class="flex items-center justify-end gap-1 mt-1">
-            ${tensBadges}
+        <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 border-slate-800/80 pt-2 sm:pt-0 shrink-0 w-full sm:w-auto">
+          <div class="flex flex-col sm:items-end">
+            <span class="text-[9px] uppercase font-bold text-amber-400/70 sm:hidden">Milhar Sorteada</span>
+            <div class="text-2xl sm:text-3xl font-black text-amber-400 font-mono tracking-widest leading-none drop-shadow">${p1.number}</div>
+          </div>
+          <div class="flex flex-col sm:items-end">
+            <span class="text-[9px] uppercase font-bold text-slate-400/80 sm:hidden mb-0.5 text-right">Dezenas</span>
+            <div class="flex items-center justify-end gap-1 flex-wrap">
+              ${tensBadges}
+            </div>
           </div>
         </div>
       </div>

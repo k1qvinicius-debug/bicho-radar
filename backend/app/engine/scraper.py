@@ -18,11 +18,12 @@ from ..domain import format_milhar
 from .evaluator import evaluate_draw_against_snapshots, ensure_snapshots_and_evaluate_for_draw
 
 TARGET_URL_RJ = "https://www.ojogodobicho.com/deu_no_poste.htm"
+URL_LOOK_OJOGODOBICHO = "https://www.ojogodobicho.com/look/deu-no-poste.htm"
 
 BICHOCERTO_LOTTERY_URLS = {
-    "LOOK": "https://www.bichocerto.com/resultados/lk/look",
-    "NACIONAL": "https://www.bichocerto.com/resultados/ln/loteria-nacional",
-    "SP": "https://www.bichocerto.com/resultados/sp/pt-band",
+    "LOOK": "https://bichocerto.com/resultados/lk/look/",
+    "NACIONAL": "https://bichocerto.com/resultados/ln/loteria-nacional/",
+    "SP": "https://bichocerto.com/resultados/sp/pt-band/",
 }
 
 MONTHS_PT = {
@@ -355,6 +356,139 @@ def sync_bichocerto_lottery(lottery_code: str, url: str) -> Dict[str, Any]:
     }
 
 
+def sync_look_from_ojogodobicho() -> Dict[str, Any]:
+    """
+    Extrai e sincroniza em tempo real todas as 8 extrações diárias da Look Goiás
+    diretamente de https://www.ojogodobicho.com/look/deu-no-poste.htm.
+    Cobre LK-07, LK-09, LK-11, LK-14, LK-16, LK-18, LK-21 e LK-23.
+    """
+    updated_slots = []
+    draw_ids_to_evaluate = []
+
+    try:
+        r = httpx.get(URL_LOOK_OJOGODOBICHO, headers=DEFAULT_HEADERS, follow_redirects=True, timeout=12.0)
+        r.raise_for_status()
+    except Exception as e:
+        return {"updated_slots": [], "evaluations": 0, "error": f"Erro Look (ojogodobicho): {e}"}
+
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    # Extrai data de apuração da página (ex: 13/09/2026)
+    draw_date = datetime.now().strftime("%Y-%m-%d")
+    m_date = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", r.text[:3000])
+    if m_date:
+        d, m, y = m_date.groups()
+        draw_date = f"{int(y):04d}-{int(m):02d}-{int(d):02d}"
+
+    draw_dt = datetime.strptime(draw_date, "%Y-%m-%d")
+    draw_dow = draw_dt.weekday()
+
+    results_by_slot: Dict[str, Dict[str, Any]] = {}
+
+    # Método 1: Tabela resumo com todas as colunas de horários
+    table0 = soup.find("table")
+    if table0:
+        rows = table0.find_all("tr")
+        if len(rows) >= 6:
+            header_cols = [td.get_text(strip=True) for td in rows[0].find_all(["td", "th"])]
+            slot_map = {}
+            for col_idx, col_text in enumerate(header_cols):
+                m_h = re.search(r"(\d{1,2})[:h](\d{2})?", col_text)
+                if m_h:
+                    hour = int(m_h.group(1))
+                    slot_map[col_idx] = f"LK-{hour:02d}"
+
+            for s_code in slot_map.values():
+                results_by_slot[s_code] = {"draw_date": draw_date, "slot": s_code, "prizes": {}}
+
+            for r_idx, row in enumerate(rows[1:8], start=1):
+                tds = row.find_all(["td", "th"])
+                for col_idx, s_code in slot_map.items():
+                    if col_idx < len(tds):
+                        cell_txt = tds[col_idx].get_text(strip=True)
+                        m_num = re.search(r"^(\d{3,4})", cell_txt)
+                        if m_num:
+                            results_by_slot[s_code]["prizes"][r_idx] = format_milhar(m_num.group(1))
+
+    # Método 2: Tabelas individuais de cada horário
+    for table in soup.find_all("table")[1:]:
+        prev_h = table.find_previous(["h2", "h3", "h4", "strong"])
+        if not prev_h:
+            continue
+        h_text = prev_h.get_text(" ", strip=True)
+        m_time = re.search(r"LOOK\s+(\d{1,2})[:h](\d{2})?", h_text, re.IGNORECASE)
+        if not m_time:
+            continue
+        hour = int(m_time.group(1))
+        slot_code = f"LK-{hour:02d}"
+
+        if slot_code not in results_by_slot:
+            results_by_slot[slot_code] = {"draw_date": draw_date, "slot": slot_code, "prizes": {}}
+
+        for tr in table.find_all("tr"):
+            tds = tr.find_all("td")
+            if len(tds) >= 2:
+                ord_m = re.search(r"(\d)", tds[0].get_text(strip=True))
+                num_m = re.search(r"(\d{3,4})", tds[1].get_text(strip=True))
+                if ord_m and num_m:
+                    p_ord = int(ord_m.group(1))
+                    if p_ord not in results_by_slot[slot_code]["prizes"]:
+                        results_by_slot[slot_code]["prizes"][p_ord] = format_milhar(num_m.group(1))
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        for slot_code, s_data in results_by_slot.items():
+            pz = s_data["prizes"]
+            p1 = pz.get(1, "")
+            p2 = pz.get(2, "")
+            p3 = pz.get(3, "")
+            p4 = pz.get(4, "")
+            p5 = pz.get(5, "")
+            p6 = pz.get(6) or None
+            p7 = pz.get(7) or None
+
+            if (p1 and p2 and p3 and p4 and p5 and
+                len(p1) == 4 and len(p2) == 4 and len(p3) == 4 and len(p4) == 4 and len(p5) == 4 and
+                not (p1 == "0000" and p2 == "0000" and p3 == "0000" and p4 == "0000" and p5 == "0000")):
+
+                cursor.execute("""
+                    INSERT INTO draw_results (
+                        draw_date, slot, day_of_week,
+                        prize_1, prize_2, prize_3, prize_4, prize_5, prize_6, prize_7,
+                        lottery
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(draw_date, slot) DO UPDATE SET
+                        prize_1 = excluded.prize_1,
+                        prize_2 = excluded.prize_2,
+                        prize_3 = excluded.prize_3,
+                        prize_4 = excluded.prize_4,
+                        prize_5 = excluded.prize_5,
+                        prize_6 = excluded.prize_6,
+                        prize_7 = excluded.prize_7,
+                        lottery = excluded.lottery
+                """, (draw_date, slot_code, draw_dow, p1, p2, p3, p4, p5, p6, p7, "LOOK"))
+
+                cursor.execute("SELECT id FROM draw_results WHERE draw_date = ? AND slot = ?", (draw_date, slot_code))
+                row = cursor.fetchone()
+                if row:
+                    draw_ids_to_evaluate.append(row[0])
+                    updated_slots.append(f"LOOK: {slot_code} ({draw_date})")
+
+    evaluations_count = 0
+    unique_draw_ids = list(set(draw_ids_to_evaluate))
+    for d_id in unique_draw_ids:
+        try:
+            evals = ensure_snapshots_and_evaluate_for_draw(d_id)
+            evaluations_count += len(evals)
+        except Exception:
+            pass
+
+    return {
+        "updated_slots": updated_slots,
+        "evaluations": evaluations_count
+    }
+
+
 def fetch_and_sync_results(target_lottery: Optional[str] = None) -> Dict[str, Any]:
     """
     Sincroniza os resultados de todas as loterias suportadas (ou da loteria indicada).
@@ -370,11 +504,17 @@ def fetch_and_sync_results(target_lottery: Optional[str] = None) -> Dict[str, An
         all_updated_slots.extend(rj_res.get("updated_slots", []))
         total_evaluations += rj_res.get("evaluations", 0)
 
-    # 2. Look Goiás
+    # 2. Look Goiás (Multi-fonte: O Jogo do Bicho + Bicho Certo)
     if lot_filter in ["ALL", "LOOK"]:
-        look_res = sync_bichocerto_lottery("LOOK", BICHOCERTO_LOTTERY_URLS["LOOK"])
-        all_updated_slots.extend(look_res.get("updated_slots", []))
-        total_evaluations += look_res.get("evaluations", 0)
+        # Fonte 1: O Jogo do Bicho (robusto e não bloqueia datacenters)
+        look_res1 = sync_look_from_ojogodobicho()
+        all_updated_slots.extend(look_res1.get("updated_slots", []))
+        total_evaluations += look_res1.get("evaluations", 0)
+
+        # Fonte 2: Bicho Certo (complementar)
+        look_res2 = sync_bichocerto_lottery("LOOK", BICHOCERTO_LOTTERY_URLS["LOOK"])
+        all_updated_slots.extend(look_res2.get("updated_slots", []))
+        total_evaluations += look_res2.get("evaluations", 0)
 
     # 3. Loteria Nacional
     if lot_filter in ["ALL", "NACIONAL"]:

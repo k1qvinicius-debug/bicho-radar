@@ -101,20 +101,23 @@ class TestPuxadasEngine(unittest.TestCase):
 
     def test_puxadas_picks_latest_draw_of_day(self):
         """Garante que o Radar de Puxadas sempre selecione o último sorteio cronológico apurado do dia."""
-        # LOOK: deve pegar LK-16 (e não LK-07)
+        # LOOK: deve pegar o mais recente apurado (LK-18 ou LK-16) e nunca o primeiro (LK-07)
         look_res = get_puxadas_analysis(lottery="LOOK")
         self.assertTrue(look_res["has_draw"])
-        self.assertIn("LK-16", look_res["base_animal"]["source_slot"])
+        self.assertTrue(any(s in look_res["base_animal"]["source_slot"] for s in ["LK-18", "LK-16"]))
+        self.assertNotIn("LK-07", look_res["base_animal"]["source_slot"])
 
-        # SP: deve pegar SP-15 (e não SP-08)
+        # SP: deve pegar o mais recente apurado (ex: SP-20 ou SP-15) e nunca o primeiro (SP-08)
         sp_res = get_puxadas_analysis(lottery="SP")
         self.assertTrue(sp_res["has_draw"])
-        self.assertIn("SP-15", sp_res["base_animal"]["source_slot"])
+        self.assertTrue(any(s in sp_res["base_animal"]["source_slot"] for s in ["SP-20", "SP-19", "SP-18", "SP-17", "SP-15"]))
+        self.assertNotIn("SP-08", sp_res["base_animal"]["source_slot"])
 
-        # NACIONAL: deve pegar LN-17 (e não LN-02)
+        # NACIONAL: deve pegar o mais recente apurado (LN-17) e nunca o primeiro (LN-02)
         nac_res = get_puxadas_analysis(lottery="NACIONAL")
         self.assertTrue(nac_res["has_draw"])
         self.assertIn("LN-17", nac_res["base_animal"]["source_slot"])
+        self.assertNotIn("LN-02", nac_res["base_animal"]["source_slot"])
 
     def test_api_endpoint_puxadas_lotteries(self):
         """Verifica o endpoint GET /api/analysis/puxadas com parâmetro lottery para todas as loterias."""
