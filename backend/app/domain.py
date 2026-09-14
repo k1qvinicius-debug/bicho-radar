@@ -72,11 +72,14 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
         "icon": "🌾",
         "color": "amber",
         "slots": [
-            {"code": "LK-11", "name": "Look 11h - 11:20", "time": "11:20", "order": 1},
-            {"code": "LK-14", "name": "Look 14h - 14:20", "time": "14:20", "order": 2},
-            {"code": "LK-16", "name": "Look 16h - 16:20", "time": "16:20", "order": 3},
-            {"code": "LK-18", "name": "Look 18h - 18:20", "time": "18:20", "order": 4},
-            {"code": "LK-21", "name": "Look 21h - 21:20", "time": "21:20", "order": 5},
+            {"code": "LK-07", "name": "Look 07h - 07:20", "time": "07:20", "order": 1},
+            {"code": "LK-09", "name": "Look 09h - 09:20", "time": "09:20", "order": 2},
+            {"code": "LK-11", "name": "Look 11h - 11:20", "time": "11:20", "order": 3},
+            {"code": "LK-14", "name": "Look 14h - 14:20", "time": "14:20", "order": 4},
+            {"code": "LK-16", "name": "Look 16h - 16:20", "time": "16:20", "order": 5},
+            {"code": "LK-18", "name": "Look 18h - 18:20", "time": "18:20", "order": 6},
+            {"code": "LK-21", "name": "Look 21h - 21:20", "time": "21:20", "order": 7},
+            {"code": "LK-23", "name": "Look 23h - 23:20", "time": "23:20", "order": 8},
         ]
     },
     "NACIONAL": {
@@ -87,14 +90,15 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
         "icon": "🇧🇷",
         "color": "emerald",
         "slots": [
-            {"code": "LN-02", "name": "Nacional 02h", "time": "02:00", "order": 1},
-            {"code": "LN-08", "name": "Nacional 08h", "time": "08:00", "order": 2},
-            {"code": "LN-10", "name": "Nacional 10h", "time": "10:00", "order": 3},
-            {"code": "LN-12", "name": "Nacional 12h", "time": "12:00", "order": 4},
-            {"code": "LN-15", "name": "Nacional 15h", "time": "15:00", "order": 5},
-            {"code": "LN-17", "name": "Nacional 17h", "time": "17:00", "order": 6},
-            {"code": "LN-19", "name": "Nacional 19h", "time": "19:00", "order": 7},
-            {"code": "LN-21", "name": "Nacional 21h", "time": "21:00", "order": 8},
+            {"code": "LN-02", "name": "Nacional 02h - 02:00", "time": "02:00", "order": 1},
+            {"code": "LN-08", "name": "Nacional 08h - 08:00", "time": "08:00", "order": 2},
+            {"code": "LN-10", "name": "Nacional 10h - 10:00", "time": "10:00", "order": 3},
+            {"code": "LN-12", "name": "Nacional 12h - 12:00", "time": "12:00", "order": 4},
+            {"code": "LN-15", "name": "Nacional 15h - 15:00", "time": "15:00", "order": 5},
+            {"code": "LN-17", "name": "Nacional 17h - 17:00", "time": "17:00", "order": 6},
+            {"code": "LN-19", "name": "Nacional 19h - 19:00", "time": "19:00", "order": 7},
+            {"code": "LN-21", "name": "Nacional 21h - 21:00", "time": "21:00", "order": 8},
+            {"code": "LN-23", "name": "Nacional 23h - 23:00", "time": "23:00", "order": 9},
         ]
     },
     "SP": {
@@ -105,11 +109,17 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
         "icon": "🏙️",
         "color": "cyan",
         "slots": [
-            {"code": "SP-13", "name": "Bandeirantes 13h", "time": "13:00", "order": 1},
-            {"code": "SP-14", "name": "PT-SP 14h", "time": "14:00", "order": 2},
-            {"code": "SP-16", "name": "Bandeirantes 16h", "time": "16:00", "order": 3},
-            {"code": "SP-18", "name": "Bandeirantes 18h", "time": "18:00", "order": 4},
-            {"code": "SP-20", "name": "PT-SP 20h", "time": "20:00", "order": 5},
+            {"code": "SP-08", "name": "Bandeirantes 08h - 08:00", "time": "08:00", "order": 1},
+            {"code": "SP-10", "name": "Bandeirantes 10h - 10:00", "time": "10:00", "order": 2},
+            {"code": "SP-12", "name": "Bandeirantes 12h - 12:00", "time": "12:00", "order": 3},
+            {"code": "SP-13", "name": "Bandeirantes 13h - 13:00", "time": "13:00", "order": 4},
+            {"code": "SP-14", "name": "PT-SP 14h - 14:00", "time": "14:00", "order": 5},
+            {"code": "SP-15", "name": "Bandeirantes 15h - 15:00", "time": "15:00", "order": 6},
+            {"code": "SP-16", "name": "Bandeirantes 16h - 16:00", "time": "16:00", "order": 7},
+            {"code": "SP-17", "name": "Bandeirantes 17h - 17:00", "time": "17:00", "order": 8},
+            {"code": "SP-18", "name": "Bandeirantes 18h - 18:00", "time": "18:00", "order": 9},
+            {"code": "SP-19", "name": "Bandeirantes 19h - 19:00", "time": "19:00", "order": 10},
+            {"code": "SP-20", "name": "PT-SP 20h - 20:00", "time": "20:00", "order": 11},
         ]
     },
     "FEDERAL": {
@@ -153,12 +163,24 @@ def get_slot_order_weight(slot: Optional[str]) -> int:
         "FED": 19 * 60,
         "FEDERAL": 19 * 60,
         "COR": 21 * 60 + 20,
+        "LK-07": 7 * 60 + 20,
+        "LK-09": 9 * 60 + 20,
+        "LK-11": 11 * 60 + 20,
+        "LK-14": 14 * 60 + 20,
+        "LK-16": 16 * 60 + 20,
+        "LK-18": 18 * 60 + 20,
+        "LK-21": 21 * 60 + 20,
+        "LK-23": 23 * 60 + 20,
     }
     if slot_upper in fixed_weights:
         return fixed_weights[slot_upper]
     m = re.search(r"(\d{1,2})", slot_upper)
     if m:
-        return int(m.group(1)) * 60
+        h = int(m.group(1))
+        # Se for slot da Look (LK), apurações ocorrem aos 20 min passados da hora
+        if slot_upper.startswith("LK"):
+            return h * 60 + 20
+        return h * 60
     return 0
 
 

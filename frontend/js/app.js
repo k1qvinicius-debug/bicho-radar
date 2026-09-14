@@ -323,12 +323,81 @@ function setDefaultDate() {
   }
 }
 
+function getSlotMinutes(slot) {
+  if (!slot) return 9999;
+  if (slot.time && slot.time.includes(':')) {
+    const [h, m] = slot.time.split(':').map(Number);
+    if (!isNaN(h) && !isNaN(m)) return h * 60 + m;
+  }
+  const code = (slot.code || '').toUpperCase().trim();
+  const fixed = {
+    'ALV': 8 * 60,
+    'PPT': 9 * 60 + 20,
+    'PTM': 11 * 60 + 20,
+    'PT': 14 * 60 + 20,
+    'PTV': 16 * 60 + 20,
+    'PTN': 18 * 60 + 20,
+    'FED': 19 * 60,
+    'FEDERAL': 19 * 60,
+    'COR': 21 * 60 + 20,
+    'CORUJA': 21 * 60 + 20,
+    'LK-07': 7 * 60 + 20,
+    'LK-09': 9 * 60 + 20,
+    'LK-11': 11 * 60 + 20,
+    'LK-14': 14 * 60 + 20,
+    'LK-16': 16 * 60 + 20,
+    'LK-18': 18 * 60 + 20,
+    'LK-21': 21 * 60 + 20,
+    'LK-23': 23 * 60 + 20,
+  };
+  if (fixed[code] !== undefined) return fixed[code];
+  const m = code.match(/(\d{1,2})/);
+  if (m) {
+    const h = parseInt(m[1], 10);
+    return code.startsWith('LK') ? h * 60 + 20 : h * 60;
+  }
+  return 9999;
+}
+
+function getFriendlySlotMeta(drawSlotCode) {
+  const code = (drawSlotCode || '').toUpperCase().trim();
+  if (code === 'FED' || code === 'FEDERAL') {
+    return { code, name: 'Federal - 19:00', time: '19:00' };
+  }
+  if (code === 'PPT') return { code, name: 'PPT - 09:20', time: '09:20' };
+  if (code === 'PTM') return { code, name: 'PTM - 11:20', time: '11:20' };
+  if (code === 'PT') return { code, name: 'PT - 14:20', time: '14:20' };
+  if (code === 'PTV') return { code, name: 'PTV - 16:20', time: '16:20' };
+  if (code === 'PTN') return { code, name: 'PTN - 18:20', time: '18:20' };
+  if (code === 'COR' || code === 'CORUJA') return { code, name: 'Coruja - 21:20', time: '21:20' };
+
+  if (code.startsWith('LK-')) {
+    const h = parseInt(code.replace('LK-', ''), 10);
+    const hStr = String(h).padStart(2, '0');
+    return { code, name: `Look ${hStr}h - ${hStr}:20`, time: `${hStr}:20` };
+  }
+  if (code.startsWith('LN-')) {
+    const h = parseInt(code.replace('LN-', ''), 10);
+    const hStr = String(h).padStart(2, '0');
+    return { code, name: `Nacional ${hStr}h - ${hStr}:00`, time: `${hStr}:00` };
+  }
+  if (code.startsWith('SP-')) {
+    const h = parseInt(code.replace('SP-', ''), 10);
+    const hStr = String(h).padStart(2, '0');
+    const prefix = (h === 14 || h === 20) ? 'PT-SP' : 'Bandeirantes';
+    return { code, name: `${prefix} ${hStr}h - ${hStr}:00`, time: `${hStr}:00` };
+  }
+  return { code, name: drawSlotCode, time: '' };
+}
+
 async function initSlotSelector(lottery = currentLottery) {
   const slotSelect = document.getElementById('target-slot');
   if (!slotSelect) return;
 
   try {
-    const slots = await api.getSlots(lottery);
+    const rawSlots = await api.getSlots(lottery);
+    const slots = (rawSlots || []).slice();
+    slots.sort((a, b) => getSlotMinutes(a) - getSlotMinutes(b));
     standardSlotsList = slots;
     slotSelect.innerHTML = '';
 
@@ -2586,19 +2655,16 @@ async function loadDrawResults(dateOverride = null) {
           { code: 'COR', name: 'Coruja - 21:20', time: '21:20' },
         ];
 
-    // Inclui dinamicamente qualquer slot que já tenha sorteio apurado nesta data (ex: FED no RJ às quartas, sábados e domingos)
+    // Inclui dinamicamente qualquer slot que já tenha sorteio apurado nesta data
     const dayDraws = allRecentDrawsByDate[selectedResultDate] || {};
     Object.keys(dayDraws).forEach((drawSlotCode) => {
       if (!slots.some(s => s.code === drawSlotCode)) {
-        const slotMeta = (drawSlotCode === 'FED')
-          ? { code: 'FED', name: 'Federal - 19:00', time: '19:00' }
-          : { code: drawSlotCode, name: drawSlotCode, time: '' };
-        slots.push(slotMeta);
+        slots.push(getFriendlySlotMeta(drawSlotCode));
       }
     });
 
-    // Ordena os slots cronologicamente pelo horário
-    slots.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    // Ordena os slots cronologicamente do primeiro ao último horário do dia (ex: 7h, 9h, 11h, 14h...)
+    slots.sort((a, b) => getSlotMinutes(a) - getSlotMinutes(b));
 
     // 4. Atualiza o resumo no cabeçalho
     const drawnCount = Object.keys(dayDraws).length;

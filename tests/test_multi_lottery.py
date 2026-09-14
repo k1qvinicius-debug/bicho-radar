@@ -20,8 +20,10 @@ class TestMultiLottery(unittest.TestCase):
         res = client.get("/api/results/slots?lottery=LOOK")
         self.assertEqual(res.status_code, 200)
         codes = [s["code"] for s in res.json()]
+        self.assertIn("LK-07", codes)
+        self.assertIn("LK-09", codes)
         self.assertIn("LK-11", codes)
-        self.assertEqual(len(codes), 5)
+        self.assertEqual(len(codes), 8)
 
         res_fed = client.get("/api/results/slots?lottery=FEDERAL")
         self.assertEqual(res_fed.status_code, 200)
