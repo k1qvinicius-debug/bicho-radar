@@ -315,7 +315,10 @@ async function initSlotSelector(lottery = currentLottery) {
     standardSlotsList = slots;
     slotSelect.innerHTML = '';
 
-    if (!slots || slots.length === 0) return;
+    if (!slots || slots.length === 0) {
+      renderSlotPillsUI([], null);
+      return;
+    }
 
     // Determina horário automático baseado no horário atual e grade da loteria
     const now = new Date();
@@ -340,9 +343,87 @@ async function initSlotSelector(lottery = currentLottery) {
       if (s.code === defaultSlot) opt.selected = true;
       slotSelect.appendChild(opt);
     });
+
+    renderSlotPillsUI(slots, defaultSlot);
   } catch (err) {
     console.error('Erro ao inicializar horários:', err);
   }
+}
+
+window.toggleLotteryFilterCard = function() {
+  const body = document.getElementById('lottery-filter-body');
+  const icon = document.getElementById('toggle-lottery-icon');
+  const text = document.getElementById('toggle-lottery-text');
+  if (!body) return;
+  const isHidden = body.classList.contains('hidden');
+  if (isHidden) {
+    body.classList.remove('hidden');
+    if (icon) icon.style.transform = 'rotate(0deg)';
+    if (text) text.textContent = 'Recolher';
+  } else {
+    body.classList.add('hidden');
+    if (icon) icon.style.transform = 'rotate(180deg)';
+    if (text) text.textContent = 'Expandir';
+  }
+};
+
+window.selectSlotFromPill = async function(slotCode) {
+  const slotSelect = document.getElementById('target-slot');
+  if (slotSelect) {
+    slotSelect.value = slotCode;
+  }
+  updateSlotPillsUI(slotCode);
+  await Promise.all([loadPrediction(), loadDrawResults()]);
+  updateHomeScreenData();
+};
+
+function updateSlotPillsUI(activeSlotCode) {
+  const pillsContainer = document.getElementById('lottery-slots-pills');
+  if (!pillsContainer) return;
+
+  const badge = document.getElementById('active-slot-badge');
+  let activeName = '';
+
+  pillsContainer.querySelectorAll('.slot-pill-btn').forEach((btn) => {
+    const code = btn.getAttribute('data-slot');
+    const name = btn.getAttribute('data-slot-name') || code;
+    if (code === activeSlotCode) {
+      activeName = name;
+      btn.className = 'slot-pill-btn px-3 py-1.5 rounded-xl text-xs font-black transition-all bg-[#00e676] text-slate-950 border-2 border-[#00e676] shadow-md shadow-[#00e676]/20 cursor-pointer flex items-center gap-1.5';
+    } else {
+      btn.className = 'slot-pill-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-950/80 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700 cursor-pointer flex items-center gap-1.5';
+    }
+  });
+
+  if (badge) {
+    badge.textContent = activeName ? `${activeName} Selecionado` : (activeSlotCode || 'Selecionado');
+  }
+}
+
+function renderSlotPillsUI(slots, activeSlotCode) {
+  const pillsContainer = document.getElementById('lottery-slots-pills');
+  if (!pillsContainer) return;
+  pillsContainer.innerHTML = '';
+
+  if (!slots || slots.length === 0) {
+    pillsContainer.innerHTML = '<span class="text-xs text-slate-500 italic">Nenhum horário disponível no momento.</span>';
+    const badge = document.getElementById('active-slot-badge');
+    if (badge) badge.textContent = 'Sem horários';
+    return;
+  }
+
+  slots.forEach((s) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'slot-pill-btn';
+    btn.setAttribute('data-slot', s.code);
+    btn.setAttribute('data-slot-name', s.name || s.code);
+    btn.onclick = () => window.selectSlotFromPill(s.code);
+    btn.innerHTML = `<span>⏰</span><span>${s.name || s.code}</span>`;
+    pillsContainer.appendChild(btn);
+  });
+
+  updateSlotPillsUI(activeSlotCode);
 }
 
 function updateLotteryButtonsUI() {
@@ -353,16 +434,33 @@ function updateLotteryButtonsUI() {
     'SP': 'São Paulo (SP)',
     'FEDERAL': 'Loteria Federal'
   };
+  const pureNames = {
+    'RJ': 'Rio de Janeiro',
+    'LOOK': 'Look Goiás',
+    'NACIONAL': 'Loteria Nacional',
+    'SP': 'São Paulo',
+    'FEDERAL': 'Loteria Federal'
+  };
   const badge = document.getElementById('active-lottery-badge');
   if (badge) {
     badge.textContent = lotNames[currentLottery] || currentLottery;
   }
+  const slotsLotteryName = document.getElementById('slots-lottery-name');
+  if (slotsLotteryName) {
+    slotsLotteryName.textContent = pureNames[currentLottery] || currentLottery;
+  }
+  const globalSelect = document.getElementById('global-lottery-select');
+  if (globalSelect) {
+    globalSelect.value = currentLottery;
+  }
   document.querySelectorAll('.lottery-btn').forEach((btn) => {
     const lot = btn.getAttribute('data-lottery');
+    const isColSpan2 = (lot === 'NACIONAL');
+    const colClass = isColSpan2 ? 'col-span-2 ' : '';
     if (lot === currentLottery) {
-      btn.className = 'lottery-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 bg-indigo-600 text-white border border-indigo-500 shadow-md shadow-indigo-600/30 cursor-pointer';
+      btn.className = `lottery-btn ${colClass}w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-black transition-all text-center flex items-center justify-center gap-1.5 bg-[#00e676] text-slate-950 border-2 border-[#00e676] shadow-lg shadow-[#00e676]/25 cursor-pointer`;
     } else {
-      btn.className = 'lottery-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shrink-0 flex items-center gap-1.5 cursor-pointer';
+      btn.className = `lottery-btn ${colClass}w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 bg-[#111827] hover:bg-slate-800 text-slate-200 border border-slate-800 hover:border-slate-700 cursor-pointer shadow-sm`;
     }
   });
   const drawerSelect = document.getElementById('drawer-lottery-select');
@@ -414,8 +512,10 @@ function setupEventListeners() {
   const slotSelect = document.getElementById('target-slot');
   if (slotSelect) {
     slotSelect.addEventListener('change', () => {
+      updateSlotPillsUI(slotSelect.value);
       loadPrediction();
       loadDrawResults();
+      updateHomeScreenData();
     });
   }
 

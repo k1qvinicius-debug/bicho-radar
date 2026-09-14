@@ -270,42 +270,78 @@
   <main id="main-content-container" class="max-w-4xl mx-auto px-3 sm:px-4 pt-3 sm:pt-4 space-y-4 hidden">
 
     <!-- =================================================================== -->
-    <!-- BARRA DE SELEÇÃO GLOBAL DE LOTERIAS (MULTI-LOTERIA) -->
+    <!-- PAINEL DE SELEÇÃO DE LOTERIAS E HORÁRIOS (GRADE 2 COLUNAS) -->
     <!-- =================================================================== -->
-    <div id="global-lottery-bar-container" class="card-glass p-2.5 sm:p-3 rounded-2xl border border-indigo-500/20 bg-slate-900/80 backdrop-blur-md shadow-lg transition-all duration-300">
-      <div class="flex items-center justify-between gap-2 mb-2 px-1">
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-            <span>🎲</span> Loteria Ativa:
-          </span>
-          <span id="active-lottery-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
-            Rio de Janeiro (RJ)
-          </span>
-        </div>
-        <span class="text-[10px] text-slate-500 hidden sm:inline">Estatísticas, horários e histórico isolados por praça</span>
+    <div id="global-lottery-bar-container" class="card-glass p-3 sm:p-4 rounded-2xl border border-indigo-500/20 bg-slate-900/90 backdrop-blur-md shadow-xl transition-all duration-300">
+      <div class="flex items-center justify-between gap-2 mb-2.5">
+        <span class="text-xs sm:text-sm font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Selecione o estado e os horários dos jogos:</span>
+        </span>
+        <button type="button" onclick="toggleLotteryFilterCard()" id="btn-toggle-lottery-card"
+          class="text-xs text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-all flex items-center gap-1 cursor-pointer">
+          <span id="toggle-lottery-text" class="text-[11px] font-semibold hidden sm:inline">Recolher</span>
+          <svg id="toggle-lottery-icon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+        </button>
       </div>
 
-      <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-0.5" id="lottery-switcher-bar">
-        <button type="button" onclick="switchLottery('RJ')" data-lottery="RJ"
-          class="lottery-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 bg-indigo-600 text-white border border-indigo-500 shadow-md shadow-indigo-600/30 cursor-pointer">
-          <span>🌴</span> <span>Rio (RJ)</span>
-        </button>
-        <button type="button" onclick="switchLottery('LOOK')" data-lottery="LOOK"
-          class="lottery-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>🌾</span> <span>Look Goiás</span>
-        </button>
-        <button type="button" onclick="switchLottery('NACIONAL')" data-lottery="NACIONAL"
-          class="lottery-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>🇧🇷</span> <span>Nacional</span>
-        </button>
-        <button type="button" onclick="switchLottery('SP')" data-lottery="SP"
-          class="lottery-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>🏙️</span> <span>São Paulo</span>
-        </button>
-        <button type="button" onclick="switchLottery('FEDERAL')" data-lottery="FEDERAL"
-          class="lottery-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>🏛️</span> <span>Federal</span>
-        </button>
+      <div id="lottery-filter-body" class="space-y-3">
+        <!-- Caixa de Seleção Superior (Estilo Dropdown de Referência) -->
+        <div class="relative">
+          <select id="global-lottery-select" onchange="switchLottery(this.value)"
+            class="w-full bg-[#0b1329] hover:bg-[#0f1a38] border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 font-bold appearance-none cursor-pointer focus:outline-none focus:border-[#00e676] transition-all shadow-inner">
+            <option value="RJ">Rio de Janeiro</option>
+            <option value="SP">São Paulo</option>
+            <option value="LOOK">Goiás (Look Goiás)</option>
+            <option value="FEDERAL">Loteria Federal</option>
+            <option value="NACIONAL">Loteria Nacional</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
+
+        <!-- Grade de Botões das Loterias (2 Colunas - Alto Contraste) -->
+        <div class="grid grid-cols-2 gap-2" id="lottery-switcher-bar">
+          <button type="button" onclick="switchLottery('RJ')" data-lottery="RJ"
+            class="lottery-btn w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>Rio de Janeiro</span>
+          </button>
+          <button type="button" onclick="switchLottery('SP')" data-lottery="SP"
+            class="lottery-btn w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>São Paulo</span>
+          </button>
+          <button type="button" onclick="switchLottery('LOOK')" data-lottery="LOOK"
+            class="lottery-btn w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>Goiás</span>
+          </button>
+          <button type="button" onclick="switchLottery('FEDERAL')" data-lottery="FEDERAL"
+            class="lottery-btn w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>Loteria Federal</span>
+          </button>
+          <button type="button" onclick="switchLottery('NACIONAL')" data-lottery="NACIONAL"
+            class="lottery-btn col-span-2 w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>Loteria Nacional</span>
+          </button>
+        </div>
+
+        <span id="active-lottery-badge" class="hidden">Rio de Janeiro (RJ)</span>
+
+        <!-- Seção de Horários dos Jogos da Loteria Ativa -->
+        <div class="pt-2.5 border-t border-slate-800/80">
+          <div class="flex items-center justify-between gap-2 mb-2 px-0.5 flex-wrap">
+            <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+              <span>⏰</span>
+              <span>Horários dos Jogos:</span>
+              <span id="slots-lottery-name" class="font-bold text-[#00e676]">Rio de Janeiro</span>
+            </div>
+            <span id="active-slot-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              Carregando...
+            </span>
+          </div>
+          <div id="lottery-slots-pills" class="flex flex-wrap gap-1.5 sm:gap-2">
+            <!-- Pílulas de horários geradas dinamicamente -->
+          </div>
+        </div>
       </div>
     </div>
 
