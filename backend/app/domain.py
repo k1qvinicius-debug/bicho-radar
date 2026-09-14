@@ -3,6 +3,7 @@ Módulo de Domínio do Jogo do Bicho
 Define regras canônicas dos 25 grupos, dezenas, animais e horários padrão.
 """
 
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 import re
 
@@ -130,7 +131,7 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
         "icon": "🏛️",
         "color": "purple",
         "slots": [
-            {"code": "FED", "name": "Federal 19h (Quarta/Sábado)", "time": "19:00", "order": 1},
+            {"code": "FED", "name": "Federal 19h (Quarta) • 11h (Domingo)", "time": "19:00", "order": 1},
         ]
     }
 }
@@ -142,17 +143,43 @@ def get_lottery_info(lottery_code: Optional[str] = "RJ") -> Dict[str, Any]:
     return LOTTERIES.get(code, LOTTERIES["RJ"])
 
 
-def get_lottery_slots(lottery_code: Optional[str] = "RJ") -> List[Dict[str, Any]]:
-    """Retorna a lista de horários de uma loteria específica."""
+def get_lottery_slots(lottery_code: Optional[str] = "RJ", target_date: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Retorna a lista de horários de uma loteria específica adaptando horários da Federal conforme o dia."""
     info = get_lottery_info(lottery_code)
-    return info["slots"]
+    slots = list(info["slots"])
+    if (lottery_code or "").upper() == "FEDERAL":
+        ref_date = target_date or datetime.now().strftime("%Y-%m-%d")
+        try:
+            dt = datetime.strptime(str(ref_date)[:10], "%Y-%m-%d")
+            if dt.weekday() == 6:  # Domingo às 11h00
+                return [{"code": "FED", "name": "Federal 11h (Domingo) - 11:00", "time": "11:00", "order": 1}]
+            elif dt.weekday() == 2:  # Quarta-feira às 19h00
+                return [{"code": "FED", "name": "Federal 19h (Quarta) - 19:00", "time": "19:00", "order": 1}]
+            else:
+                return [{"code": "FED", "name": "Federal 19h (Quarta) • 11h (Domingo)", "time": "19:00", "order": 1}]
+        except Exception:
+            pass
+    return slots
 
 
-def get_slot_order_weight(slot: Optional[str]) -> int:
+def get_slot_order_weight(slot: Optional[str], draw_date: Optional[str] = None) -> int:
     """Calcula os minutos aproximados desde 00:00 para ordenação cronológica precisa do sorteio."""
     if not slot:
         return 0
     slot_upper = slot.upper().strip()
+    if slot_upper in ["FED", "FEDERAL"]:
+        # Federal corre às quartas-feiras (19h) e aos domingos (11h)
+        if draw_date:
+            try:
+                dt = datetime.strptime(str(draw_date)[:10], "%Y-%m-%d")
+                if dt.weekday() == 6:  # Domingo
+                    return 11 * 60
+            except Exception:
+                pass
+        elif datetime.now().weekday() == 6:
+            return 11 * 60
+        return 19 * 60
+
     fixed_weights = {
         "ALV": 8 * 60,
         "PPT": 9 * 60 + 20,
@@ -160,8 +187,6 @@ def get_slot_order_weight(slot: Optional[str]) -> int:
         "PT": 14 * 60 + 20,
         "PTV": 16 * 60 + 20,
         "PTN": 18 * 60 + 20,
-        "FED": 19 * 60,
-        "FEDERAL": 19 * 60,
         "COR": 21 * 60 + 20,
         "LK-07": 7 * 60 + 20,
         "LK-09": 9 * 60 + 20,

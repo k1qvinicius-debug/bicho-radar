@@ -156,9 +156,12 @@ const api = {
     return await res.json();
   },
 
-  async getSlots(lottery = 'RJ') {
-    let url = `${API_BASE}/results/slots`;
-    if (lottery) url += `?lottery=${encodeURIComponent(lottery)}`;
+  async getSlots(lottery = 'RJ', targetDate = null) {
+    const params = new URLSearchParams();
+    if (lottery) params.append('lottery', lottery);
+    if (targetDate) params.append('target_date', targetDate);
+    const qs = params.toString();
+    const url = `${API_BASE}/results/slots${qs ? `?${qs}` : ''}`;
     const res = await fetch(url, {
       headers: { ...getAuthHeaders() },
     });

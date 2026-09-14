@@ -46,7 +46,7 @@ O motor calcula pontuações ($S$) ponderadas para todos os elementos com base n
 4. **Ciclos de Repetição e Consecutividade**:
    - Detecta ocorrências em sequência imediata (saída consecutiva na cabeça ou no cercado).
 5. **Afinidade por Dia da Semana**:
-   - Padrão sazonal de dias específicos (especialmente quartas-feiras e sábados de Federal).
+   - Padrão sazonal de dias específicos (especialmente quartas-feiras e domingos de Federal).
 6. **Combinações Numéricas & Projeções de Centenas e Milhares**:
    - As centenas e milhares são formadas pela correlação das dezenas mais fortes com os dígitos de centena e milhar (0 a 9) com maior pressão de atraso e frequência no horário.
 

@@ -130,8 +130,8 @@ def seed_other_lotteries(num_days: int = 35) -> Dict[str, int]:
                 date_str = cur_date.strftime("%Y-%m-%d")
                 weekday = cur_date.weekday()
 
-                # Federal só corre quarta (2) e sábado (5)
-                if lot == "FEDERAL" and weekday not in [2, 5]:
+                # Federal só corre quarta (2) e domingo (6)
+                if lot == "FEDERAL" and weekday not in [2, 6]:
                     continue
 
                 for slot in slots:

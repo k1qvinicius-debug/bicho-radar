@@ -65,10 +65,10 @@ def list_lotteries():
 
 
 @router.get("/slots", response_model=List[Dict[str, Any]])
-def get_slots(lottery: Optional[str] = Query("RJ")):
+def get_slots(lottery: Optional[str] = Query("RJ"), target_date: Optional[str] = Query(None)):
     """Retorna a lista de horários suportados para a loteria indicada."""
     from ..domain import get_lottery_slots
-    return get_lottery_slots(lottery)
+    return get_lottery_slots(lottery, target_date=target_date)
 
 
 @router.get("", response_model=Dict[str, Any])

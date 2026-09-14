@@ -323,13 +323,29 @@ function setDefaultDate() {
   }
 }
 
-function getSlotMinutes(slot) {
+function getSlotMinutes(slot, dateStr = null) {
   if (!slot) return 9999;
+  const code = (slot.code || (typeof slot === 'string' ? slot : '')).toUpperCase().trim();
+
+  if (code === 'FED' || code === 'FEDERAL') {
+    // Federal corre aos domingos às 11:00 e quartas às 19:00
+    const dStr = dateStr || document.getElementById('target-date')?.value || new Date().toISOString().split('T')[0];
+    try {
+      const parts = dStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        if (d.getDay() === 0) { // 0 = Domingo
+          return 11 * 60;
+        }
+      }
+    } catch (e) {}
+    return 19 * 60;
+  }
+
   if (slot.time && slot.time.includes(':')) {
     const [h, m] = slot.time.split(':').map(Number);
     if (!isNaN(h) && !isNaN(m)) return h * 60 + m;
   }
-  const code = (slot.code || '').toUpperCase().trim();
   const fixed = {
     'ALV': 8 * 60,
     'PPT': 9 * 60 + 20,
@@ -337,8 +353,6 @@ function getSlotMinutes(slot) {
     'PT': 14 * 60 + 20,
     'PTV': 16 * 60 + 20,
     'PTN': 18 * 60 + 20,
-    'FED': 19 * 60,
-    'FEDERAL': 19 * 60,
     'COR': 21 * 60 + 20,
     'CORUJA': 21 * 60 + 20,
     'LK-07': 7 * 60 + 20,
@@ -359,10 +373,28 @@ function getSlotMinutes(slot) {
   return 9999;
 }
 
-function getFriendlySlotMeta(drawSlotCode) {
+function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
   const code = (drawSlotCode || '').toUpperCase().trim();
   if (code === 'FED' || code === 'FEDERAL') {
-    return { code, name: 'Federal - 19:00', time: '19:00' };
+    const dStr = dateStr || document.getElementById('target-date')?.value || new Date().toISOString().split('T')[0];
+    let isSunday = false;
+    let isWednesday = false;
+    try {
+      const parts = dStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        if (d.getDay() === 0) isSunday = true;
+        if (d.getDay() === 3) isWednesday = true;
+      }
+    } catch (e) {}
+
+    if (isSunday) {
+      return { code: 'FED', name: 'Federal 11h (Domingo) - 11:00', time: '11:00' };
+    } else if (isWednesday) {
+      return { code: 'FED', name: 'Federal 19h (Quarta) - 19:00', time: '19:00' };
+    } else {
+      return { code: 'FED', name: 'Federal 19h (Quarta) • 11h (Domingo)', time: '19:00' };
+    }
   }
   if (code === 'PPT') return { code, name: 'PPT - 09:20', time: '09:20' };
   if (code === 'PTM') return { code, name: 'PTM - 11:20', time: '11:20' };
@@ -395,9 +427,10 @@ async function initSlotSelector(lottery = currentLottery) {
   if (!slotSelect) return;
 
   try {
-    const rawSlots = await api.getSlots(lottery);
+    const targetDate = document.getElementById('target-date')?.value || null;
+    const rawSlots = await api.getSlots(lottery, targetDate);
     const slots = (rawSlots || []).slice();
-    slots.sort((a, b) => getSlotMinutes(a) - getSlotMinutes(b));
+    slots.sort((a, b) => getSlotMinutes(a, targetDate) - getSlotMinutes(b, targetDate));
     standardSlotsList = slots;
     slotSelect.innerHTML = '';
 
@@ -620,6 +653,9 @@ function setupEventListeners() {
   const dateInput = document.getElementById('target-date');
   if (dateInput) {
     dateInput.addEventListener('change', () => {
+      if (currentLottery === 'FEDERAL') {
+        initSlotSelector('FEDERAL');
+      }
       loadPrediction();
       loadDrawResults();
     });
@@ -2644,27 +2680,32 @@ async function loadDrawResults(dateOverride = null) {
     }
 
     // 3. Determina lista de horários da loteria ativa
-    const slots = (standardSlotsList && standardSlotsList.length > 0)
-      ? [...standardSlotsList]
-      : [
-          { code: 'PPT', name: 'PPT - 09:20', time: '09:20' },
-          { code: 'PTM', name: 'PTM - 11:20', time: '11:20' },
-          { code: 'PT', name: 'PT - 14:20', time: '14:20' },
-          { code: 'PTV', name: 'PTV - 16:20', time: '16:20' },
-          { code: 'PTN', name: 'PTN - 18:20', time: '18:20' },
-          { code: 'COR', name: 'Coruja - 21:20', time: '21:20' },
-        ];
+    let slots = [];
+    if (currentLottery === 'FEDERAL') {
+      slots = [getFriendlySlotMeta('FED', selectedResultDate)];
+    } else if (standardSlotsList && standardSlotsList.length > 0) {
+      slots = [...standardSlotsList];
+    } else {
+      slots = [
+        { code: 'PPT', name: 'PPT - 09:20', time: '09:20' },
+        { code: 'PTM', name: 'PTM - 11:20', time: '11:20' },
+        { code: 'PT', name: 'PT - 14:20', time: '14:20' },
+        { code: 'PTV', name: 'PTV - 16:20', time: '16:20' },
+        { code: 'PTN', name: 'PTN - 18:20', time: '18:20' },
+        { code: 'COR', name: 'Coruja - 21:20', time: '21:20' },
+      ];
+    }
 
     // Inclui dinamicamente qualquer slot que já tenha sorteio apurado nesta data
     const dayDraws = allRecentDrawsByDate[selectedResultDate] || {};
     Object.keys(dayDraws).forEach((drawSlotCode) => {
       if (!slots.some(s => s.code === drawSlotCode)) {
-        slots.push(getFriendlySlotMeta(drawSlotCode));
+        slots.push(getFriendlySlotMeta(drawSlotCode, selectedResultDate));
       }
     });
 
     // Ordena os slots cronologicamente do primeiro ao último horário do dia (ex: 7h, 9h, 11h, 14h...)
-    slots.sort((a, b) => getSlotMinutes(a) - getSlotMinutes(b));
+    slots.sort((a, b) => getSlotMinutes(a, selectedResultDate) - getSlotMinutes(b, selectedResultDate));
 
     // 4. Atualiza o resumo no cabeçalho
     const drawnCount = Object.keys(dayDraws).length;
