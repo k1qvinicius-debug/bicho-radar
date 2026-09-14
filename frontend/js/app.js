@@ -386,6 +386,10 @@ window.switchLottery = async function(lotteryCode) {
   if (viewPuxadas && !viewPuxadas.classList.contains('hidden')) {
     await loadPuxadasModalContent();
   }
+  const viewAtrasados = document.getElementById('view-atrasados');
+  if (viewAtrasados && !viewAtrasados.classList.contains('hidden')) {
+    await loadAtrasadosModalList();
+  }
   updateHomeScreenData();
 
   const lotLabels = {
@@ -479,8 +483,8 @@ function setupEventListeners() {
       const originalText = btnSyncModal.innerHTML;
       btnSyncModal.innerHTML = '<span class="animate-spin inline-block mr-1">⏳</span> SINCRONIZANDO...';
       try {
-        const res = await api.syncBichoCerto();
-        showToast(res.message, 'success');
+        const res = await api.syncBichoCerto(currentLottery);
+        showToast(res.message || 'Atrasados sincronizados!', 'success');
         await loadAtrasadosModalList();
         await loadPrediction();
       } catch (err) {
@@ -911,15 +915,27 @@ async function loadAtrasadosModalList() {
   const container = document.getElementById('atrasados-modal-list');
   if (!container) return;
 
+  const lotBadge = document.getElementById('atrasados-lottery-badge');
+  const lotLabels = {
+    'RJ': 'Rio de Janeiro (RJ)',
+    'LOOK': 'Look Goiás (LOOK)',
+    'NACIONAL': 'Nacional (LN)',
+    'SP': 'São Paulo (SP)',
+    'FEDERAL': 'Federal'
+  };
+  if (lotBadge) {
+    lotBadge.textContent = lotLabels[currentLottery] || currentLottery;
+  }
+
   container.innerHTML = `
     <div class="text-center py-8 text-slate-400">
       <div class="inline-block w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2"></div>
-      <p class="text-xs">Carregando lista completa de atrasados...</p>
+      <p class="text-xs">Carregando atrasados de ${lotLabels[currentLottery] || currentLottery}...</p>
     </div>
   `;
 
   try {
-    const items = await api.getBichoCertoAtrasados();
+    const items = await api.getBichoCertoAtrasados(currentLottery);
     if (!items || items.length === 0) {
       container.innerHTML = '<p class="text-xs text-slate-400 py-6 text-center">Nenhum registro de atrasados encontrado. Clique no botão SINCRONIZAR acima.</p>';
       return;
@@ -951,7 +967,7 @@ async function loadAtrasadosModalList() {
           </div>
           <div class="text-right shrink-0">
             <div class="text-sm font-black text-amber-400 font-mono">${item.delay_days} dias</div>
-            <div class="text-[11px] text-indigo-300 font-mono font-medium">~${item.delay_draws_est} sorteios</div>
+            <div class="text-[11px] text-indigo-300 font-mono font-medium">~${item.delay_draws_est} apurações</div>
           </div>
         </div>`;
       })

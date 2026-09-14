@@ -101,20 +101,20 @@ class TestPuxadasEngine(unittest.TestCase):
 
     def test_puxadas_picks_latest_draw_of_day(self):
         """Garante que o Radar de Puxadas sempre selecione o último sorteio cronológico apurado do dia."""
-        # LOOK: deve pegar o mais recente apurado (LK-18 ou LK-16) e nunca o primeiro (LK-07)
-        look_res = get_puxadas_analysis(lottery="LOOK")
+        # LOOK em 2026-09-13: deve pegar o mais recente apurado (LK-18) e nunca o primeiro (LK-07)
+        look_res = get_puxadas_analysis(lottery="LOOK", target_date="2026-09-13")
         self.assertTrue(look_res["has_draw"])
-        self.assertTrue(any(s in look_res["base_animal"]["source_slot"] for s in ["LK-18", "LK-16"]))
+        self.assertIn("LK-18", look_res["base_animal"]["source_slot"])
         self.assertNotIn("LK-07", look_res["base_animal"]["source_slot"])
 
-        # SP: deve pegar o mais recente apurado (ex: SP-20 ou SP-15) e nunca o primeiro (SP-08)
-        sp_res = get_puxadas_analysis(lottery="SP")
+        # SP em 2026-09-13: deve pegar o mais recente apurado (SP-20) e nunca o primeiro (SP-08)
+        sp_res = get_puxadas_analysis(lottery="SP", target_date="2026-09-13")
         self.assertTrue(sp_res["has_draw"])
-        self.assertTrue(any(s in sp_res["base_animal"]["source_slot"] for s in ["SP-20", "SP-19", "SP-18", "SP-17", "SP-15"]))
+        self.assertIn("SP-20", sp_res["base_animal"]["source_slot"])
         self.assertNotIn("SP-08", sp_res["base_animal"]["source_slot"])
 
-        # NACIONAL: deve pegar o mais recente apurado (LN-17) e nunca o primeiro (LN-02)
-        nac_res = get_puxadas_analysis(lottery="NACIONAL")
+        # NACIONAL em 2026-09-13: deve pegar o mais recente apurado (LN-17) e nunca o primeiro (LN-02)
+        nac_res = get_puxadas_analysis(lottery="NACIONAL", target_date="2026-09-13")
         self.assertTrue(nac_res["has_draw"])
         self.assertIn("LN-17", nac_res["base_animal"]["source_slot"])
         self.assertNotIn("LN-02", nac_res["base_animal"]["source_slot"])

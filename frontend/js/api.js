@@ -181,20 +181,26 @@ const api = {
     return await res.json();
   },
 
-  async getBichoCertoAtrasados() {
-    const res = await fetch(`${API_BASE}/results/bichocerto-atrasados`);
-    if (!res.ok) throw new Error('Erro ao buscar atrasados do Bicho Certo.');
+  async getBichoCertoAtrasados(lottery = 'RJ') {
+    const url = lottery
+      ? `${API_BASE}/results/bichocerto-atrasados?lottery=${encodeURIComponent(lottery)}`
+      : `${API_BASE}/results/bichocerto-atrasados`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Erro ao buscar atrasados.');
     return await res.json();
   },
 
-  async syncBichoCerto() {
-    const res = await fetch(`${API_BASE}/results/sync-bichocerto`, {
+  async syncBichoCerto(lottery = 'RJ') {
+    const url = lottery
+      ? `${API_BASE}/results/sync-bichocerto?lottery=${encodeURIComponent(lottery)}`
+      : `${API_BASE}/results/sync-bichocerto`;
+    const res = await fetch(url, {
       method: 'POST',
       headers: { ...getAuthHeaders() },
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Erro ao conectar ao Bicho Certo.' }));
-      throw new Error(err.detail || 'Erro na sincronização do Bicho Certo.');
+      const err = await res.json().catch(() => ({ detail: 'Erro ao sincronizar atrasados.' }));
+      throw new Error(err.detail || 'Erro na sincronização de atrasados.');
     }
     return await res.json();
   },

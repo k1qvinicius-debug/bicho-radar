@@ -36,26 +36,25 @@ def sync_results_from_web(lottery: Optional[str] = Query(None)):
 
 
 @router.get("/bichocerto-atrasados", response_model=List[Dict[str, Any]])
-def get_bichocerto_atrasados():
+def get_bichocerto_atrasados(lottery: Optional[str] = Query("RJ")):
     """
-    Retorna o ranking oficial dos 25 animais mais atrasados no Rio de Janeiro
-    conforme apurado pelo site Bicho Certo (https://www.bichocerto.com/atrasados/rj/).
-    Inclui dias de atraso e sorteios equivalentes estimados (dias * 6).
+    Retorna o ranking oficial dos 25 animais mais atrasados para a loteria indicada
+    (Rio de Janeiro, Look Goiás, Loteria Nacional, São Paulo ou Federal).
+    Inclui dias de atraso e sorteios equivalentes estimados.
     """
-    return get_cached_bichocerto_atrasados()
+    return get_cached_bichocerto_atrasados(lottery)
 
 
 @router.post("/sync-bichocerto")
-def sync_bichocerto_atrasados():
+def sync_bichocerto_atrasados(lottery: Optional[str] = Query("RJ")):
     """
-    Dispara a sincronização e extração em tempo real dos atrasados do RJ
-    diretamente de https://www.bichocerto.com/atrasados/rj/.
+    Dispara a sincronização e apuração em tempo real dos atrasados para a loteria indicada.
     """
     try:
-        res = fetch_and_sync_bichocerto_atrasados()
+        res = fetch_and_sync_bichocerto_atrasados(lottery)
         return res
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao sincronizar com o Bicho Certo: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao sincronizar atrasados: {e}")
 
 
 @router.get("/lotteries", response_model=List[Dict[str, Any]])
