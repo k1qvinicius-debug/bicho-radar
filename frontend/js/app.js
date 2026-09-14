@@ -223,6 +223,22 @@ function updateHomeScreenData() {
   if (homeSummary && analyzedCount && analyzedCount.textContent) {
     homeSummary.textContent = analyzedCount.textContent;
   }
+
+  const homeTopBadge = document.getElementById('home-top-thermometer-badge');
+  if (homeTopBadge) {
+    if (currentPrediction && currentPrediction.top_groups && currentPrediction.top_groups.length > 0) {
+      const topG = currentPrediction.top_groups[0];
+      const therm = calculateConfidenceData(topG);
+      homeTopBadge.innerHTML = `
+        <span class="animate-pulse">${therm.flame}</span>
+        <span>Destaque: ${topG.animal_name} (Gr ${String(topG.value).padStart(2, '0')})</span>
+        <span class="text-[#00e676] font-black">${therm.confidence}%</span>
+      `;
+      homeTopBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold shadow-sm';
+    } else {
+      homeTopBadge.className = 'hidden';
+    }
+  }
 }
 
 /* ==========================================================================
@@ -1113,6 +1129,75 @@ function renderDashboard(data) {
   renderThousands(data.top_thousands || []);
 }
 
+/* ==========================================================================
+   TERMÔMETRO DE CONFIANÇA & CONVERGÊNCIA MULTI-FATORIAL
+   ========================================================================== */
+function calculateConfidenceData(group) {
+  const rawScore = Number(group.score || 50);
+  const cruzMeta = group.metadata?.cruz_do_dia;
+  const puxadaMeta = group.metadata?.puxada;
+  const bcMeta = group.metadata?.bichocerto;
+  const presencePct = Number(group.metadata?.presence_pct || 0);
+
+  // Escala base calibrada de acordo com o score estatístico (58 a 86)
+  let points = 58 + (Math.min(rawScore, 100) * 0.28);
+  const badges = [];
+
+  if (cruzMeta?.is_bicho_dia) {
+    points += 9;
+    badges.push({ icon: '🌟', label: 'Bicho do Dia da Cruz', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' });
+  } else if (cruzMeta?.is_present) {
+    points += 5;
+    badges.push({ icon: '✨', label: 'Presente na Cruz do Dia', color: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' });
+  }
+
+  if (puxadaMeta?.is_pulled) {
+    points += 7;
+    const pulledName = puxadaMeta.pulled_by_name || 'Último 1º Prêmio';
+    badges.push({ icon: '🧲', label: `Puxado por ${pulledName}`, color: 'bg-violet-500/20 text-violet-300 border-violet-500/40' });
+  }
+
+  if (bcMeta && bcMeta.delay_days >= 2) {
+    points += 5;
+    badges.push({ icon: '⏱️', label: `${bcMeta.delay_days}d sem sair na cabeça`, color: 'bg-rose-500/15 text-rose-300 border-rose-500/30' });
+  }
+
+  if (presencePct >= 10) {
+    points += 4;
+    badges.push({ icon: '📈', label: `${presencePct}% no cercado recente`, color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' });
+  }
+
+  const confidence = Math.min(Math.max(Math.round(points), 68), 98);
+
+  let level = 'Alta';
+  let levelColor = 'text-emerald-400';
+  let barColor = 'from-emerald-500 to-[#00e676]';
+  let flame = '🔥';
+  let desc = 'Sinal Quente (Alta Convergência)';
+
+  if (confidence >= 90) {
+    level = 'Máxima Força';
+    levelColor = 'text-[#00e676]';
+    barColor = 'from-emerald-400 via-[#00e676] to-lime-300';
+    flame = '🔥';
+    desc = 'Sinal Máximo • Critérios Alinhados';
+  } else if (confidence >= 80) {
+    level = 'Alta';
+    levelColor = 'text-emerald-400';
+    barColor = 'from-teal-500 to-emerald-400';
+    flame = '⚡';
+    desc = 'Forte Probabilidade Técnica';
+  } else {
+    level = 'Moderada';
+    levelColor = 'text-cyan-400';
+    barColor = 'from-cyan-500 to-teal-400';
+    flame = '🎯';
+    desc = 'Tendência Favorável';
+  }
+
+  return { confidence, level, levelColor, barColor, flame, desc, badges };
+}
+
 function renderAnimalCards(data) {
   const container = document.getElementById('animals-container');
   if (!container) return;
@@ -1133,6 +1218,7 @@ function renderAnimalCards(data) {
     const animName = g.animal_name;
     const animEmoji = g.animal_emoji || '🐾';
     const score = Number(g.score || 0);
+    const therm = calculateConfidenceData(g);
 
     // 1. Dezenas deste animal
     let animalTens = allTens
@@ -1160,15 +1246,6 @@ function renderAnimalCards(data) {
     // 3. Milhares deste animal
     // Cruz do Dia metadata
     const cruzMeta = g.metadata?.cruz_do_dia;
-    const cruzBadge = cruzMeta?.is_bicho_dia
-      ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-           🌟 Bicho do Dia
-         </span>`
-      : (cruzMeta?.is_present
-        ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-             ✨ Cruz do Dia
-           </span>`
-        : '');
 
     let animalThousands = allThousands
       .filter(m => m.group_number === grpNum || animalTens.includes(m.value.slice(-2)))
@@ -1202,36 +1279,16 @@ function renderAnimalCards(data) {
         }).join(' ')
       : '<span class="text-xs text-slate-500">-</span>';
 
-    const bcBadge = g.metadata?.bichocerto
-      ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-           🕒 ${g.metadata.bichocerto.delay_days}d sem sair
-         </span>`
-      : '';
-
-    const puxadaMeta = g.metadata?.puxada;
-    const puxadaBadge = puxadaMeta?.is_pulled
-      ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/40 shadow-sm" title="Puxado pelo último 1º prêmio (${puxadaMeta.pulled_by_emoji || ''} ${puxadaMeta.pulled_by_name || ''})">
-           🧲 Puxado por ${puxadaMeta.pulled_by_name || 'Último'}
-         </span>`
-      : '';
-
-    const presencePct = g.metadata?.presence_pct;
-    const presenceBadge = (presencePct !== undefined && presencePct !== null)
-      ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" title="Presente em ${presencePct}% dos últimos 30 sorteios no cercado (1º ao 5º)">
-           📈 ${presencePct}% no cercado
-         </span>`
-      : '';
-
     const tensStr = animalTens.join(', ');
     const hundredsStr = animalHundreds.join(', ');
     const thousandsStr = animalThousands.join(', ');
 
     return `
-      <div class="card-glass p-4 sm:p-5 rounded-2xl border border-slate-800 hover:border-amber-500/40 transition-all animate-fade-in space-y-3.5">
-        <!-- Topo: Bicho, Emoji, Ranking e Score -->
+      <div class="card-glass p-4 sm:p-5 rounded-2xl border border-slate-800 hover:border-emerald-500/40 transition-all animate-fade-in space-y-3.5">
+        <!-- Topo: Bicho, Emoji, Ranking e Termômetro -->
         <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-800/80">
           <div class="flex items-center gap-3.5">
-            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-3xl animal-badge shrink-0 bg-amber-500/15 border border-amber-500/30 shadow-inner">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-3xl animal-badge shrink-0 bg-emerald-500/15 border border-emerald-500/30 shadow-inner">
               ${animEmoji}
             </div>
             <div>
@@ -1242,14 +1299,10 @@ function renderAnimalCards(data) {
                 <h3 class="font-black text-base sm:text-lg text-white tracking-tight">${animName}</h3>
                 <span class="text-xs font-mono font-bold text-slate-400">Grupo ${grpStr}</span>
               </div>
-              <div class="flex items-center gap-2 mt-1 flex-wrap">
-                <span class="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-                  <span>🔥</span> Forte indicação estatística
+              <div class="flex items-center gap-1.5 mt-1">
+                <span class="text-[11px] ${therm.levelColor} font-bold flex items-center gap-1">
+                  <span>${therm.flame}</span> <span>${therm.desc}</span>
                 </span>
-                ${bcBadge}
-                ${cruzBadge}
-                ${puxadaBadge}
-                ${presenceBadge}
               </div>
             </div>
           </div>
@@ -1257,13 +1310,44 @@ function renderAnimalCards(data) {
           <div class="flex items-center gap-2.5 shrink-0">
             <button type="button" onclick="copyCompleteAnimalCard(this, '${animEmoji}', '${animName}', '${grpStr}', '${tensStr}', '${hundredsStr}', '${thousandsStr}')"
               title="Copiar jogo completo deste animal"
-              class="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 hover:border-amber-500/50 text-xs font-bold text-slate-200 hover:text-white transition-all flex items-center gap-1.5 active:scale-95 shadow-sm">
-              <span>📋</span> <span class="hidden sm:inline">Copiar Tudo</span>
+              class="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 hover:border-emerald-500/50 text-xs font-bold text-slate-200 hover:text-white transition-all flex items-center gap-1.5 active:scale-95 shadow-sm cursor-pointer">
+              <span>📋</span> <span class="hidden sm:inline">Copiar</span>
             </button>
             <div class="text-right">
-              <div class="text-xl sm:text-2xl font-black text-amber-400 font-mono leading-none">${score.toFixed(1)}</div>
-              <div class="text-[9px] uppercase font-bold text-slate-400 mt-1">Pontuação</div>
+              <div class="flex items-center justify-end gap-1">
+                <span class="text-sm sm:text-base animate-pulse">${therm.flame}</span>
+                <span class="text-xl sm:text-2xl font-black font-mono leading-none ${therm.levelColor}">${therm.confidence}%</span>
+              </div>
+              <div class="text-[9px] uppercase font-black tracking-wider ${therm.levelColor} mt-0.5 flex items-center justify-end gap-1">
+                <span>🌡️</span> <span>${therm.level}</span>
+              </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Barra do Termômetro e Selos de Convergência da IA -->
+        <div class="p-2.5 sm:p-3 rounded-xl bg-slate-950/80 border border-slate-800/90 space-y-2">
+          <div class="flex items-center justify-between text-xs flex-wrap gap-1">
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm">${therm.flame}</span>
+              <span class="text-slate-200 font-black">Termômetro de Confiança:</span>
+              <span class="${therm.levelColor} font-black">${therm.desc}</span>
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono font-bold">Convergência: ${therm.confidence}%</span>
+          </div>
+
+          <!-- Barra de Calor -->
+          <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden p-0.5 border border-slate-800">
+            <div class="h-full rounded-full bg-gradient-to-r ${therm.barColor} transition-all duration-700 shadow-sm" style="width: ${therm.confidence}%"></div>
+          </div>
+
+          <!-- Selos de Por Que Esse Bicho Tá Forte -->
+          <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+            <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Convergência:</span>
+            ${therm.badges.length > 0
+              ? therm.badges.map(b => `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${b.color} shadow-sm">${b.icon} ${b.label}</span>`).join(' ')
+              : `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">📊 Estatística Regular</span>`
+            }
           </div>
         </div>
 
@@ -1332,7 +1416,7 @@ function renderAnimalCards(data) {
 
         <!-- Rodapé da Ficha com Recomendação de Cercado -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/60 text-xs">
-          <div class="text-[11px] text-amber-300 font-medium flex items-center gap-1.5">
+          <div class="text-[11px] text-amber-300 font-medium leading-snug">
             <span>🛡️</span> <b>Sugestão de Jogada:</b> Apostar no <b>Grupo ${grpStr}</b> e <b>Dezenas no Cercado (1º ao 5º)</b> para garantir premiação.
           </div>
           <button type="button" onclick="openFactorsModal('Grupo ${grpStr} - ${animName}', ${score}, ${JSON.stringify(g.factors || []).replace(/"/g, '&quot;')})"
@@ -1947,11 +2031,13 @@ function renderGroups(groups) {
            </div>`
         : '';
 
+      const therm = calculateConfidenceData(g);
+
       return `
-      <div class="card-glass p-4 relative overflow-hidden group hover:border-indigo-500/40 transition-all animate-fade-in">
+      <div class="card-glass p-4 relative overflow-hidden group hover:border-emerald-500/40 transition-all animate-fade-in">
         <div class="flex items-start justify-between gap-3 mb-2">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl animal-badge shrink-0 shadow-inner">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl animal-badge shrink-0 bg-emerald-500/15 border border-emerald-500/30 shadow-inner">
               ${g.animal_emoji || '🐾'}
             </div>
             <div>
@@ -1969,13 +2055,24 @@ function renderGroups(groups) {
             </div>
           </div>
           <div class="text-right shrink-0">
-            <div class="text-xl font-black text-indigo-400 tracking-tight">${g.score.toFixed(1)}</div>
-            <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Pontuação</div>
+            <div class="flex items-center justify-end gap-1">
+              <span class="text-sm animate-pulse">${therm.flame}</span>
+              <span class="text-xl font-black font-mono tracking-tight ${therm.levelColor}">${therm.confidence}%</span>
+            </div>
+            <div class="text-[9px] uppercase font-bold tracking-wider ${therm.levelColor}">
+              ${therm.level}
+            </div>
           </div>
         </div>
 
-        <div class="w-full bg-slate-800/80 rounded-full h-1.5 mb-3 overflow-hidden">
-          <div class="progress-bar-score h-full rounded-full" style="width: ${Math.min(g.score, 100)}%"></div>
+        <div class="flex items-center justify-between mb-1 text-[11px]">
+          <span class="text-slate-400 font-bold flex items-center gap-1">
+            <span>🌡️</span> Termômetro: <span class="${therm.levelColor} font-black">${therm.desc}</span>
+          </span>
+          <span class="text-[10px] text-slate-500 font-mono">Score: ${g.score.toFixed(1)}</span>
+        </div>
+        <div class="w-full bg-slate-900 rounded-full h-2 mb-3 overflow-hidden p-0.5 border border-slate-800">
+          <div class="h-full rounded-full bg-gradient-to-r ${therm.barColor} transition-all duration-500" style="width: ${therm.confidence}%"></div>
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
