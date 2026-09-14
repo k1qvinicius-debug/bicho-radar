@@ -56,7 +56,7 @@ def _get_hot_leading_digits(conn, lottery: str = "RJ") -> Tuple[List[str], List[
     if lot_code == "FEDERAL":
         cursor.execute("SELECT prize_1 FROM draw_results WHERE (lottery = 'FEDERAL' OR slot = 'FED') ORDER BY draw_date DESC, id DESC LIMIT 60")
     elif lot_code == "RJ":
-        cursor.execute("SELECT prize_1 FROM draw_results WHERE (lottery = 'RJ' OR lottery IS NULL OR slot = 'FED') ORDER BY draw_date DESC, id DESC LIMIT 60")
+        cursor.execute("SELECT prize_1 FROM draw_results WHERE (lottery = 'RJ' OR lottery IS NULL) ORDER BY draw_date DESC, id DESC LIMIT 60")
     else:
         cursor.execute("SELECT prize_1 FROM draw_results WHERE lottery = ? ORDER BY draw_date DESC, id DESC LIMIT 60", (lot_code,))
     rows = cursor.fetchall()
@@ -205,7 +205,7 @@ def get_puxadas_analysis(
             lot_filter = "(lottery = 'FEDERAL' OR slot = 'FED')"
             lot_params: List[Any] = []
         elif effective_lottery == "RJ":
-            lot_filter = "(lottery = 'RJ' OR lottery IS NULL OR slot = 'FED')"
+            lot_filter = "(lottery = 'RJ' OR lottery IS NULL)"
             lot_params = []
         else:
             lot_filter = "lottery = ?"
@@ -225,7 +225,7 @@ def get_puxadas_analysis(
             ]
 
             if valid_candidates:
-                valid_candidates.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot"))), reverse=True)
+                valid_candidates.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot")), d.get("id", 0)), reverse=True)
                 last_draw = valid_candidates[0]
 
         if not last_draw:
@@ -240,7 +240,7 @@ def get_puxadas_analysis(
                 cursor.execute(f"SELECT * FROM draw_results WHERE {lot_filter} AND draw_date = ?", lot_params + [latest_date])
                 draws_on_date = [dict(r) for r in cursor.fetchall()]
                 if draws_on_date:
-                    draws_on_date.sort(key=lambda d: get_slot_order_weight(d.get("slot")), reverse=True)
+                    draws_on_date.sort(key=lambda d: (get_slot_order_weight(d.get("slot")), d.get("id", 0)), reverse=True)
                     last_draw = draws_on_date[0]
 
     if not last_draw:

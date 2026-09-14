@@ -117,6 +117,7 @@ window.switchScreen = function(screenName, updateHash = true) {
   if (screenName === 'cruz') {
     loadCruzModalContent();
   } else if (screenName === 'puxadas') {
+    _puxadasDataCache = null;
     loadPuxadasModalContent();
   } else if (screenName === 'atrasados') {
     loadAtrasadosModalList();
@@ -483,6 +484,18 @@ function updateLotteryButtonsUI() {
   if (drawerSelect) {
     drawerSelect.value = currentLottery;
   }
+  const puxBadge = document.getElementById('puxadas-lottery-badge');
+  if (puxBadge) {
+    puxBadge.textContent = lotNames[currentLottery] || currentLottery;
+  }
+  document.querySelectorAll('.puxadas-lot-btn').forEach(btn => {
+    const lot = btn.getAttribute('data-puxadas-lottery');
+    if (lot === currentLottery) {
+      btn.className = 'puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-black transition-all shrink-0 cursor-pointer bg-violet-600 text-white border border-violet-400 shadow-sm';
+    } else {
+      btn.className = 'puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60';
+    }
+  });
 }
 
 window.switchLottery = async function(lotteryCode) {
@@ -650,6 +663,7 @@ window.closeCruzModal = function () {
 };
 
 window.openPuxadasModal = async function () {
+  _puxadasDataCache = null;
   switchScreen('puxadas');
 };
 
@@ -658,6 +672,65 @@ window.closePuxadasModal = function () {
 };
 
 let _puxadasDataCache = null;
+
+window.syncPuxadasModal = async function () {
+  const btnTop = document.getElementById('btn-sync-puxadas-modal');
+  const btnCard = document.getElementById('btn-sync-puxadas-card');
+  const origTopHtml = btnTop ? btnTop.innerHTML : '';
+  const origCardHtml = btnCard ? btnCard.innerHTML : '';
+
+  if (btnTop) {
+    btnTop.disabled = true;
+    btnTop.innerHTML = '<span class="animate-spin inline-block mr-1">⏳</span> ATUALIZANDO...';
+  }
+  if (btnCard) {
+    btnCard.disabled = true;
+    btnCard.innerHTML = '<span class="animate-spin inline-block mr-1">⏳</span> SINCRONIZANDO...';
+  }
+
+  const lotNames = {
+    'RJ': 'Rio de Janeiro (RJ)',
+    'LOOK': 'Look Goiás',
+    'NACIONAL': 'Nacional',
+    'SP': 'São Paulo',
+    'FEDERAL': 'Federal'
+  };
+  const lotLabel = lotNames[currentLottery] || currentLottery;
+
+  showToast(`Sincronizando puxadas com último resultado de ${lotLabel}...`, 'info');
+
+  try {
+    // 1. Puxa os últimos resultados oficiais da banca ativa da web
+    await api.syncWebResults(currentLottery);
+
+    // 2. Limpa cache das puxadas
+    _puxadasDataCache = null;
+
+    // 3. Recarrega as puxadas com base no último sorteio recém-apurado
+    await loadPuxadasModalContent();
+
+    const base = _puxadasDataCache?.base_animal;
+    const baseName = base?.animal ? `${base.emoji || ''} ${base.animal.toUpperCase()}` : 'Animal';
+    const baseGroup = base?.group ? `(Grupo ${String(base.group).padStart(2, '0')})` : '';
+    const slotStr = base?.source_slot ? ` • ${base.source_slot}` : '';
+
+    showToast(`Puxadas atualizadas! 1º Prêmio: ${baseName} ${baseGroup}${slotStr}`, 'success');
+  } catch (err) {
+    console.warn('Erro ao sincronizar via web, recarregando apuração do banco:', err);
+    _puxadasDataCache = null;
+    await loadPuxadasModalContent();
+    showToast('Puxadas atualizadas com a apuração mais recente do banco.', 'info');
+  } finally {
+    if (btnTop) {
+      btnTop.disabled = false;
+      btnTop.innerHTML = origTopHtml;
+    }
+    if (btnCard) {
+      btnCard.disabled = false;
+      btnCard.innerHTML = origCardHtml;
+    }
+  }
+};
 
 async function loadPuxadasModalContent(selectedGroup = null) {
   try {
@@ -681,6 +754,21 @@ async function loadPuxadasModalContent(selectedGroup = null) {
     if (subTitleEl) {
       subTitleEl.textContent = `Tradição popular: animais atraídos pelo último 1º prêmio em ${lotLabel}`;
     }
+
+    const badgeEl = document.getElementById('puxadas-lottery-badge');
+    if (badgeEl) {
+      badgeEl.textContent = lotLabel;
+    }
+
+    // Atualiza visual dos botões de loteria na barra de puxadas
+    document.querySelectorAll('.puxadas-lot-btn').forEach(btn => {
+      const lot = btn.getAttribute('data-puxadas-lottery');
+      if (lot === currentLottery) {
+        btn.className = 'puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-black transition-all shrink-0 cursor-pointer bg-violet-600 text-white border border-violet-400 shadow-sm';
+      } else {
+        btn.className = 'puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60';
+      }
+    });
 
     const selectEl = document.getElementById('puxadas-select-animal');
     if (selectEl && (selectEl.options.length <= 1 || !selectEl.hasChildNodes())) {

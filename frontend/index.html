@@ -921,6 +921,11 @@
         </button>
 
         <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <button id="btn-sync-puxadas-modal" onclick="syncPuxadasModal()"
+            class="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>ATUALIZAR</span>
+          </button>
           <button id="btn-copy-all-puxadas-m" onclick="copyAllPuxadasThousands(this)"
             class="px-2.5 py-1.5 rounded-lg bg-amber-950/60 hover:bg-amber-900 border border-amber-700/60 hover:border-amber-400 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer">
             <span>👑</span> <span>Copiar Milhares</span>
@@ -932,6 +937,38 @@
         </div>
       </div>
 
+      <!-- Seletor Rápido de Loterias no Radar de Puxadas -->
+      <div class="card-glass p-3 rounded-2xl border border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 -mx-1 px-1">
+          <span class="text-[10px] uppercase font-bold tracking-wider text-violet-300 shrink-0 mr-1">Banca:</span>
+          <button type="button" onclick="switchLottery('RJ')" data-puxadas-lottery="RJ"
+            class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
+            Rio de Janeiro
+          </button>
+          <button type="button" onclick="switchLottery('LOOK')" data-puxadas-lottery="LOOK"
+            class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
+            Look Goiás
+          </button>
+          <button type="button" onclick="switchLottery('NACIONAL')" data-puxadas-lottery="NACIONAL"
+            class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
+            Nacional
+          </button>
+          <button type="button" onclick="switchLottery('SP')" data-puxadas-lottery="SP"
+            class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
+            São Paulo
+          </button>
+          <button type="button" onclick="switchLottery('FEDERAL')" data-puxadas-lottery="FEDERAL"
+            class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
+            Federal
+          </button>
+        </div>
+        <button id="btn-sync-puxadas-card" onclick="syncPuxadasModal()"
+          class="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-emerald-950/40 transition-all active:scale-95 cursor-pointer shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span>Sincronizar Último Bicho</span>
+        </button>
+      </div>
+
       <!-- Conteúdo do Radar de Puxadas -->
       <div class="card-glass p-5 rounded-2xl border border-violet-500/30 space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
@@ -940,7 +977,10 @@
               🧲
             </div>
             <div>
-              <h2 class="text-base font-black uppercase tracking-wider text-slate-100">RADAR DE PUXADAS</h2>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h2 class="text-base font-black uppercase tracking-wider text-slate-100">RADAR DE PUXADAS</h2>
+                <span id="puxadas-lottery-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30"></span>
+              </div>
               <p id="puxadas-modal-subtitle" class="text-xs text-slate-400">Tradição popular: animais atraídos pelo resultado do 1º prêmio</p>
             </div>
           </div>
