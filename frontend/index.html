@@ -78,22 +78,23 @@
   </div>
 
   <aside id="drawer-menu"
-    class="fixed top-0 left-0 bottom-0 z-[60] w-72 sm:w-80 bg-slate-950 border-r border-slate-800 shadow-2xl p-5 flex flex-col justify-between transform -translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto">
+    class="fixed top-0 left-0 bottom-0 z-[60] w-72 sm:w-80 bg-[#090D16] border-r border-slate-800/80 shadow-2xl p-4 flex flex-col justify-between transform -translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto">
     
-    <!-- Top Content -->
-    <div class="space-y-4">
-      <!-- Drawer Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-lg font-black shadow-lg shadow-indigo-500/20">
+    <!-- Conteúdo Superior -->
+    <div class="space-y-3.5">
+      <!-- Cabeçalho Limpo -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+        <div class="flex items-center gap-2.5 cursor-pointer" onclick="navigateTo(null, 'home')">
+          <div class="w-8 h-8 rounded-xl bg-slate-800/90 border border-slate-700/80 flex items-center justify-center text-base shadow-sm">
             📡
           </div>
           <div>
-            <h2 class="text-sm font-black tracking-tight text-white flex items-center gap-1.5">
-              BICHO RADAR <span class="text-[9px] font-bold px-1 rounded bg-emerald-500/20 text-emerald-400">PRO</span>
-            </h2>
-            <div id="drawer-user-status" class="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <div class="text-sm font-black tracking-wider text-slate-100 flex items-center gap-1.5">
+              BICHO RADAR
+              <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">PRO</span>
+            </div>
+            <div id="drawer-user-status" class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               <span id="drawer-user-label" class="font-medium text-slate-300">Conectado</span>
             </div>
           </div>
@@ -103,95 +104,193 @@
         </button>
       </div>
 
-      <!-- Seção 0: Seleção de Loteria no Drawer -->
-      <div class="space-y-1.5 pb-3 border-b border-slate-800/80">
-        <div class="flex items-center justify-between px-2">
-          <span class="text-[10px] uppercase font-black tracking-wider text-slate-400 flex items-center gap-1">
-            <span>🎲</span> Loteria Ativa
-          </span>
-          <span class="text-[9px] text-indigo-400 font-bold font-mono">MULTI-BANCA</span>
-        </div>
-        <select id="drawer-lottery-select" onchange="switchLottery(this.value); closeDrawer();"
-          class="w-full bg-slate-900 border border-indigo-500/40 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-indigo-400">
-          <option value="RJ">🌴 Rio de Janeiro (RJ)</option>
-          <option value="LOOK">🌾 Look Goiás (LOOK)</option>
-          <option value="NACIONAL">🇧🇷 Loteria Nacional</option>
-          <option value="SP">🏙️ São Paulo (SP)</option>
-          <option value="FEDERAL">🏛️ Loteria Federal</option>
-        </select>
-      </div>
-
-      <!-- Seção 1: Telas Principais (Navegação Direta sem Modais) -->
-      <div class="space-y-1">
-        <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 px-2 block mb-1">🏠 Telas & Ferramentas</span>
-        
-        <button type="button" onclick="switchScreen('home')"
-          class="w-full px-3 py-2.5 rounded-xl hover:bg-indigo-950/40 border border-transparent hover:border-indigo-500/40 text-slate-200 hover:text-indigo-300 text-xs font-bold flex items-center gap-2.5 transition-all group cursor-pointer">
-          <span class="text-base group-hover:scale-110 transition-transform">🏠</span>
+      <!-- Item Início -->
+      <div>
+        <button type="button" onclick="navigateTo(null, 'home')" id="sidebar-btn-home"
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <span class="text-sm">🏠</span>
           <span>Início (Visão Geral)</span>
         </button>
-
-        <button type="button" onclick="switchScreen('palpites')"
-          class="w-full px-3 py-2.5 rounded-xl hover:bg-indigo-950/40 border border-transparent hover:border-indigo-500/40 text-slate-200 hover:text-indigo-300 text-xs font-bold flex items-center gap-2.5 transition-all group cursor-pointer">
-          <span class="text-base group-hover:scale-110 transition-transform">🎯</span>
-          <span>Palpites por Tópicos</span>
-        </button>
-
-        <button type="button" onclick="switchScreen('cruz')"
-          class="w-full px-3 py-2.5 rounded-xl hover:bg-cyan-950/40 border border-transparent hover:border-cyan-500/40 text-slate-200 hover:text-cyan-300 text-xs font-bold flex items-center justify-between transition-all group cursor-pointer">
-          <div class="flex items-center gap-2.5">
-            <span class="text-base group-hover:scale-110 transition-transform">✖️</span>
-            <span>Cruz do Dia</span>
-          </div>
-          <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Bicho do Dia</span>
-        </button>
-
-        <button type="button" onclick="switchScreen('puxadas')"
-          class="w-full px-3 py-2.5 rounded-xl hover:bg-violet-950/40 border border-transparent hover:border-violet-500/40 text-slate-200 hover:text-violet-300 text-xs font-bold flex items-center gap-2.5 transition-all group cursor-pointer">
-          <span class="text-base group-hover:scale-110 transition-transform">🧲</span>
-          <span>Radar de Puxadas</span>
-        </button>
-
-        <button type="button" onclick="switchScreen('atrasados')"
-          class="w-full px-3 py-2.5 rounded-xl hover:bg-amber-950/40 border border-transparent hover:border-amber-500/40 text-slate-200 hover:text-amber-300 text-xs font-bold flex items-center gap-2.5 transition-all group cursor-pointer">
-          <span class="text-base group-hover:scale-110 transition-transform">⏱️</span>
-          <span>Bichos Atrasados</span>
-        </button>
-
-        <button type="button" onclick="switchScreen('resultados')"
-          class="w-full px-3 py-2.5 rounded-xl hover:bg-emerald-950/40 border border-transparent hover:border-emerald-500/40 text-slate-200 hover:text-emerald-300 text-xs font-bold flex items-center gap-2.5 transition-all group cursor-pointer">
-          <span class="text-base group-hover:scale-110 transition-transform">📋</span>
-          <span>Resultados das Extrações</span>
-        </button>
       </div>
 
-      <!-- Seção 2: Histórico e Auditoria -->
-      <div class="space-y-1 pt-2 border-t border-slate-800/80">
-        <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 px-2 block mb-1">📊 Histórico & Auditoria</span>
+      <!-- Seção Loterias e Subgrupos -->
+      <div class="space-y-1.5">
+        <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 px-2 block mb-0.5">🎲 Loterias & Subgrupos</span>
 
-        <button type="button" onclick="saveSnapshot(); closeDrawer();"
-          class="w-full px-3 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer">
-          <span class="text-base">💾</span>
-          <span>Salvar Análise Atual</span>
+        <!-- Rio de Janeiro -->
+        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-RJ">
+          <button type="button" onclick="toggleLotteryAccordion('RJ')"
+            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">🌴</span>
+              <span>Rio de Janeiro</span>
+            </div>
+            <svg id="acc-icon-RJ" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="acc-content-RJ" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
+            <button type="button" onclick="navigateTo('RJ', 'palpites')" id="subnav-RJ-palpites"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🎯</span> <span>Palpites do Motor</span>
+            </button>
+            <button type="button" onclick="navigateTo('RJ', 'resultados')" id="subnav-RJ-resultados"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>📋</span> <span>Resultados</span>
+            </button>
+            <button type="button" onclick="navigateTo('RJ', 'atrasados')" id="subnav-RJ-atrasados"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>⏱️</span> <span>Mais Atrasados</span>
+            </button>
+            <button type="button" onclick="navigateTo('RJ', 'puxadas')" id="subnav-RJ-puxadas"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🧲</span> <span>Radar de Puxadas</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- São Paulo -->
+        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-SP">
+          <button type="button" onclick="toggleLotteryAccordion('SP')"
+            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">🏙️</span>
+              <span>São Paulo</span>
+            </div>
+            <svg id="acc-icon-SP" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="acc-content-SP" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
+            <button type="button" onclick="navigateTo('SP', 'palpites')" id="subnav-SP-palpites"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🎯</span> <span>Palpites do Motor</span>
+            </button>
+            <button type="button" onclick="navigateTo('SP', 'resultados')" id="subnav-SP-resultados"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>📋</span> <span>Resultados</span>
+            </button>
+            <button type="button" onclick="navigateTo('SP', 'atrasados')" id="subnav-SP-atrasados"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>⏱️</span> <span>Mais Atrasados</span>
+            </button>
+            <button type="button" onclick="navigateTo('SP', 'puxadas')" id="subnav-SP-puxadas"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🧲</span> <span>Radar de Puxadas</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Look Goiás -->
+        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-LOOK">
+          <button type="button" onclick="toggleLotteryAccordion('LOOK')"
+            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">🌾</span>
+              <span>Look Goiás</span>
+            </div>
+            <svg id="acc-icon-LOOK" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="acc-content-LOOK" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
+            <button type="button" onclick="navigateTo('LOOK', 'palpites')" id="subnav-LOOK-palpites"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🎯</span> <span>Palpites do Motor</span>
+            </button>
+            <button type="button" onclick="navigateTo('LOOK', 'resultados')" id="subnav-LOOK-resultados"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>📋</span> <span>Resultados</span>
+            </button>
+            <button type="button" onclick="navigateTo('LOOK', 'atrasados')" id="subnav-LOOK-atrasados"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>⏱️</span> <span>Mais Atrasados</span>
+            </button>
+            <button type="button" onclick="navigateTo('LOOK', 'puxadas')" id="subnav-LOOK-puxadas"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🧲</span> <span>Radar de Puxadas</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Loteria Nacional -->
+        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-NACIONAL">
+          <button type="button" onclick="toggleLotteryAccordion('NACIONAL')"
+            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">🇧🇷</span>
+              <span>Loteria Nacional</span>
+            </div>
+            <svg id="acc-icon-NACIONAL" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="acc-content-NACIONAL" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
+            <button type="button" onclick="navigateTo('NACIONAL', 'palpites')" id="subnav-NACIONAL-palpites"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🎯</span> <span>Palpites do Motor</span>
+            </button>
+            <button type="button" onclick="navigateTo('NACIONAL', 'resultados')" id="subnav-NACIONAL-resultados"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>📋</span> <span>Resultados</span>
+            </button>
+            <button type="button" onclick="navigateTo('NACIONAL', 'atrasados')" id="subnav-NACIONAL-atrasados"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>⏱️</span> <span>Mais Atrasados</span>
+            </button>
+            <button type="button" onclick="navigateTo('NACIONAL', 'puxadas')" id="subnav-NACIONAL-puxadas"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🧲</span> <span>Radar de Puxadas</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Loteria Federal -->
+        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-FEDERAL">
+          <button type="button" onclick="toggleLotteryAccordion('FEDERAL')"
+            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">🏛️</span>
+              <span>Loteria Federal</span>
+            </div>
+            <svg id="acc-icon-FEDERAL" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="acc-content-FEDERAL" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
+            <button type="button" onclick="navigateTo('FEDERAL', 'palpites')" id="subnav-FEDERAL-palpites"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🎯</span> <span>Palpites (Qua & Dom)</span>
+            </button>
+            <button type="button" onclick="navigateTo('FEDERAL', 'resultados')" id="subnav-FEDERAL-resultados"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>📋</span> <span>Resultados</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cruz do Dia (Item ÚNICO e Universal!) -->
+      <div class="pt-2 border-t border-slate-800/80 space-y-1">
+        <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 px-2 block mb-0.5">⚡ Ferramentas Globais</span>
+
+        <button type="button" onclick="navigateTo(null, 'cruz')" id="sidebar-btn-cruz"
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm">✖️</span>
+            <span>Cruz do Dia</span>
+          </div>
+          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Universal</span>
         </button>
 
-        <a href="/historico" class="w-full px-3 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer">
-          <span class="text-base">📊</span>
-          <span>Histórico de Análises</span>
+        <a href="/historico" id="sidebar-btn-historico"
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <span class="text-sm">📊</span>
+          <span>Histórico de Assertividade</span>
         </a>
       </div>
     </div>
 
     <!-- Drawer Footer: Acesso Restrito / Logout -->
-    <div class="pt-3 border-t border-slate-800 space-y-2">
+    <div class="pt-3 border-t border-slate-800/80 space-y-2">
       <a href="/admin" id="drawer-admin-link"
-        class="hidden w-full px-3 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-black flex items-center gap-2.5 transition-all shadow-sm">
-        <span class="text-base">👑</span>
+        class="hidden w-full px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-black flex items-center gap-2.5 transition-all shadow-sm">
+        <span class="text-sm">👑</span>
         <span>Painel do Administrador</span>
       </a>
 
       <button type="button" onclick="handleDrawerLogout()"
-        class="w-full px-3 py-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer">
+        class="w-full px-3 py-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer">
         <span class="text-sm">🚪</span>
         <span>Sair / Trocar Chave</span>
       </button>
@@ -270,78 +369,45 @@
   <main id="main-content-container" class="max-w-4xl mx-auto px-3 sm:px-4 pt-3 sm:pt-4 space-y-4 hidden">
 
     <!-- =================================================================== -->
-    <!-- PAINEL DE SELEÇÃO DE LOTERIAS E HORÁRIOS (GRADE 2 COLUNAS) -->
+    <!-- BARRA DE CONTEXTO E HORÁRIOS (MINIMALISTA, ELEGANTE E COMPACTA) -->
     <!-- =================================================================== -->
-    <div id="global-lottery-bar-container" class="card-glass p-3 sm:p-4 rounded-2xl border border-indigo-500/20 bg-slate-900/90 backdrop-blur-md shadow-xl transition-all duration-300">
-      <div class="flex items-center justify-between gap-2 mb-2.5">
-        <span class="text-xs sm:text-sm font-bold text-slate-100 flex items-center gap-1.5">
-          <span>Selecione o estado e os horários dos jogos:</span>
-        </span>
-        <button type="button" onclick="toggleLotteryFilterCard()" id="btn-toggle-lottery-card"
-          class="text-xs text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-all flex items-center gap-1 cursor-pointer">
-          <span id="toggle-lottery-text" class="text-[11px] font-semibold hidden sm:inline">Recolher</span>
-          <svg id="toggle-lottery-icon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-        </button>
-      </div>
-
-      <div id="lottery-filter-body" class="space-y-3">
-        <!-- Caixa de Seleção Superior (Estilo Dropdown de Referência) -->
-        <div class="relative">
-          <select id="global-lottery-select" onchange="switchLottery(this.value)"
-            class="w-full bg-[#0b1329] hover:bg-[#0f1a38] border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 font-bold appearance-none cursor-pointer focus:outline-none focus:border-[#00e676] transition-all shadow-inner">
-            <option value="RJ">Rio de Janeiro</option>
-            <option value="SP">São Paulo</option>
-            <option value="LOOK">Goiás (Look Goiás)</option>
-            <option value="FEDERAL">Loteria Federal</option>
-            <option value="NACIONAL">Loteria Nacional</option>
-          </select>
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+    <div id="global-lottery-bar-container" class="p-2.5 sm:p-3 rounded-2xl bg-slate-900/90 border border-slate-800/90 shadow-lg backdrop-blur-md transition-all duration-200">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <!-- Indicador da Loteria e Ferramenta Selecionada -->
+        <div class="flex items-center gap-2">
+          <span id="active-lottery-icon" class="text-base">🌴</span>
+          <div class="flex items-center gap-1.5">
+            <span id="slots-lottery-name" class="text-xs sm:text-sm font-black text-slate-100 uppercase tracking-wide">Rio de Janeiro</span>
+            <span class="text-slate-600 font-bold">•</span>
+            <span id="current-screen-badge" class="text-xs font-bold text-emerald-400">Palpites do Motor</span>
           </div>
         </div>
 
-        <!-- Grade de Botões das Loterias (2 Colunas - Alto Contraste) -->
-        <div class="grid grid-cols-2 gap-2" id="lottery-switcher-bar">
-          <button type="button" onclick="switchLottery('RJ')" data-lottery="RJ"
-            class="lottery-btn w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer">
-            <span>Rio de Janeiro</span>
-          </button>
-          <button type="button" onclick="switchLottery('SP')" data-lottery="SP"
-            class="lottery-btn w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer">
-            <span>São Paulo</span>
-          </button>
-          <button type="button" onclick="switchLottery('LOOK')" data-lottery="LOOK"
-            class="lottery-btn w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer">
-            <span>Goiás</span>
-          </button>
-          <button type="button" onclick="switchLottery('FEDERAL')" data-lottery="FEDERAL"
-            class="lottery-btn w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer">
-            <span>Loteria Federal</span>
-          </button>
-          <button type="button" onclick="switchLottery('NACIONAL')" data-lottery="NACIONAL"
-            class="lottery-btn col-span-2 w-full py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer">
-            <span>Loteria Nacional</span>
-          </button>
-        </div>
-
-        <span id="active-lottery-badge" class="hidden">Rio de Janeiro (RJ)</span>
-
-        <!-- Seção de Horários dos Jogos da Loteria Ativa -->
-        <div class="pt-2.5 border-t border-slate-800/80">
-          <div class="flex items-center justify-between gap-2 mb-2 px-0.5 flex-wrap">
-            <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-              <span>⏰</span>
-              <span>Horários dos Jogos:</span>
-              <span id="slots-lottery-name" class="font-bold text-[#00e676]">Rio de Janeiro</span>
-            </div>
-            <span id="active-slot-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              Carregando...
-            </span>
-          </div>
-          <div id="lottery-slots-pills" class="flex flex-wrap gap-1.5 sm:gap-2">
+        <!-- Seletor Horizontal de Horários da Loteria Ativa -->
+        <div id="lottery-slots-section" class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap hidden sm:inline">Horários:</span>
+          <div id="lottery-slots-pills" class="flex items-center gap-1.5 flex-nowrap">
             <!-- Pílulas de horários geradas dinamicamente -->
           </div>
         </div>
+      </div>
+
+      <!-- Elementos ocultos para compatibilidade com rotinas JS existentes -->
+      <select id="global-lottery-select" onchange="switchLottery(this.value)" class="hidden">
+        <option value="RJ">Rio de Janeiro</option>
+        <option value="SP">São Paulo</option>
+        <option value="LOOK">Goiás (Look Goiás)</option>
+        <option value="FEDERAL">Loteria Federal</option>
+        <option value="NACIONAL">Loteria Nacional</option>
+      </select>
+      <span id="active-slot-badge" class="hidden">Carregando...</span>
+      <span id="active-lottery-badge" class="hidden">Rio de Janeiro (RJ)</span>
+      <div id="lottery-switcher-bar" class="hidden">
+        <button type="button" data-lottery="RJ" class="lottery-btn hidden"></button>
+        <button type="button" data-lottery="SP" class="lottery-btn hidden"></button>
+        <button type="button" data-lottery="LOOK" class="lottery-btn hidden"></button>
+        <button type="button" data-lottery="FEDERAL" class="lottery-btn hidden"></button>
+        <button type="button" data-lottery="NACIONAL" class="lottery-btn hidden"></button>
       </div>
     </div>
 

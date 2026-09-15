@@ -783,8 +783,8 @@ class StatisticalEngine:
                 d_draws = bc_info["delay_draws_est"]
                 r_pos = bc_info["ranking_pos"]
                 factors.append(FactorItem(
-                    name=f"Atrasado no Bicho Certo (#{r_pos})",
-                    description=f"Atrasado há {d_days} dias (~{d_draws} sorteios no 1º prêmio - RJ)",
+                    name=f"Animal Mais Atrasado (#{r_pos})",
+                    description=f"Atrasado há {d_days} dias (~{d_draws} sorteios no 1º prêmio)",
                     impact_points=round(score_delay * (w.weight_delay / total_weight), 1),
                     type="positive" if d_draws >= 25 else "neutral"
                 ))

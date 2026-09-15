@@ -83,3 +83,33 @@ body {
 .bottom-nav {
   padding-bottom: env(safe-area-inset-bottom, 0.5rem);
 }
+
+/* Sidebar e Submenus Limpos */
+.sidebar-item-active {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  font-weight: 700 !important;
+}
+
+.subitem-btn-active {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border-left: 2px solid #10b981 !important;
+  font-weight: 700 !important;
+}
+
+.lottery-group-active {
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  background-color: rgba(15, 23, 42, 0.7) !important;
+}
+
+/* Scrollbar fina para a lista horizontal de horários */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 2px;
+}
+

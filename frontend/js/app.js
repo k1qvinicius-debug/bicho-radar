@@ -61,14 +61,29 @@ window.switchScreen = function(screenName, updateHash = true) {
     }
   });
 
-  // Oculta a barra de loterias na tela da Cruz do Dia (pois a Cruz é universal e válida para todas as praças)
+  // Oculta a barra de loterias na tela da Cruz do Dia e no Início
   const globalLotteryBar = document.getElementById('global-lottery-bar-container');
   if (globalLotteryBar) {
-    if (screenName === 'cruz') {
+    if (screenName === 'cruz' || screenName === 'home') {
       globalLotteryBar.classList.add('hidden');
     } else {
       globalLotteryBar.classList.remove('hidden');
     }
+  }
+
+  // Se estiver em palpites, exibe a seção de horários; em outras telas (como resultados ou atrasados), esconde os horários
+  const slotsSection = document.getElementById('lottery-slots-section');
+  if (slotsSection) {
+    if (screenName === 'palpites') {
+      slotsSection.classList.remove('hidden');
+    } else {
+      slotsSection.classList.add('hidden');
+    }
+  }
+
+  // Atualiza estado visual do menu lateral
+  if (typeof updateSidebarActiveUI === 'function') {
+    updateSidebarActiveUI(currentLottery, screenName);
   }
 
   // Atualiza botões do Desktop Nav
@@ -576,6 +591,14 @@ function updateLotteryButtonsUI() {
     'SP': 'São Paulo',
     'FEDERAL': 'Loteria Federal'
   };
+  const lotIcons = {
+    'RJ': '🌴',
+    'LOOK': '🌾',
+    'NACIONAL': '🇧🇷',
+    'SP': '🏙️',
+    'FEDERAL': '🏛️'
+  };
+
   const badge = document.getElementById('active-lottery-badge');
   if (badge) {
     badge.textContent = lotNames[currentLottery] || currentLottery;
@@ -584,6 +607,11 @@ function updateLotteryButtonsUI() {
   if (slotsLotteryName) {
     slotsLotteryName.textContent = pureNames[currentLottery] || currentLottery;
   }
+  const activeIcon = document.getElementById('active-lottery-icon');
+  if (activeIcon) {
+    activeIcon.textContent = lotIcons[currentLottery] || '🎲';
+  }
+
   const globalSelect = document.getElementById('global-lottery-select');
   if (globalSelect) {
     globalSelect.value = currentLottery;
@@ -614,7 +642,74 @@ function updateLotteryButtonsUI() {
       btn.className = 'puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60';
     }
   });
+
+  // Atualiza destaque no menu lateral
+  if (typeof updateSidebarActiveUI === 'function') {
+    const activeScreen = window.location.hash ? window.location.hash.replace('#', '') : 'palpites';
+    updateSidebarActiveUI(currentLottery, activeScreen);
+  }
 }
+
+window.toggleLotteryAccordion = function(lotteryCode, forceOpen = null) {
+  const content = document.getElementById(`acc-content-${lotteryCode}`);
+  const icon = document.getElementById(`acc-icon-${lotteryCode}`);
+  const group = document.getElementById(`group-${lotteryCode}`);
+  if (!content) return;
+
+  const willOpen = (forceOpen !== null) ? forceOpen : content.classList.contains('hidden');
+  if (willOpen) {
+    content.classList.remove('hidden');
+    if (icon) icon.style.transform = 'rotate(180deg)';
+    if (group) group.classList.add('lottery-group-active');
+  } else {
+    content.classList.add('hidden');
+    if (icon) icon.style.transform = 'rotate(0deg)';
+    if (group) group.classList.remove('lottery-group-active');
+  }
+};
+
+window.navigateTo = async function(lotteryCode, screenName) {
+  if (lotteryCode && lotteryCode !== currentLottery) {
+    await switchLottery(lotteryCode);
+  }
+  if (screenName) {
+    switchScreen(screenName);
+  }
+  updateSidebarActiveUI(lotteryCode || currentLottery, screenName || 'home');
+  if (typeof closeDrawer === 'function') {
+    closeDrawer();
+  }
+};
+
+window.updateSidebarActiveUI = function(lotteryCode, screenName) {
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('sidebar-item-active'));
+  document.querySelectorAll('.subitem-btn').forEach(el => el.classList.remove('subitem-btn-active'));
+
+  if (screenName === 'home') {
+    const homeBtn = document.getElementById('sidebar-btn-home');
+    if (homeBtn) homeBtn.classList.add('sidebar-item-active');
+  } else if (screenName === 'cruz') {
+    const cruzBtn = document.getElementById('sidebar-btn-cruz');
+    if (cruzBtn) cruzBtn.classList.add('sidebar-item-active');
+  } else if (lotteryCode && screenName) {
+    window.toggleLotteryAccordion(lotteryCode, true);
+    const subBtn = document.getElementById(`subnav-${lotteryCode}-${screenName}`);
+    if (subBtn) subBtn.classList.add('subitem-btn-active');
+  }
+
+  const screenTitles = {
+    'home': 'Visão Geral',
+    'palpites': 'Palpites do Motor',
+    'cruz': 'Cruz do Dia',
+    'puxadas': 'Radar de Puxadas',
+    'atrasados': 'Mais Atrasados',
+    'resultados': 'Resultados das Extrações'
+  };
+  const screenBadge = document.getElementById('current-screen-badge');
+  if (screenBadge) {
+    screenBadge.textContent = screenTitles[screenName] || screenName;
+  }
+};
 
 window.switchLottery = async function(lotteryCode) {
   if (!lotteryCode || lotteryCode === currentLottery) {
@@ -2226,7 +2321,7 @@ function renderGroups(groups) {
       const bcBadge = g.metadata?.bichocerto
         ? `<div class="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-amber-300">
              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30">
-               <span>🕒</span> ${g.metadata.bichocerto.delay_days} dias sem sair (~${g.metadata.bichocerto.delay_draws_est} sorteios no RJ)
+               <span>🕒</span> ${g.metadata.bichocerto.delay_days} dias sem sair (~${g.metadata.bichocerto.delay_draws_est} sorteios)
              </span>
            </div>`
         : '';
