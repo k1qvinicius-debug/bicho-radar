@@ -363,6 +363,13 @@ function getSlotMinutes(slot, dateStr = null) {
     'LK-18': 18 * 60 + 20,
     'LK-21': 21 * 60 + 20,
     'LK-23': 23 * 60 + 20,
+    'SP-08': 8 * 60 + 20,
+    'SP-10': 10 * 60,
+    'SP-13': 13 * 60,
+    'SP-15': 15 * 60 + 30,
+    'SP-17': 17 * 60,
+    'SP-19': 19 * 60,
+    'SP-20': 20 * 60,
   };
   if (fixed[code] !== undefined) return fixed[code];
   const m = code.match(/(\d{1,2})/);
@@ -414,10 +421,19 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
     return { code, name: `Nacional ${hStr}h - ${hStr}:00`, time: `${hStr}:00` };
   }
   if (code.startsWith('SP-')) {
+    const spMetas = {
+      'SP-08': { code: 'SP-08', name: 'PT-SP 08h20 - 08:20', time: '08:20' },
+      'SP-10': { code: 'SP-10', name: 'PT-SP 10h - 10:00', time: '10:00' },
+      'SP-13': { code: 'SP-13', name: 'PT-SP 13h - 13:00', time: '13:00' },
+      'SP-15': { code: 'SP-15', name: 'Bandeirantes 15h30 - 15:30', time: '15:30' },
+      'SP-17': { code: 'SP-17', name: 'PT-SP 17h - 17:00', time: '17:00' },
+      'SP-19': { code: 'SP-19', name: 'PT-SP 19h - 19:00', time: '19:00' },
+      'SP-20': { code: 'SP-20', name: 'PTN-SP 20h - 20:00', time: '20:00' },
+    };
+    if (spMetas[code]) return spMetas[code];
     const h = parseInt(code.replace('SP-', ''), 10);
     const hStr = String(h).padStart(2, '0');
-    const prefix = (h === 14 || h === 20) ? 'PT-SP' : 'Bandeirantes';
-    return { code, name: `${prefix} ${hStr}h - ${hStr}:00`, time: `${hStr}:00` };
+    return { code, name: `PT-SP ${hStr}h - ${hStr}:00`, time: `${hStr}:00` };
   }
   return { code, name: drawSlotCode, time: '' };
 }
@@ -2683,6 +2699,16 @@ async function loadDrawResults(dateOverride = null) {
     let slots = [];
     if (currentLottery === 'FEDERAL') {
       slots = [getFriendlySlotMeta('FED', selectedResultDate)];
+    } else if (currentLottery === 'SP') {
+      slots = [
+        { code: 'SP-08', name: 'PT-SP 08h20 - 08:20', time: '08:20' },
+        { code: 'SP-10', name: 'PT-SP 10h - 10:00', time: '10:00' },
+        { code: 'SP-13', name: 'PT-SP 13h - 13:00', time: '13:00' },
+        { code: 'SP-15', name: 'Bandeirantes 15h30 - 15:30', time: '15:30' },
+        { code: 'SP-17', name: 'PT-SP 17h - 17:00', time: '17:00' },
+        { code: 'SP-19', name: 'PT-SP 19h - 19:00', time: '19:00' },
+        { code: 'SP-20', name: 'PTN-SP 20h - 20:00', time: '20:00' },
+      ];
     } else if (standardSlotsList && standardSlotsList.length > 0) {
       slots = [...standardSlotsList];
     } else {
@@ -2699,6 +2725,9 @@ async function loadDrawResults(dateOverride = null) {
     // Inclui dinamicamente qualquer slot que já tenha sorteio apurado nesta data
     const dayDraws = allRecentDrawsByDate[selectedResultDate] || {};
     Object.keys(dayDraws).forEach((drawSlotCode) => {
+      if (currentLottery === 'SP' && !['SP-08', 'SP-10', 'SP-13', 'SP-15', 'SP-17', 'SP-19', 'SP-20'].includes(drawSlotCode)) {
+        return;
+      }
       if (!slots.some(s => s.code === drawSlotCode)) {
         slots.push(getFriendlySlotMeta(drawSlotCode, selectedResultDate));
       }
@@ -2708,7 +2737,7 @@ async function loadDrawResults(dateOverride = null) {
     slots.sort((a, b) => getSlotMinutes(a, selectedResultDate) - getSlotMinutes(b, selectedResultDate));
 
     // 4. Atualiza o resumo no cabeçalho
-    const drawnCount = Object.keys(dayDraws).length;
+    const drawnCount = slots.filter(s => dayDraws[s.code]).length;
     const dateFormatted = formatDateBR(selectedResultDate);
     const dayOfWeekName = getDayOfWeekName(selectedResultDate);
 

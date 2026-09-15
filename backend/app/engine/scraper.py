@@ -278,6 +278,10 @@ def sync_bichocerto_lottery(lottery_code: str, url: str) -> Dict[str, Any]:
             elif lottery_code == "NACIONAL":
                 slot_code = f"LN-{hour_num:02d}"
             elif lottery_code == "SP":
+                # SP suporta estritamente os 7 horários oficiais:
+                # 08:20 (SP-08), 10:00 (SP-10), 13:00 (SP-13), 15:30 (SP-15), 17:00 (SP-17), 19:00 (SP-19), 20:00 (SP-20)
+                if hour_num not in [8, 10, 13, 15, 17, 19, 20]:
+                    continue
                 slot_code = f"SP-{hour_num:02d}"
             else:
                 slot_code = f"{lottery_code}-{hour_num:02d}"

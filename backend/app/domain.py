@@ -110,17 +110,13 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
         "icon": "🏙️",
         "color": "cyan",
         "slots": [
-            {"code": "SP-08", "name": "Bandeirantes 08h - 08:00", "time": "08:00", "order": 1},
-            {"code": "SP-10", "name": "Bandeirantes 10h - 10:00", "time": "10:00", "order": 2},
-            {"code": "SP-12", "name": "Bandeirantes 12h - 12:00", "time": "12:00", "order": 3},
-            {"code": "SP-13", "name": "Bandeirantes 13h - 13:00", "time": "13:00", "order": 4},
-            {"code": "SP-14", "name": "PT-SP 14h - 14:00", "time": "14:00", "order": 5},
-            {"code": "SP-15", "name": "Bandeirantes 15h - 15:00", "time": "15:00", "order": 6},
-            {"code": "SP-16", "name": "Bandeirantes 16h - 16:00", "time": "16:00", "order": 7},
-            {"code": "SP-17", "name": "Bandeirantes 17h - 17:00", "time": "17:00", "order": 8},
-            {"code": "SP-18", "name": "Bandeirantes 18h - 18:00", "time": "18:00", "order": 9},
-            {"code": "SP-19", "name": "Bandeirantes 19h - 19:00", "time": "19:00", "order": 10},
-            {"code": "SP-20", "name": "PT-SP 20h - 20:00", "time": "20:00", "order": 11},
+            {"code": "SP-08", "name": "PT-SP 08h20 - 08:20", "time": "08:20", "order": 1},
+            {"code": "SP-10", "name": "PT-SP 10h - 10:00", "time": "10:00", "order": 2},
+            {"code": "SP-13", "name": "PT-SP 13h - 13:00", "time": "13:00", "order": 3},
+            {"code": "SP-15", "name": "Bandeirantes 15h30 - 15:30", "time": "15:30", "order": 4},
+            {"code": "SP-17", "name": "PT-SP 17h - 17:00", "time": "17:00", "order": 5},
+            {"code": "SP-19", "name": "PT-SP 19h - 19:00", "time": "19:00", "order": 6},
+            {"code": "SP-20", "name": "PTN-SP 20h - 20:00", "time": "20:00", "order": 7},
         ]
     },
     "FEDERAL": {
@@ -196,6 +192,13 @@ def get_slot_order_weight(slot: Optional[str], draw_date: Optional[str] = None) 
         "LK-18": 18 * 60 + 20,
         "LK-21": 21 * 60 + 20,
         "LK-23": 23 * 60 + 20,
+        "SP-08": 8 * 60 + 20,
+        "SP-10": 10 * 60,
+        "SP-13": 13 * 60,
+        "SP-15": 15 * 60 + 30,
+        "SP-17": 17 * 60,
+        "SP-19": 19 * 60,
+        "SP-20": 20 * 60,
     }
     if slot_upper in fixed_weights:
         return fixed_weights[slot_upper]
