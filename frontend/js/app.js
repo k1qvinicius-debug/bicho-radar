@@ -167,9 +167,9 @@ window.switchPalpitesTopic = function(topicName) {
 
     if (btn) {
       if (t === topicName) {
-        btn.className = 'py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow-md shadow-indigo-600/30 active:scale-95 cursor-pointer';
+        btn.className = 'py-1.5 px-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 bg-indigo-600 text-white shadow-sm active:scale-95 cursor-pointer';
       } else {
-        btn.className = 'py-2.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800 active:scale-95 cursor-pointer';
+        btn.className = 'py-1.5 px-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer';
       }
     }
 
@@ -267,9 +267,9 @@ window.setPredictionStrategy = function(strat) {
     const btn = document.getElementById(`strat-btn-${s}`);
     if (btn) {
       if (s === strat) {
-        btn.className = 'px-2.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30';
+        btn.className = 'px-1.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold border transition-all flex items-center justify-center gap-1 bg-indigo-600 text-white border-indigo-500 shadow-sm cursor-pointer';
       } else {
-        btn.className = 'px-2.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all flex items-center justify-center gap-1.5';
+        btn.className = 'px-1.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 transition-all flex items-center justify-center gap-1 cursor-pointer';
       }
     }
   });
@@ -1403,7 +1403,7 @@ function renderDashboard(data) {
   if (slotNameEl) slotNameEl.textContent = data.target_slot_name || data.target_slot;
 
   const analyzedCountEl = document.getElementById('analyzed-draws-count');
-  if (analyzedCountEl) analyzedCountEl.textContent = `${data.total_draws_analyzed} sorteios analisados`;
+  if (analyzedCountEl) analyzedCountEl.textContent = `${data.total_draws_analyzed} jogos`;
 
   // Atualiza também os dados na Tela HOME
   updateHomeScreenData();

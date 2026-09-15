@@ -643,121 +643,87 @@
     <!-- TELA 2: PALPITES DO HORÁRIO (ORGANIZADA POR 3 TÓPICOS LIMPOS) -->
     <!-- =================================================================== -->
     <div id="view-palpites" class="space-y-4 animate-fade-in hidden">
-      <!-- Barra Superior da Tela: Voltar + Título -->
-      <div class="flex items-center justify-between gap-3 pb-2 border-b border-slate-800">
-        <button type="button" onclick="switchScreen('home')"
-          class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm">
-          <span>←</span> <span>Voltar ao Início</span>
-        </button>
-
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-black uppercase tracking-wider text-indigo-400 flex items-center gap-1">
-            <span>🎯</span> Palpites do Horário
-          </span>
-        </div>
-      </div>
-
-      <!-- Card de Horário, Data e Estratégia -->
-      <div class="card-glass p-4 sm:p-5 relative overflow-hidden">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-slate-800/80">
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Próximo Horário</span>
+      <!-- Painel de Controle Minimalista Compacto -->
+      <div class="card-glass p-2.5 sm:p-3.5 rounded-2xl border border-slate-800/80 shadow-md space-y-2">
+        <!-- Linha 1: Slot Ativo + Estatística + Data + Recalcular (Uma única linha fluida) -->
+        <div class="flex items-center justify-between gap-1.5">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <button type="button" onclick="switchScreen('home')" title="Voltar ao Início"
+              class="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 text-slate-300 flex items-center justify-center text-xs transition-all active:scale-90 cursor-pointer shrink-0">
+              ←
+            </button>
+            <div class="flex items-center gap-1 min-w-0">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+              <h2 id="header-slot-name" class="text-xs sm:text-sm font-black text-white tracking-tight shrink-0 whitespace-nowrap">PT - 14:20</h2>
+              <span class="text-slate-600 text-xs shrink-0">•</span>
+              <span id="analyzed-draws-count" class="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">304 jogos</span>
             </div>
-            <h2 id="header-slot-name" class="text-2xl font-black text-white tracking-tight mt-0.5">Carregando...</h2>
-            <p id="analyzed-draws-count" class="text-xs text-slate-400 mt-0.5">Calculando histórico...</p>
           </div>
 
-          <div class="flex items-center gap-2 w-full sm:w-auto">
-            <button type="button" onclick="switchScreen('cruz')"
-              class="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200 text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer">
-              <span>✖️</span>
-              <span>Cruz do Dia</span>
-            </button>
-            <button type="button" onclick="openDrawer()"
-              class="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-slate-200 text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer">
-              <span>☰</span>
-              <span>Mais</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Controles de Seleção Rápida -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-          <div>
-            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Horário Alvo</label>
-            <select id="target-slot" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-indigo-500">
-              <option value="PPT">PPT - 09:20</option>
-              <option value="PTM">PTM - 11:20</option>
-              <option value="PT" selected>PT - 14:20</option>
-              <option value="PTV">PTV - 16:20</option>
-              <option value="PTN">PTN - 18:20</option>
-              <option value="COR">Coruja - 21:20</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Data</label>
-            <input type="date" id="target-date" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500" />
-          </div>
-
-          <div class="col-span-2 sm:col-span-1 flex items-end">
-            <button id="btn-refresh" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+          <div class="flex items-center gap-1 shrink-0">
+            <input type="date" id="target-date"
+              class="w-[105px] sm:w-auto bg-slate-900 border border-slate-700/80 rounded-lg px-1.5 sm:px-2 py-1 text-[11px] sm:text-xs text-slate-200 font-mono focus:outline-none focus:border-indigo-500 shadow-inner" />
+            <button id="btn-refresh" title="Recalcular Palpites"
+              class="h-7 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-              Recalcular
+              <span class="hidden sm:inline text-xs">Recalcular</span>
             </button>
           </div>
+
+          <!-- Select oculto para compatibilidade com rotinas JS existentes -->
+          <select id="target-slot" class="hidden">
+            <option value="PPT">PPT - 09:20</option>
+            <option value="PTM">PTM - 11:20</option>
+            <option value="PT" selected>PT - 14:20</option>
+            <option value="PTV">PTV - 16:20</option>
+            <option value="PTN">PTN - 18:20</option>
+            <option value="COR">Coruja - 21:20</option>
+          </select>
         </div>
 
-        <!-- Seletor de Perfil / Estratégia de Jogo (Anti-Aleatoriedade) -->
-        <div class="pt-3 mt-3 border-t border-slate-800/80">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-              <span>🧠</span> Perfil de Jogo / Estratégia:
-            </span>
-            <span id="strategy-desc-badge" class="text-[10px] text-indigo-400 font-semibold hidden sm:inline">Anti-Aleatoriedade Ativa</span>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+        <!-- Linha 2: Seletor de Perfil / Estratégia de Jogo (Pílulas Compactas sem truncar) -->
+        <div class="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-800/80">
+          <div class="grid grid-cols-4 gap-1 w-full">
             <button type="button" onclick="setPredictionStrategy('hybrid')" id="strat-btn-hybrid"
-              class="px-2.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30">
-              <span>🎯</span> <span>Híbrido (Equilibrado)</span>
+              class="px-1.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold border transition-all flex items-center justify-center gap-1 bg-indigo-600 text-white border-indigo-500 shadow-sm cursor-pointer">
+              <span>🎯</span> <span>Híbrido</span>
             </button>
             <button type="button" onclick="setPredictionStrategy('frequency')" id="strat-btn-frequency"
-              class="px-2.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all flex items-center justify-center gap-1.5">
-              <span>🔥</span> <span>Alta Frequência</span>
+              class="px-1.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 transition-all flex items-center justify-center gap-1 cursor-pointer">
+              <span>🔥</span> <span class="hidden xs:inline sm:inline">Freq.</span><span class="xs:hidden sm:hidden">Freq</span>
             </button>
             <button type="button" onclick="setPredictionStrategy('puxada')" id="strat-btn-puxada"
-              class="px-2.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all flex items-center justify-center gap-1.5">
-              <span>🧲</span> <span>Radar Puxadas</span>
+              class="px-1.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 transition-all flex items-center justify-center gap-1 cursor-pointer">
+              <span>🧲</span> <span>Puxada</span>
             </button>
             <button type="button" onclick="setPredictionStrategy('delay')" id="strat-btn-delay"
-              class="px-2.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all flex items-center justify-center gap-1.5">
-              <span>🕒</span> <span>Caçador Atrasos</span>
+              class="px-1.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 transition-all flex items-center justify-center gap-1 cursor-pointer">
+              <span>🕒</span> <span>Atraso</span>
             </button>
           </div>
+          <span id="strategy-desc-badge" class="hidden"></span>
         </div>
-      </div>
 
-      <!-- SELETOR DE 3 TÓPICOS LIMPOS (SUBSTITUI A ROLAGEM INFINITA DE 8 SEÇÕES) -->
-      <div class="p-1.5 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-lg grid grid-cols-3 gap-1">
-        <button type="button" id="topic-tab-animals" onclick="switchPalpitesTopic('animals')"
-          class="py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow-md shadow-indigo-600/30 active:scale-95 cursor-pointer">
-          <span>🐾</span>
-          <span class="truncate">Fichas por Bicho</span>
-        </button>
+        <!-- Linha 3: Segmented Control dos 3 Tópicos (Fichas, Duques, Bicho Fixo) -->
+        <div class="p-1 bg-slate-950/70 border border-slate-800/90 rounded-xl grid grid-cols-3 gap-1">
+          <button type="button" id="topic-tab-animals" onclick="switchPalpitesTopic('animals')"
+            class="py-1.5 px-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 bg-indigo-600 text-white shadow-sm active:scale-95 cursor-pointer">
+            <span>🐾</span>
+            <span>Por Bicho</span>
+          </button>
 
-        <button type="button" id="topic-tab-duques" onclick="switchPalpitesTopic('duques')"
-          class="py-2.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800 active:scale-95 cursor-pointer">
-          <span>🛡️</span>
-          <span class="truncate">Duques & Fechamento</span>
-        </button>
+          <button type="button" id="topic-tab-duques" onclick="switchPalpitesTopic('duques')"
+            class="py-1.5 px-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer">
+            <span>🛡️</span>
+            <span>Duques</span>
+          </button>
 
-        <button type="button" id="topic-tab-fixed" onclick="switchPalpitesTopic('fixed')"
-          class="py-2.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800 active:scale-95 cursor-pointer">
-          <span>🎲</span>
-          <span class="truncate">Meu Bicho Fixo</span>
-        </button>
+          <button type="button" id="topic-tab-fixed" onclick="switchPalpitesTopic('fixed')"
+            class="py-1.5 px-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer">
+            <span>🎲</span>
+            <span>Bicho Fixo</span>
+          </button>
+        </div>
       </div>
 
       <!-- Indicador de Carregamento -->
