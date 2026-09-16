@@ -234,18 +234,27 @@ class TenantModel(BaseModel):
     role: str = "tester"
     status: str = "active"
     notes: Optional[str] = None
+    email: Optional[str] = None
+    auth_provider: Optional[str] = "key"
+    trial_started_at: Optional[str] = None
+    trial_expires_at: Optional[str] = None
+    subscription_status: Optional[str] = "active"
+    plan_type: Optional[str] = "free"
     expires_at: Optional[str] = None
     last_active_at: Optional[str] = None
-    created_at: str
+    created_at: Optional[str] = None
     snapshots_count: int = 0
+    trial_days_remaining: Optional[int] = None
 
 
 class TenantCreateModel(BaseModel):
     name: str
     tenant_key: Optional[str] = None
+    email: Optional[str] = None
     role: str = "tester"
     notes: Optional[str] = None
     expires_at: Optional[str] = None
+    subscription_status: Optional[str] = "trial"
 
 
 class TenantUpdateModel(BaseModel):
@@ -253,12 +262,23 @@ class TenantUpdateModel(BaseModel):
     status: Optional[str] = None
     notes: Optional[str] = None
     expires_at: Optional[str] = None
+    subscription_status: Optional[str] = None
+    plan_type: Optional[str] = None
+
+
+class SystemSettingsModel(BaseModel):
+    support_whatsapp: Optional[str] = ""
+    trial_days: Optional[int] = 7
+    app_name: Optional[str] = "Bicho Master Pro"
 
 
 class LoginRequestModel(BaseModel):
     key: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None
+    credential: Optional[str] = None
+    email: Optional[str] = None
+    name: Optional[str] = None
 
 
 class LoginResponseModel(BaseModel):

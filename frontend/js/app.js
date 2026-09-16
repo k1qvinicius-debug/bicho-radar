@@ -16,7 +16,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateLotteryButtonsUI();
   await initSlotSelector(currentLottery);
   setDefaultDate();
-  await Promise.all([loadPrediction(), loadDrawResults()]);
+  if (api.isLoggedIn()) {
+    await Promise.all([loadPrediction(), loadDrawResults()]);
+  } else {
+    await loadDrawResults();
+  }
   setupEventListeners();
 
   // Verifica se há tela solicitada via hash (#palpites, #cruz, #puxadas, #atrasados, #resultados) ou query param
@@ -843,6 +847,7 @@ function setupEventListeners() {
 }
 
 async function loadPrediction() {
+  if (!api.isLoggedIn()) return;
   const loadingEl = document.getElementById('loading-state');
   const contentEl = document.getElementById('content-state');
   const dateVal = document.getElementById('target-date')?.value;
@@ -855,7 +860,9 @@ async function loadPrediction() {
     currentPrediction = await api.getPrediction(dateVal, slotVal, currentStrategy, currentLottery);
     renderDashboard(currentPrediction);
   } catch (err) {
-    showToast('Erro ao carregar análise: ' + err.message, 'error');
+    if (api.isLoggedIn()) {
+      showToast('Erro ao carregar análise: ' + err.message, 'error');
+    }
   } finally {
     if (loadingEl) loadingEl.classList.add('hidden');
     if (contentEl) contentEl.classList.remove('opacity-40');
@@ -3024,7 +3031,7 @@ function formatDateBR(dateStr) {
 }
 
 /* ==========================================================================
-   AUTENTICAÇÃO & SESSÃO MULTI-TENANT
+   AUTENTICAÇÃO & SESSÃO MULTI-TENANT (GOOGLE & DEGUSTAÇÃO DE 7 DIAS)
    ========================================================================== */
 async function initTenantAuth() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -3044,8 +3051,47 @@ async function initTenantAuth() {
   } else {
     await api.checkSession();
   }
+
+  // Verifica se o usuário atual está com teste expirado
+  const tenant = api.getCurrentTenant();
+  if (tenant && tenant.role !== 'admin' && (tenant.subscription_status === 'expired' || (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining <= 0))) {
+    showTrialExpiredModal();
+    return;
+  }
+
   updateAuthUI();
 }
+
+window.showTrialExpiredModal = async function() {
+  const modal = document.getElementById('modal-trial-expired');
+  if (modal) modal.classList.remove('hidden');
+
+  const tenant = api.getCurrentTenant();
+  const userIdentifier = (tenant && (tenant.email || tenant.name)) ? ` com o e-mail ${tenant.email || tenant.name}` : '';
+
+  try {
+    const settings = await api.getPublicSettings();
+    const phone = (settings && settings.support_whatsapp) ? settings.support_whatsapp.replace(/\D/g, '') : '';
+    const renewBtn = document.getElementById('btn-whatsapp-renew');
+    if (renewBtn) {
+      if (phone) {
+        const msg = `Olá! Testei o Bicho Master por 7 dias${userIdentifier} e quero continuar usando. Como faço para liberar meu acesso?`;
+        renewBtn.href = `https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`;
+        renewBtn.target = '_blank';
+        renewBtn.onclick = null;
+      } else {
+        renewBtn.href = '#';
+        renewBtn.target = '_self';
+        renewBtn.onclick = (e) => {
+          e.preventDefault();
+          alert('O WhatsApp de suporte ainda não foi configurado pelo administrador no painel master.');
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao carregar link de WhatsApp:', e);
+  }
+};
 
 function updateAuthUI() {
   const badgeContainer = document.getElementById('user-badge-desktop');
@@ -3059,7 +3105,13 @@ function updateAuthUI() {
   const tenant = api.getCurrentTenant();
 
   if (tenant) {
-    // Usuário logado: esconde tela de login e exibe dashboard completo
+    // Se o teste estiver expirado e não for admin, bloqueia e exibe modal
+    if (tenant.role !== 'admin' && (tenant.subscription_status === 'expired' || (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining <= 0))) {
+      showTrialExpiredModal();
+      return;
+    }
+
+    // Usuário logado e ativo: esconde tela de login e exibe dashboard completo
     if (appGate) appGate.classList.add('hidden');
     if (mainContainer) mainContainer.classList.remove('hidden');
     if (mobBottomNav) mobBottomNav.classList.remove('hidden');
@@ -3075,7 +3127,7 @@ function updateAuthUI() {
           <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">
             <span>👑</span>
             <span class="inline">K. Vinicius</span>
-            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors" title="Desconectar">✕</button>
+            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Desconectar">✕</button>
           </div>
         `;
       }
@@ -3083,19 +3135,36 @@ function updateAuthUI() {
       if (navAdminLink) navAdminLink.classList.add('hidden');
       if (mobAdminLink) mobAdminLink.classList.add('hidden');
       if (drawerAdminLink) drawerAdminLink.classList.add('hidden');
-      if (drawerUserLabel) drawerUserLabel.textContent = tenant.name || 'Testador Convidado';
-      if (badgeContainer) {
-        badgeContainer.innerHTML = `
-          <div class="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs px-2.5 py-1 rounded-full font-semibold shadow-sm">
-            <span>👤</span>
-            <span class="truncate max-w-[110px]" title="${tenant.name}">${tenant.name}</span>
-            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors" title="Sair da Conta">✕</button>
+
+      const displayName = tenant.name || tenant.email || 'Testador';
+      if (drawerUserLabel) drawerUserLabel.textContent = displayName;
+
+      // Badge de teste ou assinante
+      let trialBadgeHtml = '';
+      if (tenant.subscription_status === 'active' && tenant.plan_type === 'subscriber') {
+        trialBadgeHtml = `
+          <div class="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">
+            <span>⭐</span>
+            <span class="truncate max-w-[100px]" title="${displayName}">${displayName}</span>
+            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair">✕</button>
+          </div>
+        `;
+      } else {
+        const daysLeft = tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 7;
+        trialBadgeHtml = `
+          <div class="flex items-center gap-1.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs px-2.5 py-1 rounded-full font-semibold shadow-sm">
+            <span>⏳</span>
+            <span class="truncate max-w-[90px]" title="${displayName}">${displayName}</span>
+            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/30 text-indigo-200 border border-indigo-500/40">${daysLeft}d</span>
+            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair">✕</button>
           </div>
         `;
       }
+
+      if (badgeContainer) badgeContainer.innerHTML = trialBadgeHtml;
     }
   } else {
-    // Não logado (Opção A): Bloqueia visualização do dashboard e exibe gate de login
+    // Não logado: Bloqueia visualização do dashboard e exibe gate de login
     if (appGate) appGate.classList.remove('hidden');
     if (mainContainer) mainContainer.classList.add('hidden');
     if (mobBottomNav) mobBottomNav.classList.add('hidden');
@@ -3114,19 +3183,57 @@ window.switchGateTab = function(tab) {
   const formAdmin = document.getElementById('gate-form-admin');
 
   if (tab === 'admin') {
-    if (tabAdmin) tabAdmin.className = 'py-2.5 rounded-lg bg-indigo-600 text-white shadow transition-all flex items-center justify-center gap-1.5';
-    if (tabTester) tabTester.className = 'py-2.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1.5';
+    if (tabAdmin) tabAdmin.className = 'py-2 rounded-lg bg-indigo-600 text-white shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+    if (tabTester) tabTester.className = 'py-2 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer';
     if (formAdmin) formAdmin.classList.remove('hidden');
     if (formTester) formTester.classList.add('hidden');
     const passInput = document.getElementById('gate-input-admin-pass');
     if (passInput) setTimeout(() => passInput.focus(), 50);
   } else {
-    if (tabTester) tabTester.className = 'py-2.5 rounded-lg bg-indigo-600 text-white shadow transition-all flex items-center justify-center gap-1.5';
-    if (tabAdmin) tabAdmin.className = 'py-2.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1.5';
+    if (tabTester) tabTester.className = 'py-2 rounded-lg bg-indigo-600 text-white shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+    if (tabAdmin) tabAdmin.className = 'py-2 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer';
     if (formTester) formTester.classList.remove('hidden');
     if (formAdmin) formAdmin.classList.add('hidden');
     const keyInput = document.getElementById('gate-input-key');
     if (keyInput) setTimeout(() => keyInput.focus(), 50);
+  }
+};
+
+window.triggerGoogleSignIn = async function() {
+  if (window.google && window.google.accounts && window.google.accounts.id) {
+    try {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMomentum()) {
+          promptManualGoogleEmail();
+        }
+      });
+      return;
+    } catch (e) {
+      console.warn('Google prompt fallback:', e);
+    }
+  }
+  promptManualGoogleEmail();
+};
+
+window.promptManualGoogleEmail = async function() {
+  const email = prompt('Digite seu e-mail do Gmail para iniciar instantaneamente seus 7 dias de degustação grátis:');
+  if (!email || !email.trim()) return;
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail.includes('@')) {
+    alert('Por favor, digite um e-mail válido.');
+    return;
+  }
+  try {
+    const tenant = await api.loginGoogle({
+      email: cleanEmail,
+      name: cleanEmail.split('@')[0],
+      provider: 'google'
+    });
+    showToast(`Bem-vindo, ${tenant.name}! Você tem 7 dias grátis para testar o Bicho Master.`, 'success');
+    updateAuthUI();
+    await Promise.all([loadPrediction(), loadDrawResults()]);
+  } catch (err) {
+    alert(err.message || 'Erro ao iniciar degustação.');
   }
 };
 
@@ -3135,13 +3242,13 @@ window.handleGateTesterLogin = async function(event) {
   const input = document.getElementById('gate-input-key');
   const errDiv = document.getElementById('gate-tester-error');
   const btn = document.getElementById('gate-btn-tester-submit');
-  const key = input ? input.value.trim() : '';
+  const val = input ? input.value.trim() : '';
 
-  if (!key) return;
+  if (!val) return;
 
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = 'Verificando chave...';
+    btn.innerHTML = 'Verificando...';
   }
   if (errDiv) {
     errDiv.textContent = '';
@@ -3149,18 +3256,27 @@ window.handleGateTesterLogin = async function(event) {
   }
 
   try {
-    const tenant = await api.login(key);
+    let tenant;
+    if (val.includes('@')) {
+      // Login com e-mail direto / Google com 7 dias grátis
+      tenant = await api.loginGoogle({ email: val.toLowerCase(), name: val.split('@')[0] });
+      showToast(`Bem-vindo, ${tenant.name}! 7 dias de degustação ativados.`, 'success');
+    } else {
+      // Login com chave de testador
+      tenant = await api.login(val);
+      showToast(`Bem-vindo, ${tenant.name || 'Testador'}! Acesso liberado.`, 'success');
+    }
     updateAuthUI();
-    showToast(`Bem-vindo, ${tenant.name || 'Testador'}! Acesso liberado.`, 'success');
+    await Promise.all([loadPrediction(), loadDrawResults()]);
   } catch (err) {
     if (errDiv) {
-      errDiv.textContent = err.message || 'Chave de acesso inválida ou suspensa.';
+      errDiv.textContent = err.message || 'Chave ou e-mail inválido.';
       errDiv.classList.remove('hidden');
     }
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = 'Desbloquear e Acessar Palpites';
+      btn.innerHTML = 'Iniciar Degustação / Acessar';
     }
   }
 };
@@ -3194,6 +3310,7 @@ window.handleGateAdminLogin = async function(event) {
     }
     updateAuthUI();
     showToast('Acesso de Administrador Master ativado!', 'success');
+    await Promise.all([loadPrediction(), loadDrawResults()]);
   } catch (err) {
     if (errDiv) {
       errDiv.textContent = err.message || 'Usuário ou senha master incorretos.';
@@ -3246,10 +3363,16 @@ window.handleUserLogin = async function(event) {
   }
 
   try {
-    const tenant = await api.login(key);
+    let tenant;
+    if (key.includes('@')) {
+      tenant = await api.loginGoogle({ email: key.toLowerCase(), name: key.split('@')[0] });
+    } else {
+      tenant = await api.login(key);
+    }
     closeAuthModal();
     updateAuthUI();
     showToast(`Bem-vindo, ${tenant.name || 'Usuário'}!`, 'success');
+    await Promise.all([loadPrediction(), loadDrawResults()]);
   } catch (err) {
     if (errDiv) {
       errDiv.textContent = err.message || 'Chave de acesso inválida.';
@@ -3264,6 +3387,8 @@ window.handleUserLogin = async function(event) {
 };
 
 window.handleUserLogout = function() {
+  const expiredModal = document.getElementById('modal-trial-expired');
+  if (expiredModal) expiredModal.classList.add('hidden');
   api.logout();
   updateAuthUI();
   showToast('Desconectado com sucesso.', 'info');

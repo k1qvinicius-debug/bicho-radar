@@ -110,7 +110,7 @@ class PgCursorWrapper:
         # Injeta RETURNING id para suportar cursor.lastrowid nas tabelas com auto-incremento
         if is_insert and "RETURNING" not in pg_query.upper():
             table_lower = pg_query.lower()
-            if "bichocerto_atrasados" not in table_lower:
+            if "bichocerto_atrasados" not in table_lower and "system_settings" not in table_lower:
                 pg_query = pg_query.rstrip("; ") + " RETURNING id"
                 if params is not None:
                     self._cur.execute(pg_query, tuple(params))
@@ -358,6 +358,21 @@ def init_db() -> None:
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tenants_key ON tenants(tenant_key);")
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email TEXT;")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS auth_provider TEXT DEFAULT 'key';")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMP;")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_expires_at TIMESTAMP;")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active';")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_type TEXT DEFAULT 'free';")
+
         else:
             # DDL para SQLite
             cursor.execute("""
@@ -478,17 +493,40 @@ def init_db() -> None:
                 cursor.execute("ALTER TABLE draw_results ADD COLUMN lottery TEXT DEFAULT 'RJ'")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_draws_lottery ON draw_results(lottery);")
 
-        # Garante que a conta Master Admin exista com a chave 0203040
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+
+            cursor.execute("PRAGMA table_info(tenants)")
+            tenant_cols = [col["name"] for col in cursor.fetchall()]
+            if "email" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN email TEXT")
+            if "auth_provider" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN auth_provider TEXT DEFAULT 'key'")
+            if "trial_started_at" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN trial_started_at TEXT")
+            if "trial_expires_at" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN trial_expires_at TEXT")
+            if "subscription_status" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN subscription_status TEXT DEFAULT 'active'")
+            if "plan_type" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN plan_type TEXT DEFAULT 'free'")
+
+        # Garante que a conta Master Admin exista com a chave 0203040 e status ativo
         cursor.execute("SELECT id FROM tenants WHERE role = 'admin'")
         admin_row = cursor.fetchone()
         if not admin_row:
             cursor.execute("""
-            INSERT INTO tenants (name, tenant_key, role, status, notes)
-            VALUES ('K. Vinicius (KVS)', '0203040', 'admin', 'active', 'Conta principal de administração do sistema')
+            INSERT INTO tenants (name, tenant_key, role, status, subscription_status, plan_type, notes)
+            VALUES ('K. Vinicius (KVS)', '0203040', 'admin', 'active', 'active', 'lifetime', 'Conta principal de administração do sistema')
             """)
         else:
             cursor.execute("""
-            UPDATE tenants SET tenant_key = '0203040', name = 'K. Vinicius (KVS)' WHERE role = 'admin'
+            UPDATE tenants SET tenant_key = '0203040', name = 'K. Vinicius (KVS)', subscription_status = 'active', status = 'active' WHERE role = 'admin'
             """)
 
         # Insere configuração de peso padrão se a tabela estiver vazia
@@ -512,6 +550,44 @@ def init_db() -> None:
                 5, 10, 15, 15
             )
             """)
+
+
+def get_system_setting(key: str, default: str = "") -> str:
+    """Recupera uma configuração do sistema (ex: support_whatsapp, trial_days)."""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT value FROM system_settings WHERE key = ?", (key,))
+            row = cursor.fetchone()
+            if row:
+                return str(row[0] if not isinstance(row, dict) else row.get("value", default))
+    except Exception as e:
+        logger.warning(f"Erro ao recuperar setting {key}: {e}")
+    return default
+
+
+def set_system_setting(key: str, value: str) -> bool:
+    """Salva ou atualiza uma configuração do sistema."""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            is_pg = hasattr(conn, "_conn")
+            if is_pg:
+                cursor.execute("""
+                INSERT INTO system_settings (key, value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+                """, (key, str(value)))
+            else:
+                cursor.execute("""
+                INSERT INTO system_settings (key, value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+                """, (key, str(value)))
+            return True
+    except Exception as e:
+        logger.error(f"Erro ao salvar setting {key}: {e}")
+        return False
 
 
 if __name__ == "__main__":

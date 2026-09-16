@@ -14,6 +14,17 @@ function getAuthHeaders() {
   return headers;
 }
 
+function notifyTrialExpiredIfForbidden(status, errData) {
+  if (status === 403) {
+    const detail = (errData && errData.detail) ? String(errData.detail) : '';
+    if (detail.includes('TRIAL_EXPIRED') || detail.includes('expirou')) {
+      if (typeof window.showTrialExpiredModal === 'function') {
+        window.showTrialExpiredModal();
+      }
+    }
+  }
+}
+
 const api = {
   // =========================================================================
   // AUTENTICAÇÃO E SESSÃO
@@ -35,6 +46,7 @@ const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Falha ao autenticar.' }));
+      notifyTrialExpiredIfForbidden(res.status, err);
       throw new Error(err.detail || 'Credenciais ou chave de acesso inválidas.');
     }
     const data = await res.json();
@@ -46,11 +58,45 @@ const api = {
     return result;
   },
 
+  async loginGoogle(payload) {
+    const res = await fetch(`${API_BASE}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Falha ao logar com Google.' }));
+      notifyTrialExpiredIfForbidden(res.status, err);
+      throw new Error(err.detail || 'Falha ao autenticar conta Google.');
+    }
+    const data = await res.json();
+    localStorage.setItem('bicho_auth_token', data.token);
+    localStorage.setItem('bicho_tenant', JSON.stringify(data.tenant));
+
+    const result = { ...data.tenant, token: data.token };
+    result.tenant = result;
+    return result;
+  },
+
+  async getPublicSettings() {
+    try {
+      const res = await fetch(`${API_BASE}/auth/settings`);
+      if (!res.ok) return { support_whatsapp: '', trial_days: 7, app_name: 'Bicho Master' };
+      return await res.json();
+    } catch {
+      return { support_whatsapp: '', trial_days: 7, app_name: 'Bicho Master' };
+    }
+  },
+
   async getMe() {
     const res = await fetch(`${API_BASE}/auth/me`, {
       headers: { ...getAuthHeaders() },
     });
-    if (!res.ok) throw new Error('Sessão expirada ou inválida.');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Sessão expirada.' }));
+      notifyTrialExpiredIfForbidden(res.status, err);
+      throw new Error('Sessão expirada ou inválida.');
+    }
     return await res.json();
   },
 
@@ -59,7 +105,11 @@ const api = {
       const res = await fetch(`${API_BASE}/auth/check`, {
         headers: { ...getAuthHeaders() },
       });
-      if (!res.ok) return { authenticated: false };
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Erro' }));
+        notifyTrialExpiredIfForbidden(res.status, err);
+        return { authenticated: false };
+      }
       return await res.json();
     } catch {
       return { authenticated: false };
@@ -141,6 +191,48 @@ const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Erro ao excluir testador.' }));
       throw new Error(err.detail || 'Erro ao excluir testador.');
+    }
+    return await res.json();
+  },
+
+  async getAdminSettings() {
+    const res = await fetch(`${API_BASE}/admin/settings`, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Falha ao carregar configurações.');
+    return await res.json();
+  },
+
+  async saveAdminSettings(data) {
+    const res = await fetch(`${API_BASE}/admin/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Falha ao salvar configurações.');
+    return await res.json();
+  },
+
+  async addTenantTrial(tenantId) {
+    const res = await fetch(`${API_BASE}/admin/tenants/${tenantId}/add-trial`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro ao estender degustação.' }));
+      throw new Error(err.detail || 'Erro ao estender dias.');
+    }
+    return await res.json();
+  },
+
+  async activateTenantSubscription(tenantId) {
+    const res = await fetch(`${API_BASE}/admin/tenants/${tenantId}/activate-subscription`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro ao ativar assinatura.' }));
+      throw new Error(err.detail || 'Erro ao ativar assinatura.');
     }
     return await res.json();
   },

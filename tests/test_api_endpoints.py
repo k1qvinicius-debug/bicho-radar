@@ -11,6 +11,8 @@ BACKEND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
+os.environ["BICHO_TEST_MODE"] = "1"
+
 from app.main import app
 
 client = TestClient(app)
@@ -103,7 +105,7 @@ class TestAPIEndpoints(unittest.TestCase):
         """Valida se as páginas HTML e rotas estáticas estão sendo servidas corretamente."""
         res_home = client.get("/")
         self.assertEqual(res_home.status_code, 200)
-        self.assertIn("BICHO RADAR", res_home.text)
+        self.assertIn("BICHO MASTER", res_home.text)
 
         res_hist = client.get("/historico")
         self.assertEqual(res_hist.status_code, 200)

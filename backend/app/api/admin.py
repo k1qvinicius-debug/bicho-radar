@@ -7,8 +7,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, List
 from ..engine.weights import get_active_weights, update_active_weights
 from ..engine.evaluator import reevaluate_all_snapshots
-from ..models import WeightsConfigModel, TenantModel, TenantCreateModel, TenantUpdateModel
-from ..database import get_db_connection, DB_PATH
+from ..models import WeightsConfigModel, TenantModel, TenantCreateModel, TenantUpdateModel, SystemSettingsModel
+from ..database import get_db_connection, DB_PATH, get_system_setting, set_system_setting
 from ..auth import require_admin, generate_clean_key
 import os
 
@@ -88,18 +88,27 @@ def list_tenants():
         """)
         rows = cursor.fetchall()
         tenants = []
+        from ..auth import calculate_trial_info
         for r in rows:
+            trial_info = calculate_trial_info(dict(r))
             tenants.append(TenantModel(
                 id=r["id"],
                 name=r["name"],
+                email=r.get("email"),
+                auth_provider=r.get("auth_provider", "key"),
+                trial_started_at=str(r.get("trial_started_at") or ""),
+                trial_expires_at=str(r.get("trial_expires_at") or ""),
+                subscription_status=r.get("subscription_status", "active"),
+                plan_type=r.get("plan_type", "free"),
                 tenant_key=r["tenant_key"],
                 role=r["role"],
                 status=r["status"],
                 notes=r["notes"],
                 expires_at=r["expires_at"],
-                last_active_at=r["last_active_at"],
-                created_at=r["created_at"] or "",
-                snapshots_count=r["snapshots_count"] or 0
+                last_active_at=str(r["last_active_at"] or ""),
+                created_at=str(r["created_at"] or ""),
+                snapshots_count=r["snapshots_count"] or 0,
+                trial_days_remaining=trial_info["days_remaining"]
             ))
         return tenants
 
@@ -226,3 +235,80 @@ def delete_tenant(tenant_id: int):
         cursor.execute("DELETE FROM analysis_snapshots WHERE tenant_id = ?", (tenant_id,))
         cursor.execute("DELETE FROM tenants WHERE id = ?", (tenant_id,))
         return {"message": f"Testador '{row['name']}' removido com sucesso."}
+
+
+@router.post("/tenants/{tenant_id}/add-trial")
+def add_trial_days(tenant_id: int, days: int = 7):
+    """Adiciona mais dias de degustação ao usuário selecionado."""
+    import time
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+        # Novo prazo: time.time() + (days * 86400)
+        new_expire_ts = time.time() + (days * 86400)
+        new_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(new_expire_ts))
+
+        cursor.execute("""
+            UPDATE tenants 
+            SET trial_expires_at = ?, subscription_status = 'trial', status = 'active'
+            WHERE id = ?
+        """, (new_expire_str, tenant_id))
+
+        return {
+            "message": f"{days} dias de teste adicionados com sucesso para '{row['name']}'.",
+            "trial_expires_at": new_expire_str
+        }
+
+
+@router.post("/tenants/{tenant_id}/activate-subscription")
+def activate_subscription(tenant_id: int, days: int = 30):
+    """Ativa a assinatura do usuário por X dias (padrão: 30 dias)."""
+    import time
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+        new_expire_ts = time.time() + (days * 86400)
+        new_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(new_expire_ts))
+
+        cursor.execute("""
+            UPDATE tenants 
+            SET trial_expires_at = ?, subscription_status = 'active', plan_type = 'monthly', status = 'active'
+            WHERE id = ?
+        """, (new_expire_str, tenant_id))
+
+        return {
+            "message": f"Assinatura de 30 dias ativada com sucesso para '{row['name']}'.",
+            "subscription_expires_at": new_expire_str
+        }
+
+
+@router.get("/settings", response_model=SystemSettingsModel)
+def get_settings():
+    """Retorna as configurações do sistema para o painel de administração."""
+    return SystemSettingsModel(
+        support_whatsapp=get_system_setting("support_whatsapp", ""),
+        trial_days=int(get_system_setting("trial_days", "7")),
+        app_name=get_system_setting("app_name", "Bicho Master Pro")
+    )
+
+
+@router.post("/settings")
+def save_settings(data: SystemSettingsModel):
+    """Salva configurações do sistema (ex: WhatsApp de suporte, dias de teste)."""
+    if data.support_whatsapp is not None:
+        set_system_setting("support_whatsapp", data.support_whatsapp.strip())
+    if data.trial_days is not None:
+        set_system_setting("trial_days", str(data.trial_days))
+    if data.app_name is not None:
+        set_system_setting("app_name", data.app_name.strip())
+
+    return {"message": "Configurações salvas com sucesso."}
+

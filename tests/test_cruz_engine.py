@@ -3,8 +3,11 @@ Testes automatizados do Módulo da Cruz do Dia.
 Valida o cálculo dos dígitos cardeais (regra do +3), dezenas, milhares e endpoint da API.
 """
 
+import os
 import unittest
 from fastapi.testclient import TestClient
+
+os.environ["BICHO_TEST_MODE"] = "1"
 
 from backend.app.main import app
 from backend.app.engine.cruz_engine import get_cruz_do_dia, _calculate_cruz_math

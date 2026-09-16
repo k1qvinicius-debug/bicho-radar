@@ -13,7 +13,7 @@ from ..models import PredictionOutput, SnapshotCreateRequest, SnapshotEvaluation
 from ..engine.statistical_engine import StatisticalEngine
 from ..engine.weights import get_active_weights
 from ..domain import STANDARD_SLOTS
-from ..auth import get_current_tenant_optional
+from ..auth import get_current_tenant_optional, require_tenant
 
 router = APIRouter(prefix="/analysis", tags=["Análise Preditiva"])
 
@@ -46,6 +46,7 @@ def get_prediction(
     target_slot: Optional[str] = Query(None, description="Horário alvo (PPT, PTM, PT, LK-11, LN-10, etc.)"),
     strategy: Optional[str] = Query("hybrid", description="Estratégia: hybrid, frequency, delay, puxada"),
     lottery: Optional[str] = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    tenant: Dict[str, Any] = Depends(require_tenant),
 ):
     """
     Gera análise estatística multi-fatorial detalhada para o próximo horário da loteria selecionada.
@@ -72,6 +73,7 @@ def get_fixed_animal_closure(
     target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD)"),
     target_slot: Optional[str] = Query(None, description="Horário alvo"),
     lottery: Optional[str] = Query("RJ", description="Código da loteria"),
+    tenant: Dict[str, Any] = Depends(require_tenant),
 ):
     """
     Gera fechamento inteligente de Duque de Dezena com 1 animal fixado
@@ -261,7 +263,8 @@ def get_snapshot_details(snapshot_id: int):
 
 @router.get("/cruz-do-dia", response_model=Dict[str, Any])
 def get_cruz_do_dia_endpoint(
-    target_date: Optional[str] = Query(None, description="Data da Cruz (YYYY-MM-DD). Padrão: hoje")
+    target_date: Optional[str] = Query(None, description="Data da Cruz (YYYY-MM-DD). Padrão: hoje"),
+    tenant: Dict[str, Any] = Depends(require_tenant),
 ):
     """
     Retorna a Cruz do Dia com dígitos cardeais, Bicho do Dia, animais formados
@@ -276,7 +279,8 @@ def get_cruz_do_dia_endpoint(
 def get_puxadas_endpoint(
     target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD). Padrão: hoje"),
     target_slot: Optional[str] = Query(None, description="Horário alvo"),
-    lottery: Optional[str] = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)")
+    lottery: Optional[str] = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    tenant: Dict[str, Any] = Depends(require_tenant),
 ):
     """
     Retorna a análise de Puxadas Tradicionais com base no último sorteio apurado da loteria escolhida

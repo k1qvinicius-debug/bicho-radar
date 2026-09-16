@@ -41,12 +41,46 @@ async function checkAdminAuth() {
 
 async function loadInitialData() {
   await Promise.all([
+    loadAdminSettings(),
     loadTenantsTable(),
     loadWeights(),
     loadResultsTable()
   ]);
   setupWeightsEvents();
 }
+
+window.loadAdminSettings = async function() {
+  try {
+    const s = await api.getAdminSettings();
+    const input = document.getElementById('admin-whatsapp-input');
+    if (input && s.support_whatsapp) {
+      input.value = s.support_whatsapp;
+    }
+  } catch (err) {
+    console.warn('Erro ao carregar settings:', err);
+  }
+};
+
+window.saveAdminSettings = async function() {
+  const input = document.getElementById('admin-whatsapp-input');
+  const badge = document.getElementById('whatsapp-saved-badge');
+  const btn = document.getElementById('btn-save-settings');
+  const val = input ? input.value.trim() : '';
+
+  if (btn) btn.disabled = true;
+  try {
+    await api.saveAdminSettings({ support_whatsapp: val });
+    showToast('Número de WhatsApp salvo com sucesso!', 'success');
+    if (badge) {
+      badge.classList.remove('hidden');
+      setTimeout(() => badge.classList.add('hidden'), 3000);
+    }
+  } catch (err) {
+    showToast('Erro ao salvar WhatsApp: ' + err.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
 
 window.handleAdminLogin = async function(event) {
   event.preventDefault();
@@ -386,29 +420,50 @@ window.loadTenantsTable = async function() {
     container.innerHTML = tenants.map(t => {
       const isAdmin = t.role === 'admin';
       const isActive = t.status === 'active';
+      const isGoogle = t.auth_provider === 'google';
+      const isSubscriber = t.subscription_status === 'active' && t.plan_type === 'subscriber';
+      const isExpired = !isAdmin && (t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining <= 0));
 
       const roleBadge = isAdmin
-        ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">MASTER ADMIN</span>'
-        : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">TESTADOR</span>';
+        ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">👑 MASTER ADMIN</span>'
+        : isSubscriber
+        ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">⭐ ASSINANTE</span>'
+        : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">DEGUSTAÇÃO</span>';
 
       const statusBadge = isActive
-        ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ATIVO</span>'
+        ? (isExpired
+            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">🔒 TESTE EXPIRADO (0d)</span>'
+            : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">${isAdmin ? 'ATIVO' : `ATIVO (${t.trial_days_remaining !== undefined ? t.trial_days_remaining : 7}d restantes)`}</span>`)
         : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">SUSPENSO</span>';
+
+      const providerBadge = isGoogle
+        ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30 flex items-center gap-1">🌐 Gmail / Google</span>'
+        : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Chave / Manual</span>';
 
       const actionsHtml = isAdmin
         ? '<span class="text-[11px] text-slate-500 italic">Conta Principal de Acesso</span>'
         : `
           <div class="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onclick="extendTenantTrial(${t.id})"
+              class="px-2.5 py-1.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-800/80 font-bold text-xs transition-all cursor-pointer shadow-sm"
+              title="Adicionar +7 dias de teste grátis para este usuário">
+              <span>+7 Dias</span>
+            </button>
+            <button type="button" onclick="activateTenantSubscription(${t.id})"
+              class="px-2.5 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800/80 font-bold text-xs transition-all cursor-pointer shadow-sm"
+              title="Ativar assinatura por 30 dias">
+              <span>⭐ Ativar</span>
+            </button>
             <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${t.name.replace(/'/g, "\\'")}', this)"
-              class="px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95">
-              <span>📲</span> <span>Copiar Link WhatsApp</span>
+              class="px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer">
+              <span>📲</span> <span>WhatsApp</span>
             </button>
             <button type="button" onclick="toggleTenantStatus(${t.id}, '${t.status}')"
-              class="px-2.5 py-1.5 rounded-lg ${isActive ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60 hover:bg-amber-900/60' : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60'} font-bold text-xs transition-all">
-              ${isActive ? '⏸️ Pausar' : '▶️ Ativar'}
+              class="px-2 py-1.5 rounded-lg ${isActive ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60 hover:bg-amber-900/60' : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60'} font-bold text-xs transition-all cursor-pointer">
+              ${isActive ? '⏸️' : '▶️'}
             </button>
             <button type="button" onclick="deleteTenantAccount(${t.id}, '${t.name.replace(/'/g, "\\'")}')"
-              class="px-2.5 py-1.5 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 font-bold text-xs transition-all">
+              class="px-2 py-1.5 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 font-bold text-xs transition-all cursor-pointer" title="Excluir">
               🗑️
             </button>
           </div>
@@ -419,6 +474,8 @@ window.loadTenantsTable = async function() {
           <div class="space-y-1.5">
             <div class="flex items-center gap-2 flex-wrap">
               <h4 class="font-black text-sm text-white">${t.name}</h4>
+              ${t.email ? `<span class="text-xs text-indigo-300 font-mono bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-900/50">${t.email}</span>` : ''}
+              ${providerBadge}
               ${roleBadge}
               ${statusBadge}
             </div>
@@ -438,6 +495,26 @@ window.loadTenantsTable = async function() {
     }).join('');
   } catch (err) {
     container.innerHTML = `<p class="text-xs text-rose-400 py-6 text-center">Erro ao carregar testadores: ${err.message}</p>`;
+  }
+};
+
+window.extendTenantTrial = async function(id) {
+  try {
+    const res = await api.addTenantTrial(id);
+    showToast(res.message || '+7 dias adicionados com sucesso!', 'success');
+    await loadTenantsTable();
+  } catch (err) {
+    showToast('Erro: ' + err.message, 'error');
+  }
+};
+
+window.activateTenantSubscription = async function(id) {
+  try {
+    const res = await api.activateTenantSubscription(id);
+    showToast(res.message || 'Assinatura ativada por 30 dias!', 'success');
+    await loadTenantsTable();
+  } catch (err) {
+    showToast('Erro: ' + err.message, 'error');
   }
 };
 

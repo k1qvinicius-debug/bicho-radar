@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BICHO RADAR - Área Administrativa</title>
+  <title>BICHO MASTER - Painel Administrativo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/css/style.css" />
 </head>
@@ -13,15 +13,15 @@
   <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
     <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-2.5">
-        <a href="/" class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-lg font-black shadow-lg shadow-indigo-500/20">
-          🎲
+        <a href="/" class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-amber-500 flex items-center justify-center text-lg font-black shadow-lg shadow-indigo-500/20">
+          👑
         </a>
         <div>
           <h1 class="text-base font-black tracking-tight text-white flex items-center gap-1.5">
-            Painel Administrativo
-            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">MASTER</span>
+            BICHO MASTER
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">ADMIN MASTER</span>
           </h1>
-          <p class="text-[11px] text-slate-400">Resultados, testadores multi-tenants e calibração de pesos</p>
+          <p class="text-[11px] text-slate-400">Resultados, testadores multi-tenants e configurações de degustação</p>
         </div>
       </div>
 
@@ -114,6 +114,35 @@
         <button type="button" onclick="loadTenantsTable()" class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors">
           🔄 Atualizar Lista
         </button>
+      </div>
+
+      <!-- Configuração de Suporte / WhatsApp de Vendas (Pós-Degustação) -->
+      <div class="p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+            <span>📱</span> WhatsApp para Vendas & Ativação (Aparece ao expirar os 7 dias)
+          </h3>
+          <span id="whatsapp-saved-badge" class="hidden text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">✓ Configurações salvas!</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Configure seu número de WhatsApp abaixo. Quando os 7 dias de degustação do usuário terminarem, ele verá a tela de renovação com o botão direcionando diretamente para você.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Seu WhatsApp (com DDD)</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-xs font-mono">🇧🇷 +55</span>
+              <input type="text" id="admin-whatsapp-input" placeholder="Ex: 21999998888 ou 11988887777"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-14 pr-3 py-2 text-xs text-slate-100 font-mono font-bold focus:border-emerald-500 focus:outline-none" />
+            </div>
+          </div>
+          <div>
+            <button type="button" onclick="saveAdminSettings()" id="btn-save-settings"
+              class="w-full px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+              <span>💾</span> <span>Salvar WhatsApp</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Formulário de Criação de Testador -->

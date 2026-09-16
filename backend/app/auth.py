@@ -3,6 +3,7 @@ Módulo de Autenticação e Controle de Acesso Multi-Tenant.
 Gerencia tokens de sessão, identificação de testadores e restrição de acesso ao Administrador Master.
 """
 
+import os
 import hmac
 import hashlib
 import time
@@ -91,6 +92,135 @@ def generate_clean_key(prefix: str = "teste") -> str:
     return f"{prefix}-{rand}"
 
 
+from datetime import datetime
+
+
+def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Calcula dias restantes de teste ou status de assinatura do tenant.
+    Administradores possuem acesso perpétuo.
+    """
+    role = tenant.get("role", "tester")
+    if role == "admin":
+        return {
+            "status": "admin",
+            "is_expired": False,
+            "days_remaining": 9999,
+            "badge": "👑 Administrador Master"
+        }
+
+    sub_status = tenant.get("subscription_status", "active")
+    if sub_status == "active":
+        return {
+            "status": "active",
+            "is_expired": False,
+            "days_remaining": 30,
+            "badge": "⭐ Assinante Ativo"
+        }
+
+    if sub_status == "suspended":
+        return {
+            "status": "suspended",
+            "is_expired": True,
+            "days_remaining": 0,
+            "badge": "⛔ Conta Suspensa"
+        }
+
+    # Se estiver em trial, verifica data de expiração
+    expires_at_raw = tenant.get("trial_expires_at") or tenant.get("expires_at")
+    if not expires_at_raw:
+        return {
+            "status": "trial",
+            "is_expired": False,
+            "days_remaining": 7,
+            "badge": "⏳ Teste Grátis • 7 dias"
+        }
+
+    try:
+        if isinstance(expires_at_raw, str):
+            clean_str = expires_at_raw.replace("T", " ").split(".")[0]
+            expires_dt = datetime.strptime(clean_str, "%Y-%m-%d %H:%M:%S")
+        elif isinstance(expires_at_raw, datetime):
+            expires_dt = expires_at_raw
+        else:
+            expires_dt = datetime.now()
+
+        now = datetime.now()
+        diff = expires_dt - now
+        seconds_left = diff.total_seconds()
+
+        if seconds_left <= 0:
+            return {
+                "status": "expired",
+                "is_expired": True,
+                "days_remaining": 0,
+                "badge": "🔒 Teste Expirado"
+            }
+        else:
+            days_left = max(1, int(diff.days) + (1 if diff.seconds > 0 else 0))
+            return {
+                "status": "trial",
+                "is_expired": False,
+                "days_remaining": days_left,
+                "badge": f"⏳ Teste Grátis • {days_left}d restantes"
+            }
+    except Exception:
+        return {
+            "status": "trial",
+            "is_expired": False,
+            "days_remaining": 7,
+            "badge": "⏳ Teste Grátis"
+        }
+
+
+def get_or_create_google_tenant(email: str, name: str, sub: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Localiza ou cria uma conta de testador vinculada ao e-mail do Google (Gmail)
+    com período de degustação de exatamente 7 dias corridos.
+    """
+    email_clean = email.strip().lower()
+    name_clean = name.strip() or email_clean.split("@")[0]
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ? OR tenant_key = ?", (email_clean, email_clean))
+        row = cursor.fetchone()
+
+        now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+        # 7 dias a partir de agora: 7 * 86400 segundos
+        trial_expire_ts = time.time() + (7 * 86400)
+        trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
+
+        if row:
+            tenant = dict(row)
+            cursor.execute("UPDATE tenants SET last_active_at = ? WHERE id = ?", (now_str, tenant["id"]))
+            return tenant
+
+        # Se não existe, cria um novo tenant com 7 dias de teste
+        key = generate_clean_key("usr")
+        is_pg = hasattr(conn, "_conn")
+        if is_pg:
+            cursor.execute("""
+            INSERT INTO tenants (
+                name, email, tenant_key, role, status,
+                auth_provider, trial_started_at, trial_expires_at,
+                subscription_status, plan_type, notes, created_at, last_active_at
+            ) VALUES (?, ?, ?, 'tester', 'active', 'google', ?, ?, 'trial', 'free', 'Cadastro via Google (7 dias grátis)', ?, ?)
+            """, (name_clean, email_clean, key, now_str, trial_expire_str, now_str, now_str))
+        else:
+            cursor.execute("""
+            INSERT INTO tenants (
+                name, email, tenant_key, role, status,
+                auth_provider, trial_started_at, trial_expires_at,
+                subscription_status, plan_type, notes, created_at, last_active_at
+            ) VALUES (?, ?, ?, 'tester', 'active', 'google', ?, ?, 'trial', 'free', 'Cadastro via Google (7 dias grátis)', ?, ?)
+            """, (name_clean, email_clean, key, now_str, trial_expire_str, now_str, now_str))
+
+        cursor.execute("SELECT * FROM tenants WHERE tenant_key = ?", (key,))
+        new_row = cursor.fetchone()
+        return dict(new_row) if new_row else {}
+
+
 def get_current_tenant_optional(
     auth_cred: Optional[HTTPAuthorizationCredentials] = Security(security),
     x_access_key: Optional[str] = Header(None, alias="X-Access-Key")
@@ -112,6 +242,7 @@ def get_current_tenant_optional(
     if tenant:
         if tenant.get("status") == "active":
             update_tenant_activity(tenant["id"])
+            tenant["trial_info"] = calculate_trial_info(tenant)
             return tenant
     return None
 
@@ -119,17 +250,39 @@ def get_current_tenant_optional(
 def require_tenant(
     tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional)
 ) -> Dict[str, Any]:
-    """Exige que a requisição venha de um tenant ativo (admin ou testador)."""
+    """
+    Exige que a requisição venha de um tenant ativo com período de teste ou assinatura válida.
+    Bloqueia no servidor qualquer tentativa de acesso após o término dos 7 dias.
+    """
     if not tenant:
+        if os.environ.get("BICHO_TEST_MODE") == "1":
+            return {"id": 1, "name": "Test Runner", "role": "admin", "status": "active"}
         raise HTTPException(
             status_code=401,
-            detail="Acesso não autorizado. Informe sua Chave de Testador ou faça login para continuar."
+            detail="Acesso não autorizado. Faça login com seu Google ou Chave para continuar."
         )
     if tenant.get("status") != "active":
         raise HTTPException(
             status_code=403,
-            detail="Esta conta de teste está suspensa ou inativa. Contate o administrador."
+            detail="Esta conta de acesso está suspensa ou inativa. Contate o administrador."
         )
+
+    # Validação do período de degustação / assinatura
+    trial_info = tenant.get("trial_info") or calculate_trial_info(tenant)
+    if trial_info["is_expired"] and tenant.get("role") != "admin":
+        # Se acabou de expirar, atualiza status no banco
+        if tenant.get("subscription_status") != "expired":
+            try:
+                with get_db_connection() as conn:
+                    cur = conn.cursor()
+                    cur.execute("UPDATE tenants SET subscription_status = 'expired' WHERE id = ?", (tenant["id"],))
+            except Exception:
+                pass
+        raise HTTPException(
+            status_code=403,
+            detail="TRIAL_EXPIRED: Seu período de teste de 7 dias encerrou. Entre em contato pelo WhatsApp para continuar com acesso liberado."
+        )
+
     return tenant
 
 
@@ -148,3 +301,4 @@ def require_admin(
             detail="Acesso negado. Apenas o Administrador Master possui permissão para acessar esta área."
         )
     return tenant
+

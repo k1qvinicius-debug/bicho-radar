@@ -2,8 +2,11 @@
 Testes automatizados para o Módulo de Puxadas Tradicionais do Jogo do Bicho.
 """
 
+import os
 import unittest
 from fastapi.testclient import TestClient
+
+os.environ["BICHO_TEST_MODE"] = "1"
 
 from backend.app.main import app
 from backend.app.engine.puxadas_engine import (

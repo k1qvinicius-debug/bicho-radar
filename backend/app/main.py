@@ -13,9 +13,9 @@ from .database import init_db
 from .api import results, analysis, metrics, admin, auth
 
 app = FastAPI(
-    title="BICHO RADAR API",
+    title="BICHO MASTER API",
     description="Sistema profissional de análise estatística, probabilidades e auditoria preditiva para o Jogo do Bicho.",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 # CORS liberado para testes e acesso local
