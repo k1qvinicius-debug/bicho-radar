@@ -1209,6 +1209,14 @@
           </div>
         </div>
 
+        <!-- Seletor Rápido de Loterias em Grid (Estilo Unificado) -->
+        <div>
+          <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1.5">Selecione a Loteria / Banca</label>
+          <div id="results-lottery-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            <!-- Gerado via JavaScript -->
+          </div>
+        </div>
+
         <!-- Seletor Rápido de Dias (Hoje + Últimos 7 Dias) com Scroll Horizontal -->
         <div>
           <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1.5">Selecione o Dia</label>
@@ -1220,7 +1228,7 @@
         </div>
 
         <!-- Conteúdo do Resultado (Extrações do Dia Selecionado) -->
-        <div id="draw-results-content" class="space-y-3 pt-1">
+        <div id="draw-results-content" class="grid grid-cols-1 lg:grid-cols-2 gap-3.5 pt-1">
           <!-- Renderizado dinamicamente via JS -->
         </div>
       </div>
@@ -1604,7 +1612,7 @@
     </div>
   </div>
 
-<script src="/js/api.js?v=23.0"></script>
-  <script src="/js/app.js?v=23.0"></script>
+<script src="/js/api.js?v=24.0"></script>
+  <script src="/js/app.js?v=24.0"></script>
 </body>
 </html>
