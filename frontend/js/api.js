@@ -573,7 +573,7 @@ const api = {
   // MILHARES ATRASADAS & RASTREADOR ESTATISTICO
   // =========================================================================
   async getMilharesRankings() {
-    const res = await fetch(${API_BASE}/milhares/rankings, {
+    const res = await fetch(`${API_BASE}/milhares/rankings`, {
       headers: { ...getAuthHeaders() },
     });
     if (!res.ok) throw new Error('Erro ao obter ranking de milhares.');
@@ -581,7 +581,7 @@ const api = {
   },
 
   async rastrearMilhar(milhar) {
-    const res = await fetch(${API_BASE}/milhares/rastreador/, {
+    const res = await fetch(`${API_BASE}/milhares/rastreador/${encodeURIComponent(milhar)}`, {
       headers: { ...getAuthHeaders() },
     });
     if (!res.ok) {
