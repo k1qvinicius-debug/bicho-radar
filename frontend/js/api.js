@@ -78,6 +78,26 @@ const api = {
     return result;
   },
 
+  async register(payload) {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Falha ao cadastrar perfil.' }));
+      notifyTrialExpiredIfForbidden(res.status, err);
+      throw new Error(err.detail || 'Falha ao cadastrar perfil.');
+    }
+    const data = await res.json();
+    localStorage.setItem('bicho_auth_token', data.token);
+    localStorage.setItem('bicho_tenant', JSON.stringify(data.tenant));
+
+    const result = { ...data.tenant, token: data.token };
+    result.tenant = result;
+    return result;
+  },
+
   async getPublicSettings() {
     try {
       const res = await fetch(`${API_BASE}/auth/settings`);
@@ -302,8 +322,10 @@ const api = {
 
   async getCruzDoDia(date = null) {
     let url = `${API_BASE}/analysis/cruz-do-dia`;
-    if (date) url += `?target_date=${date}`;
-    const res = await fetch(url);
+    if (date) url += `?target_date=${encodeURIComponent(date)}`;
+    const res = await fetch(url, {
+      headers: { ...getAuthHeaders() },
+    });
     if (!res.ok) throw new Error('Erro ao carregar Cruz do Dia.');
     return await res.json();
   },
@@ -315,7 +337,9 @@ const api = {
     if (slot) params.append('target_slot', slot);
     if (lottery) params.append('lottery', lottery);
     if (params.toString()) url += `?${params.toString()}`;
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: { ...getAuthHeaders() },
+    });
     if (!res.ok) throw new Error('Erro ao carregar Puxadas.');
     return await res.json();
   },
@@ -383,16 +407,32 @@ const api = {
     return await res.json();
   },
 
-  async getMetricsSummary() {
-    const res = await fetch(`${API_BASE}/metrics/summary`, {
+  async getMetricsSummary(lottery = null) {
+    let url = `${API_BASE}/metrics/summary`;
+    if (lottery && lottery !== 'all') {
+      url += `?lottery=${encodeURIComponent(lottery)}`;
+    }
+    const res = await fetch(url, {
       headers: { ...getAuthHeaders() },
     });
     if (!res.ok) throw new Error('Erro ao buscar métricas de desempenho.');
     return await res.json();
   },
 
-  async getMetricsBySlot() {
-    const res = await fetch(`${API_BASE}/metrics/by-slot`, {
+  async getMetricsByLottery() {
+    const res = await fetch(`${API_BASE}/metrics/by-lottery`, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao buscar ranking de assertividade por loteria.');
+    return await res.json();
+  },
+
+  async getMetricsBySlot(lottery = null) {
+    let url = `${API_BASE}/metrics/by-slot`;
+    if (lottery && lottery !== 'all') {
+      url += `?lottery=${encodeURIComponent(lottery)}`;
+    }
+    const res = await fetch(url, {
       headers: { ...getAuthHeaders() },
     });
     if (!res.ok) throw new Error('Erro ao buscar métricas por horário.');
@@ -494,4 +534,62 @@ const api = {
     if (!res.ok) throw new Error('Erro ao carregar status do sistema.');
     return await res.json();
   },
+
+  // =========================================================================
+  // MONITORAMENTO DO ROBÔ SCRAPER EM SEGUNDO PLANO
+  // =========================================================================
+  async getScraperStatus() {
+    const res = await fetch(`${API_BASE}/admin/scraper/status`, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao obter status do robô de sincronização.');
+    return await res.json();
+  },
+
+  async toggleScraper(enable = null) {
+    const url = enable !== null
+      ? `${API_BASE}/admin/scraper/toggle?enable=${enable}`
+      : `${API_BASE}/admin/scraper/toggle`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao alternar status do robô.');
+    return await res.json();
+  },
+
+  async runScraperNow(lottery = null) {
+    const url = lottery
+      ? `${API_BASE}/admin/scraper/run-now?lottery=${encodeURIComponent(lottery)}`
+      : `${API_BASE}/admin/scraper/run-now`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao disparar sincronização manual do robô.');
+    return await res.json();
+  },
+  // =========================================================================
+  // MILHARES ATRASADAS & RASTREADOR ESTATISTICO
+  // =========================================================================
+  async getMilharesRankings() {
+    const res = await fetch(${API_BASE}/milhares/rankings, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao obter ranking de milhares.');
+    return await res.json();
+  },
+
+  async rastrearMilhar(milhar) {
+    const res = await fetch(${API_BASE}/milhares/rastreador/, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Erro ao rastrear milhar.');
+    }
+    return await res.json();
+  },
 };
+
+window.api = api;
