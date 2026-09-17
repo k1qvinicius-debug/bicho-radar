@@ -2967,6 +2967,50 @@ let availableDatesList = [];
    TELA 6: RESULTADOS DAS EXTRAÇÕES (TABELA MODULAR & LOTERIAS UNIFICADAS)
    ========================================================================== */
 
+const OFFICIAL_LOTTERY_SLOTS = {
+  RJ: [
+    { code: 'PPT', name: 'PPT - 09:20', time: '09:20' },
+    { code: 'PTM', name: 'PTM - 11:20', time: '11:20' },
+    { code: 'PT', name: 'PT - 14:20', time: '14:20' },
+    { code: 'PTV', name: 'PTV - 16:20', time: '16:20' },
+    { code: 'PTN', name: 'PTN - 18:20', time: '18:20' },
+    { code: 'COR', name: 'Coruja - 21:20', time: '21:20' },
+  ],
+  SP: [
+    { code: 'SP-08', name: 'PT-SP 08h20 - 08:20', time: '08:20' },
+    { code: 'SP-10', name: 'PT-SP 10h - 10:00', time: '10:00' },
+    { code: 'SP-13', name: 'PT-SP 13h - 13:00', time: '13:00' },
+    { code: 'SP-15', name: 'BAND-SP 15h30 - 15:30', time: '15:30' },
+    { code: 'SP-17', name: 'PT-SP 17h - 17:00', time: '17:00' },
+    { code: 'SP-19', name: 'PT-SP 19h - 19:00', time: '19:00' },
+    { code: 'SP-20', name: 'PTN-SP 20h - 20:00', time: '20:00' },
+  ],
+  LOOK: [
+    { code: 'LK-07', name: 'Look 07h - 07:20', time: '07:20' },
+    { code: 'LK-09', name: 'Look 09h - 09:20', time: '09:20' },
+    { code: 'LK-11', name: 'Look 11h - 11:20', time: '11:20' },
+    { code: 'LK-14', name: 'Look 14h - 14:20', time: '14:20' },
+    { code: 'LK-16', name: 'Look 16h - 16:20', time: '16:20' },
+    { code: 'LK-18', name: 'Look 18h - 18:20', time: '18:20' },
+    { code: 'LK-21', name: 'Look 21h - 21:20', time: '21:20' },
+    { code: 'LK-23', name: 'Look 23h - 23:20', time: '23:20' },
+  ],
+  NACIONAL: [
+    { code: 'LN-02', name: 'Nacional 02h - 02:00', time: '02:00' },
+    { code: 'LN-08', name: 'Nacional 08h - 08:00', time: '08:00' },
+    { code: 'LN-10', name: 'Nacional 10h - 10:00', time: '10:00' },
+    { code: 'LN-12', name: 'Nacional 12h - 12:00', time: '12:00' },
+    { code: 'LN-15', name: 'Nacional 15h - 15:00', time: '15:00' },
+    { code: 'LN-17', name: 'Nacional 17h - 17:00', time: '17:00' },
+    { code: 'LN-19', name: 'Nacional 19h - 19:00', time: '19:00' },
+    { code: 'LN-21', name: 'Nacional 21h - 21:00', time: '21:00' },
+    { code: 'LN-23', name: 'Nacional 23h - 23:00', time: '23:00' },
+  ],
+  FEDERAL: [
+    { code: 'FED', name: 'Federal 19h - 19:00', time: '19:00' },
+  ]
+};
+
 const RESULTS_LOTTERIES_CATALOG = [
   { code: 'RJ', name: 'Rio de Janeiro', state: 'RJ', icon: '🏛️' },
   { code: 'SP', name: 'São Paulo', state: 'SP', icon: '🏙️' },
@@ -3025,9 +3069,13 @@ async function loadDrawResults(dateOverride = null) {
     const resData = await api.getResults(60, 0, currentLottery);
     const items = resData?.items || [];
 
-    // Agrupa por data: allRecentDrawsByDate[dateStr][slotCode] = draw
+    // Agrupa por data filtrando estritamente pela loteria ativa
+    const activeLotKey = (currentLottery || 'RJ').toUpperCase();
     allRecentDrawsByDate = {};
     items.forEach((draw) => {
+      if (draw.lottery && draw.lottery.toUpperCase() !== activeLotKey) {
+        return;
+      }
       const d = draw.draw_date;
       if (!allRecentDrawsByDate[d]) allRecentDrawsByDate[d] = {};
       allRecentDrawsByDate[d][draw.slot] = draw;
@@ -3082,42 +3130,35 @@ async function loadDrawResults(dateOverride = null) {
         .join('');
     }
 
-    // 4. Determina lista de horários da loteria ativa
-    let slots = [];
-    if (currentLottery === 'FEDERAL') {
+    // 4. Determina lista de horários EXCLUSIVA da loteria ativa
+    const lotKey = (currentLottery || 'RJ').toUpperCase();
+    const baseSlots = OFFICIAL_LOTTERY_SLOTS[lotKey] || OFFICIAL_LOTTERY_SLOTS.RJ;
+    let slots = baseSlots.map(s => ({ ...s }));
+
+    if (lotKey === 'FEDERAL') {
       slots = [getFriendlySlotMeta('FED', selectedResultDate)];
-    } else if (currentLottery === 'SP') {
-      slots = [
-        { code: 'SP-08', name: 'PT-SP 08h20 - 08:20', time: '08:20' },
-        { code: 'SP-10', name: 'PT-SP 10h - 10:00', time: '10:00' },
-        { code: 'SP-13', name: 'PT-SP 13h - 13:00', time: '13:00' },
-        { code: 'SP-15', name: 'BAND-SP 15h30 - 15:30', time: '15:30' },
-        { code: 'SP-17', name: 'PT-SP 17h - 17:00', time: '17:00' },
-        { code: 'SP-19', name: 'PT-SP 19h - 19:00', time: '19:00' },
-        { code: 'SP-20', name: 'PTN-SP 20h - 20:00', time: '20:00' },
-      ];
-    } else if (standardSlotsList && standardSlotsList.length > 0) {
-      slots = [...standardSlotsList];
-    } else {
-      slots = [
-        { code: 'PPT', name: 'PPT - 09:20', time: '09:20' },
-        { code: 'PTM', name: 'PTM - 11:20', time: '11:20' },
-        { code: 'PT', name: 'PT - 14:20', time: '14:20' },
-        { code: 'PTV', name: 'PTV - 16:20', time: '16:20' },
-        { code: 'PTN', name: 'PTN - 18:20', time: '18:20' },
-        { code: 'COR', name: 'Coruja - 21:20', time: '21:20' },
-      ];
     }
 
-    // Inclui dinamicamente qualquer slot que já tenha sorteio apurado nesta data
+    // Inclui dinamicamente apenas slots que pertencem à loteria ativa
     const dayDraws = allRecentDrawsByDate[selectedResultDate] || {};
     Object.keys(dayDraws).forEach((drawSlotCode) => {
-      if (currentLottery === 'SP' && !['SP-08', 'SP-10', 'SP-13', 'SP-15', 'SP-17', 'SP-19', 'SP-20'].includes(drawSlotCode)) {
+      const draw = dayDraws[drawSlotCode];
+      if (draw && draw.lottery && draw.lottery.toUpperCase() !== lotKey) {
         return;
       }
       if (!slots.some(s => s.code === drawSlotCode)) {
         slots.push(getFriendlySlotMeta(drawSlotCode, selectedResultDate));
       }
+    });
+
+    // Filtra estritamente para garantir que nenhum horário de outra loteria vaze
+    slots = slots.filter(s => {
+      if (lotKey === 'RJ') return !s.code.startsWith('SP-') && !s.code.startsWith('LK-') && !s.code.startsWith('LN-') && s.code !== 'FED';
+      if (lotKey === 'SP') return s.code.startsWith('SP-');
+      if (lotKey === 'LOOK') return s.code.startsWith('LK-');
+      if (lotKey === 'NACIONAL') return s.code.startsWith('LN-');
+      if (lotKey === 'FEDERAL') return s.code === 'FED';
+      return true;
     });
 
     // Ordena cronologicamente
