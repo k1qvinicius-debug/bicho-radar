@@ -2963,14 +2963,65 @@ let selectedResultDate = null;
 let allRecentDrawsByDate = {};
 let availableDatesList = [];
 
+/* ==========================================================================
+   TELA 6: RESULTADOS DAS EXTRAÇÕES (TABELA MODULAR & LOTERIAS UNIFICADAS)
+   ========================================================================== */
+
+const RESULTS_LOTTERIES_CATALOG = [
+  { code: 'RJ', name: 'Rio de Janeiro', state: 'RJ', icon: '🏛️' },
+  { code: 'SP', name: 'São Paulo', state: 'SP', icon: '🏙️' },
+  { code: 'LOOK', name: 'Goiás (Look)', state: 'GO', icon: '🎯' },
+  { code: 'NACIONAL', name: 'Loteria Nacional', state: 'BR', icon: '🇧🇷' },
+  { code: 'FEDERAL', name: 'Loteria Federal', state: 'FED', icon: '⚖️' },
+];
+
+window.selectResultLottery = async function (lotteryCode) {
+  if (!lotteryCode) return;
+  currentLottery = lotteryCode;
+  localStorage.setItem('bicho_active_lottery', lotteryCode);
+  updateLotteryButtonsUI();
+  await loadDrawResults();
+};
+
+function getAnimalMetaForNumber(numStr) {
+  if (!numStr) return { group: '-', name: '-', emoji: '🐾' };
+  const clean = String(numStr).replace(/\D/g, '');
+  if (!clean) return { group: '-', name: '-', emoji: '🐾' };
+  const dezena = parseInt(clean.slice(-2), 10);
+  const grp = dezena === 0 ? 25 : Math.floor((dezena - 1) / 4) + 1;
+  const bicho = ALL_ANIMALS_CATALOG.find(a => a.group === grp);
+  return {
+    group: grp,
+    name: bicho ? bicho.name : `Grupo ${grp}`,
+    emoji: bicho ? bicho.emoji : '🐾',
+  };
+}
+
 async function loadDrawResults(dateOverride = null) {
   const contentEl = document.getElementById('draw-results-content');
   const summaryEl = document.getElementById('results-day-summary');
   const pillsEl = document.getElementById('results-day-pills');
+  const lotteryGridEl = document.getElementById('results-lottery-grid');
   if (!contentEl) return;
 
+  // 1. Renderiza o grid de Loterias no topo da tela de Resultados
+  if (lotteryGridEl) {
+    lotteryGridEl.innerHTML = RESULTS_LOTTERIES_CATALOG.map(lot => {
+      const isSelected = (currentLottery || 'RJ').toUpperCase() === lot.code;
+      const activeClasses = isSelected
+        ? 'bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400'
+        : 'bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800 font-bold';
+      return `
+        <button type="button" onclick="selectResultLottery('${lot.code}')"
+          class="px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer ${activeClasses}">
+          <span>${lot.icon}</span> <span>${lot.name}</span>
+        </button>
+      `;
+    }).join('');
+  }
+
   try {
-    // 1. Busca os últimos 60 sorteios da base para a loteria ativa
+    // 2. Busca os últimos sorteios da base para a loteria ativa
     const resData = await api.getResults(60, 0, currentLottery);
     const items = resData?.items || [];
 
@@ -2994,7 +3045,6 @@ async function loadDrawResults(dateOverride = null) {
     if (dateOverride) {
       selectedResultDate = dateOverride;
     } else if (!selectedResultDate || !availableDatesList.includes(selectedResultDate)) {
-      // Se a data de hoje tem resultados para esta loteria, seleciona hoje; senão, seleciona a data mais recente com resultados
       const todayHasDraws = allRecentDrawsByDate[todayStr] && Object.keys(allRecentDrawsByDate[todayStr]).length > 0;
       if (todayHasDraws) {
         selectedResultDate = todayStr;
@@ -3004,7 +3054,7 @@ async function loadDrawResults(dateOverride = null) {
       }
     }
 
-    // 2. Renderiza as Pills de Dias (Hoje, Ontem, etc.)
+    // 3. Renderiza as Pills de Dias (Hoje, Ontem, etc.)
     if (pillsEl) {
       pillsEl.innerHTML = availableDatesList
         .map((dateStr) => {
@@ -3023,7 +3073,7 @@ async function loadDrawResults(dateOverride = null) {
 
           return `
             <button type="button" onclick="selectResultDate('${dateStr}')"
-              class="px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 active:scale-95 ${activeClasses}">
+              class="px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer ${activeClasses}">
               <span>${label}</span>
               <span class="text-[9px]">${statusDot}</span>
             </button>
@@ -3032,7 +3082,7 @@ async function loadDrawResults(dateOverride = null) {
         .join('');
     }
 
-    // 3. Determina lista de horários da loteria ativa
+    // 4. Determina lista de horários da loteria ativa
     let slots = [];
     if (currentLottery === 'FEDERAL') {
       slots = [getFriendlySlotMeta('FED', selectedResultDate)];
@@ -3070,10 +3120,10 @@ async function loadDrawResults(dateOverride = null) {
       }
     });
 
-    // Ordena os slots cronologicamente do primeiro ao último horário do dia (ex: 7h, 9h, 11h, 14h...)
+    // Ordena cronologicamente
     slots.sort((a, b) => getSlotMinutes(a, selectedResultDate) - getSlotMinutes(b, selectedResultDate));
 
-    // 4. Atualiza o resumo no cabeçalho
+    // 5. Atualiza o resumo no cabeçalho
     const drawnCount = slots.filter(s => dayDraws[s.code]).length;
     const dateFormatted = formatDateBR(selectedResultDate);
     const dayOfWeekName = getDayOfWeekName(selectedResultDate);
@@ -3100,92 +3150,120 @@ async function loadDrawResults(dateOverride = null) {
 
 function renderDrawSlotCard(draw, slotInfo) {
   const details = draw.prizes_detail || [];
-  const p1 = details.find((p) => p.order === 1) || {
-    number: draw.prize_1 || '',
-    group: draw.group_1 || '-',
-    animal_name: draw.animal_1?.name || '',
-    animal_emoji: draw.animal_1?.emoji || '🐾',
-    tens: draw.animal_1?.tens || [],
-  };
+  const allPrizes = [];
 
-  const otherPrizes = details.length > 1
-    ? details.filter((p) => p.order > 1)
-    : [
-        { label: '2º', number: draw.prize_2, group: draw.groups_1_to_5?.[1] || '-', animal_emoji: '🐾', animal_name: '' },
-        { label: '3º', number: draw.prize_3, group: draw.groups_1_to_5?.[2] || '-', animal_emoji: '🐾', animal_name: '' },
-        { label: '4º', number: draw.prize_4, group: draw.groups_1_to_5?.[3] || '-', animal_emoji: '🐾', animal_name: '' },
-        { label: '5º', number: draw.prize_5, group: draw.groups_1_to_5?.[4] || '-', animal_emoji: '🐾', animal_name: '' },
-        ...(draw.prize_6 ? [{ label: '6º', number: draw.prize_6, group: '-', animal_emoji: '🐾', animal_name: '' }] : []),
-        ...(draw.prize_7 ? [{ label: '7º', number: draw.prize_7, group: '-', animal_emoji: '🐾', animal_name: '' }] : []),
-      ];
+  for (let order = 1; order <= 7; order++) {
+    const fromDetail = details.find(p => p.order === order);
+    const rawNumber = fromDetail?.number || draw[`prize_${order}`] || '';
+    if (!rawNumber && order > 5) continue;
 
-  const tensBadges = (p1.tens || [])
-    .map((t) => `<span class="px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold shrink-0 min-w-[22px] text-center">${t}</span>`)
-    .join(' ');
+    let animalName = fromDetail?.animal_name;
+    let animalEmoji = fromDetail?.animal_emoji;
+    let group = fromDetail?.group;
 
-  const otherPrizesHtml = otherPrizes
-    .map((p) => `
-      <div class="px-2 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-1.5 min-w-0 overflow-hidden">
-        <div class="flex items-center gap-1.5 min-w-0">
-          <span class="text-[10px] text-slate-400 font-bold shrink-0">${p.label || p.order + 'º'}</span>
-          <span class="text-xs shrink-0">${p.animal_emoji || '🐾'}</span>
-          <span class="text-[11px] text-slate-300 truncate">${p.animal_name || (p.group !== '-' ? 'Gr ' + p.group : '')}</span>
+    if (!animalName || !animalEmoji || !group || group === '-') {
+      const fallbackMeta = getAnimalMetaForNumber(rawNumber);
+      group = fallbackMeta.group;
+      animalName = fallbackMeta.name;
+      animalEmoji = fallbackMeta.emoji;
+    }
+
+    allPrizes.push({
+      order,
+      number: rawNumber,
+      group,
+      animal_name: animalName,
+      animal_emoji: animalEmoji
+    });
+  }
+
+  const rowsHtml = allPrizes.map((p) => {
+    let prizeCol = '';
+    let rowBg = 'hover:bg-slate-800/40 transition-colors';
+    let milharCol = `<span class="font-mono font-bold text-slate-100 text-sm tracking-wider">${p.number || '-'}</span>`;
+
+    if (p.order === 1) {
+      prizeCol = `<div class="flex items-center gap-1.5 font-black text-amber-300 text-xs"><span>🥇</span> <span>1º Prêmio</span></div>`;
+      rowBg = 'bg-amber-500/10 hover:bg-amber-500/15 transition-colors border-l-2 border-amber-400';
+      milharCol = `<span class="font-mono font-black text-amber-300 text-base tracking-widest drop-shadow">${p.number || '-'}</span>`;
+    } else if (p.order === 6) {
+      prizeCol = `
+        <div>
+          <span class="font-bold text-slate-200 text-xs">6º Prêmio</span>
+          <span class="block text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none mt-0.5">SOMA</span>
         </div>
-        <div class="text-xs font-black font-mono text-slate-100 shrink-0">${p.number || '-'}</div>
-      </div>
-    `)
-    .join('');
+      `;
+      rowBg = 'bg-indigo-950/20 hover:bg-indigo-950/35 transition-colors';
+      milharCol = `<span class="font-mono font-bold text-indigo-200 text-sm tracking-wider">${p.number || '-'}</span>`;
+    } else if (p.order === 7) {
+      prizeCol = `
+        <div>
+          <span class="font-bold text-slate-200 text-xs">7º Prêmio</span>
+          <span class="block text-[8px] font-black text-amber-400 uppercase tracking-widest leading-none mt-0.5">MULTIPLICAÇÃO</span>
+        </div>
+      `;
+      rowBg = 'bg-amber-950/20 hover:bg-amber-950/35 transition-colors';
+      milharCol = `<span class="font-mono font-bold text-amber-200 text-sm tracking-wider">${p.number || '-'}</span>`;
+    } else {
+      prizeCol = `<span class="font-bold text-slate-300 text-xs">${p.order}º Prêmio</span>`;
+    }
+
+    const groupText = p.group !== '-' ? String(p.group).padStart(2, '0') : '-';
+
+    return `
+      <tr class="${rowBg}">
+        <td class="py-2.5 px-3 whitespace-nowrap">${prizeCol}</td>
+        <td class="py-2.5 px-3 text-center whitespace-nowrap">${milharCol}</td>
+        <td class="py-2.5 px-3 text-center whitespace-nowrap">
+          <span class="font-mono font-bold text-xs px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+            ${groupText}
+          </span>
+        </td>
+        <td class="py-2.5 px-3 whitespace-nowrap">
+          <div class="flex items-center gap-1.5">
+            <span class="text-base leading-none">${p.animal_emoji || '🐾'}</span>
+            <span class="font-black text-white text-xs">${p.animal_name || '-'}</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   return `
-    <div class="p-3.5 sm:p-4 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-amber-500/30 transition-all animate-fade-in space-y-2.5 overflow-hidden">
-      <!-- Topo do Card do Horário -->
-      <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-800/80">
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-black uppercase tracking-wider text-slate-100">${slotInfo.name}</span>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1 shrink-0">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> APURADO
-          </span>
-        </div>
-        <button type="button" onclick="selectSlotForPrediction('${slotInfo.code}', '${draw.draw_date}')" 
-          class="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 hover:border-indigo-500/60 text-[11px] text-indigo-300 hover:text-white font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95">
-          <span>⚡ Palpite deste Resultado</span> &rarr;
-        </button>
-      </div>
-
-      <!-- 1º Prêmio (Cabeça) -->
-      <div class="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 overflow-hidden">
-        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-          <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-xl sm:text-2xl animal-badge shrink-0 bg-amber-500/20 border border-amber-500/40 shadow-inner">
-            ${p1.animal_emoji || '🐾'}
+    <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-slate-800 hover:border-slate-700 transition-all animate-fade-in space-y-3 overflow-hidden shadow-xl bg-slate-900/90 flex flex-col justify-between">
+      <div>
+        <!-- Topo do Horário -->
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-2.5 border-b border-slate-800/80 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-black uppercase tracking-wider text-slate-100 flex items-center gap-1.5">
+              <span>🕒</span> ${slotInfo.name}
+            </span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shrink-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> APURADO
+            </span>
           </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-300 border border-amber-500/40 shrink-0">
-                1º Prêmio (Cabeça)
-              </span>
-              <span class="text-xs text-slate-300 font-mono font-bold shrink-0">Grupo ${String(p1.group).padStart(2, '0')}</span>
-            </div>
-            <div class="text-sm sm:text-base font-black text-white truncate mt-0.5">${p1.animal_name}</div>
-          </div>
+          <button type="button" onclick="selectSlotForPrediction('${slotInfo.code}', '${draw.draw_date}')" 
+            class="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 hover:border-indigo-500/60 text-[11px] text-indigo-300 hover:text-white font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
+            <span>🎯 Palpite</span> &rarr;
+          </button>
         </div>
 
-        <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 border-slate-800/80 pt-2 sm:pt-0 shrink-0 w-full sm:w-auto">
-          <div class="flex flex-col sm:items-end">
-            <span class="text-[9px] uppercase font-bold text-amber-400/70 sm:hidden">Milhar Sorteada</span>
-            <div class="text-2xl sm:text-3xl font-black text-amber-400 font-mono tracking-widest leading-none drop-shadow">${p1.number}</div>
-          </div>
-          <div class="flex flex-col sm:items-end">
-            <span class="text-[9px] uppercase font-bold text-slate-400/80 sm:hidden mb-0.5 text-right">Dezenas</span>
-            <div class="flex items-center justify-end gap-1 flex-wrap">
-              ${tensBadges}
-            </div>
-          </div>
+        <!-- Tabela Estruturada de Prêmios (Estilo da Foto) -->
+        <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/80 shadow-inner">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-900/90 text-slate-400 text-[10px] font-black uppercase tracking-wider border-b border-slate-800">
+                <th class="py-2 px-3 text-slate-300">Prêmio</th>
+                <th class="py-2 px-3 font-mono text-center text-slate-300">Milhar</th>
+                <th class="py-2 px-3 text-center text-slate-300">Grupo</th>
+                <th class="py-2 px-3 text-slate-300">Bicho</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-medium">
+              ${rowsHtml}
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      <!-- Cercado (2º ao 7º) -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5 pt-1">
-        ${otherPrizesHtml}
       </div>
     </div>
   `;
@@ -3197,25 +3275,29 @@ function renderPendingSlotCard(slotInfo, isToday) {
     : `Nenhum resultado registrado para esta extração nesta data.`;
 
   return `
-    <div class="p-3 rounded-xl bg-slate-900/40 border border-dashed border-slate-800/80 flex items-center justify-between gap-3 animate-fade-in opacity-75 hover:opacity-100 transition-opacity">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-center text-sm text-slate-400">
-          ⏳
-        </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold text-slate-300">${slotInfo.name}</span>
-            <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              AGUARDANDO
-            </span>
-          </div>
-          <p class="text-[11px] text-slate-500 mt-0.5">${statusText}</p>
+    <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-dashed border-slate-800/80 bg-slate-900/40 flex flex-col justify-between gap-3 animate-fade-in opacity-85 hover:opacity-100 transition-opacity">
+      <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-800/60">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+            <span>🕒</span> ${slotInfo.name}
+          </span>
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            AGUARDANDO
+          </span>
         </div>
       </div>
-      <button type="button" onclick="selectSlotForPrediction('${slotInfo.code}')" 
-        class="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold shrink-0">
-        Gerar Palpite &rarr;
-      </button>
+      <div class="py-8 flex flex-col items-center justify-center text-center space-y-2">
+        <div class="w-10 h-10 rounded-xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center text-base text-slate-400">
+          ⏳
+        </div>
+        <p class="text-xs text-slate-400 max-w-xs leading-relaxed">${statusText}</p>
+      </div>
+      <div class="pt-2 border-t border-slate-800/60 flex items-center justify-end">
+        <button type="button" onclick="selectSlotForPrediction('${slotInfo.code}')" 
+          class="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 transition-colors cursor-pointer">
+          <span>Gerar Palpite Prévio</span> &rarr;
+        </button>
+      </div>
     </div>
   `;
 }
