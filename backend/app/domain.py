@@ -113,7 +113,7 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
             {"code": "SP-08", "name": "PT-SP 08h20 - 08:20", "time": "08:20", "order": 1},
             {"code": "SP-10", "name": "PT-SP 10h - 10:00", "time": "10:00", "order": 2},
             {"code": "SP-13", "name": "PT-SP 13h - 13:00", "time": "13:00", "order": 3},
-            {"code": "SP-15", "name": "Bandeirantes 15h30 - 15:30", "time": "15:30", "order": 4},
+            {"code": "SP-15", "name": "BAND-SP 15h30 - 15:30", "time": "15:30", "order": 4},
             {"code": "SP-17", "name": "PT-SP 17h - 17:00", "time": "17:00", "order": 5},
             {"code": "SP-19", "name": "PT-SP 19h - 19:00", "time": "19:00", "order": 6},
             {"code": "SP-20", "name": "PTN-SP 20h - 20:00", "time": "20:00", "order": 7},
