@@ -1,3 +1,57 @@
+
+window.setupGoogleIdentity = async function() {
+  try {
+    const settings = await api.getPublicSettings();
+    if (settings && settings.google_client_id) {
+      window._googleClientId = settings.google_client_id;
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        window.google.accounts.id.initialize({
+          client_id: settings.google_client_id,
+          callback: window.handleGoogleCredentialResponse,
+          auto_select: true
+        });
+
+        // Exibe botão oficial nativo do Google se configurado
+        const slot = document.getElementById('g_id_signin_slot');
+        if (slot) {
+          slot.classList.remove('hidden');
+          window.google.accounts.id.renderButton(slot, {
+            theme: 'outline',
+            size: 'large',
+            type: 'standard',
+            shape: 'rectangular',
+            text: 'signup_with',
+            logo_alignment: 'left',
+            width: 320
+          });
+        }
+
+        // Tenta acionar Google One-Tap nativo no topo da tela
+        window.google.accounts.id.prompt();
+      }
+    }
+  } catch (err) {
+    console.warn('Aviso ao inicializar Google Identity:', err);
+  }
+};
+
+window.handleGoogleCredentialResponse = async function(response) {
+  if (!response || !response.credential) return;
+  try {
+    showToast('Autenticando conta Google salva...', 'info');
+    const tenant = await api.loginGoogle({
+      credential: response.credential,
+      provider: 'google'
+    });
+    showToast(`Bem-vindo, ${tenant.name || 'Usuário'}!`, 'success');
+    closeGoogleSignupModal();
+    updateAuthUI();
+    await Promise.all([loadPrediction(), loadDrawResults()]);
+  } catch (err) {
+    showToast('Erro ao logar com conta Google: ' + err.message, 'error');
+  }
+};
+
 /**
  * Lógica do Dashboard Principal - BICHO RADAR
  */
@@ -13,6 +67,7 @@ let currentLottery = localStorage.getItem('bicho_active_lottery') || 'RJ';
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initTenantAuth();
+  await setupGoogleIdentity();
   updateLotteryButtonsUI();
   await initSlotSelector(currentLottery);
   setDefaultDate();
@@ -28,7 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const requestedScreen = hash || urlParams.get('tab');
   
-  if (['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados'].includes(requestedScreen)) {
+  if (['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas'].includes(requestedScreen)) {
     switchScreen(requestedScreen, false);
   } else {
     switchScreen('home', false);
@@ -38,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Suporte ao botão voltar/avançar do navegador entre as telas
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash.replace('#', '');
-  if (['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados'].includes(hash)) {
+  if (['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas'].includes(hash)) {
     switchScreen(hash, false);
   } else {
     switchScreen('home', false);
@@ -50,7 +105,7 @@ window.addEventListener('hashchange', () => {
    Telas: 'home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados'
    ========================================================================== */
 window.switchScreen = function(screenName, updateHash = true) {
-  const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados'];
+  const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas'];
   if (!screens.includes(screenName)) screenName = 'home';
 
   // Oculta todas as telas e exibe a selecionada
@@ -68,7 +123,7 @@ window.switchScreen = function(screenName, updateHash = true) {
   // Oculta a barra de loterias na tela da Cruz do Dia e no Início
   const globalLotteryBar = document.getElementById('global-lottery-bar-container');
   if (globalLotteryBar) {
-    if (screenName === 'cruz' || screenName === 'home') {
+    if (screenName === 'cruz' || screenName === 'home' || screenName === 'milhares-atrasadas') {
       globalLotteryBar.classList.add('hidden');
     } else {
       globalLotteryBar.classList.remove('hidden');
@@ -144,6 +199,8 @@ window.switchScreen = function(screenName, updateHash = true) {
     loadDrawResults();
   } else if (screenName === 'home') {
     updateHomeScreenData();
+  } else if (screenName === 'milhares-atrasadas') {
+    loadMilharesAtrasadas();
   }
 
   // Atualiza hash da URL
@@ -695,6 +752,9 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
   } else if (screenName === 'cruz') {
     const cruzBtn = document.getElementById('sidebar-btn-cruz');
     if (cruzBtn) cruzBtn.classList.add('sidebar-item-active');
+  } else if (screenName === 'milhares-atrasadas') {
+    const milBtn = document.getElementById('sidebar-btn-milhares-atrasadas');
+    if (milBtn) milBtn.classList.add('sidebar-item-active');
   } else if (lotteryCode && screenName) {
     window.toggleLotteryAccordion(lotteryCode, true);
     const subBtn = document.getElementById(`subnav-${lotteryCode}-${screenName}`);
@@ -707,7 +767,8 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
     'cruz': 'Cruz do Dia',
     'puxadas': 'Radar de Puxadas',
     'atrasados': 'Mais Atrasados',
-    'resultados': 'Resultados das Extrações'
+    'resultados': 'Resultados das Extrações',
+    'milhares-atrasadas': 'Milhares Atrasadas'
   };
   const screenBadge = document.getElementById('current-screen-badge');
   if (screenBadge) {
@@ -801,7 +862,34 @@ function setupEventListeners() {
   }
 
   // Botão Puxar Resultados dedicado na aba de Resultados
-  const btnSyncWebResults = document.getElementById('btn-sync-web-results');
+  window.syncAllWebResults = async function () {
+  const btn = document.getElementById('btn-sync-all-web-results');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="animate-spin inline-block mr-1">⏳</span> Sincronizando Todas...';
+  }
+  showToast('Sincronizando todas as bancas (RJ, Federal, Look, Nacional, SP)...', 'info');
+  try {
+    const res = await api.syncWebResults(null);
+    showToast(res.message || 'Todas as bancas sincronizadas com sucesso!', 'success');
+    _puxadasDataCache = null;
+    await Promise.all([loadPrediction(), loadDrawResults()]);
+    const viewPuxadas = document.getElementById('view-puxadas');
+    if (viewPuxadas && !viewPuxadas.classList.contains('hidden')) {
+      await loadPuxadasModalContent();
+    }
+  } catch (err) {
+    showToast('Erro ao sincronizar todas as bancas: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
+};
+
+const btnSyncWebResults = document.getElementById('btn-sync-web-results');
   if (btnSyncWebResults) {
     btnSyncWebResults.addEventListener('click', async () => {
       btnSyncWebResults.disabled = true;
@@ -957,8 +1045,7 @@ window.syncPuxadasModal = async function () {
 
 async function loadPuxadasModalContent(selectedGroup = null) {
   try {
-    if (!_puxadasDataCache || _puxadasDataCache.lottery !== currentLottery || !selectedGroup) {
-      // Radar de Puxadas sempre consulta o último resultado apurado da loteria ativa
+    if (!_puxadasDataCache || _puxadasDataCache.lottery !== currentLottery) {
       _puxadasDataCache = await api.getPuxadas(null, null, currentLottery);
     }
     const data = _puxadasDataCache;
@@ -967,15 +1054,15 @@ async function loadPuxadasModalContent(selectedGroup = null) {
     const lotNames = {
       'RJ': 'Rio de Janeiro (RJ)',
       'LOOK': 'Look Goiás',
-      'NACIONAL': 'Nacional',
+      'NACIONAL': 'Loteria Nacional',
       'SP': 'São Paulo',
-      'FEDERAL': 'Federal'
+      'FEDERAL': 'Loteria Federal'
     };
     const lotLabel = lotNames[currentLottery] || currentLottery;
 
     const subTitleEl = document.getElementById('puxadas-modal-subtitle');
     if (subTitleEl) {
-      subTitleEl.textContent = `Tradição popular: animais atraídos pelo último 1º prêmio em ${lotLabel}`;
+      subTitleEl.textContent = `Tradição popular: animais atraídos pelo último 1º prêmio apurado em ${lotLabel}`;
     }
 
     const badgeEl = document.getElementById('puxadas-lottery-badge');
@@ -983,57 +1070,213 @@ async function loadPuxadasModalContent(selectedGroup = null) {
       badgeEl.textContent = lotLabel;
     }
 
-    // Atualiza visual dos botões de loteria na barra de puxadas
+    // Atualiza botões de loteria
     document.querySelectorAll('.puxadas-lot-btn').forEach(btn => {
       const lot = btn.getAttribute('data-puxadas-lottery');
       if (lot === currentLottery) {
-        btn.className = 'puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-black transition-all shrink-0 cursor-pointer bg-violet-600 text-white border border-violet-400 shadow-sm';
+        btn.className = 'puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-black transition-all shrink-0 cursor-pointer bg-gradient-to-r from-violet-600 to-indigo-600 text-white border border-violet-400 shadow-sm ring-1 ring-violet-500/30';
       } else {
-        btn.className = 'puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60';
+        btn.className = 'puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700/80 hover:text-white';
       }
     });
 
-    const selectEl = document.getElementById('puxadas-select-animal');
-    if (selectEl && (selectEl.options.length <= 1 || !selectEl.hasChildNodes())) {
-      selectEl.innerHTML = Object.values(catalog).map(c => `
-        <option value="${c.group}">Grupo ${String(c.group).padStart(2, '0')} - ${c.emoji} ${c.animal}</option>
-      `).join('');
+    const isDrawBase = !selectedGroup;
+    const baseAnimal = data.base_animal || {};
+    const defaultGroup = baseAnimal.group || 15;
+    const activeGroup = selectedGroup || defaultGroup;
+    const currentBaseInfo = (catalog[activeGroup] || catalog[String(activeGroup)]) || baseAnimal;
+
+    // Constrói options do seletor de bicho
+    const animalOptions = Object.values(catalog)
+      .sort((a, b) => a.group - b.group)
+      .map(c => `<option value="${c.group}" ${c.group === activeGroup ? 'selected' : ''}>Gr. ${String(c.group).padStart(2, '0')} - ${c.emoji} ${c.animal.toUpperCase()}</option>`)
+      .join('');
+
+    // Formatação de data e extração do sorteio apurado
+    let drawDateFormatted = '';
+    if (baseAnimal.draw_date) {
+      const parts = String(baseAnimal.draw_date).split('-');
+      drawDateFormatted = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : baseAnimal.draw_date;
     }
+    const slotFormatted = baseAnimal.slot || 'Última Apuração';
+    const milharPrize1 = baseAnimal.milhar || (data.last_draw ? data.last_draw.prize_1 : '----');
+    const dezenaPrize1 = baseAnimal.dezena || (milharPrize1.length >= 2 ? milharPrize1.slice(-2) : '--');
+    const centenaPrize1 = baseAnimal.centena || (milharPrize1.length >= 3 ? milharPrize1.slice(-3) : '---');
 
-    const baseGroup = selectedGroup || data.base_animal?.group || 17;
-    const currentBaseInfo = catalog[baseGroup] || data.base_animal;
-
-    if (selectEl) {
-      selectEl.value = String(baseGroup);
-    }
-
-    const baseContainer = document.getElementById('puxadas-base-animal-content');
-    if (baseContainer) {
-      const sourceSlotText = (!selectedGroup && data.base_animal?.source_slot)
-        ? `<span class="text-[10px] text-amber-400 font-bold">1º Prêmio em ${data.base_animal.source_slot} • [${lotLabel}] (Milhar: ${data.base_animal.milhar})</span>`
-        : `<span class="text-[10px] text-slate-400">Animal selecionado para consulta • [${lotLabel}]</span>`;
-
-      baseContainer.innerHTML = `
-        <div class="w-12 h-12 rounded-xl bg-violet-600/20 border border-violet-500/40 flex items-center justify-center text-3xl shrink-0 shadow-inner">
-          ${currentBaseInfo.emoji}
-        </div>
-        <div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <h4 class="font-black text-white text-base">${currentBaseInfo.animal.toUpperCase()}</h4>
-            <span class="text-xs font-mono font-bold text-violet-300">Grupo ${String(currentBaseInfo.group).padStart(2, '0')}</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">${lotLabel}</span>
+    // Fita compacta dos 7 prêmios da apuração oficial
+    const prizes = data.last_draw?.prizes || baseAnimal.prizes || [];
+    let prizesStripHtml = '';
+    if (prizes && prizes.length >= 1) {
+      prizesStripHtml = `
+        <div class="pt-2 border-t border-slate-800/70">
+          <div class="flex items-center justify-between mb-1.5 text-[10px]">
+            <span class="uppercase font-bold text-slate-400 flex items-center gap-1">
+              <span>📋</span> Todos os Prêmios Apurados (${slotFormatted}):
+            </span>
+            <span class="text-[10px] text-emerald-400 font-mono font-bold">1º ao ${prizes.length}º</span>
           </div>
-          <div class="text-[11px] text-slate-300 mt-0.5">
-            Dezenas: <span class="font-mono font-bold text-amber-200">${currentBaseInfo.tens.join(' - ')}</span>
-          </div>
-          <div class="mt-1">
-            ${sourceSlotText}
+          <div class="grid grid-cols-4 sm:grid-cols-7 gap-1">
+            ${prizes.map((p, idx) => `
+              <div class="px-1.5 py-1 rounded-md ${idx === 0 ? 'bg-amber-500/15 border border-amber-500/50' : 'bg-slate-950/60 border border-slate-800/80'} text-center">
+                <span class="block text-[8px] font-black uppercase ${idx === 0 ? 'text-amber-300' : 'text-slate-500'}">${idx + 1}º</span>
+                <span class="block font-mono text-[11px] sm:text-xs font-black ${idx === 0 ? 'text-amber-200' : 'text-slate-200'}">${p || '----'}</span>
+              </div>
+            `).join('')}
           </div>
         </div>
       `;
     }
 
+    // 1. Renderiza o Card Superior Compacto
+    const baseContainer = document.getElementById('puxadas-base-animal-content');
+    if (baseContainer) {
+      if (isDrawBase) {
+        // MODO 1: Destaque do Bicho Sorteado no 1º Prêmio (COMPACTO & RESPONSIVO)
+        baseContainer.innerHTML = `
+          <div class="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-emerald-950/40 via-slate-900 to-indigo-950/30 border border-emerald-500/40 shadow-lg space-y-2.5 animate-fade-in overflow-hidden max-w-full">
+            <!-- Barra Superior do Card (Wrap responsivo sem estourar) -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+              <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase tracking-wider">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> 🎯 ÚLTIMO SORTEIO
+                </span>
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 border border-slate-700 truncate">
+                  📍 ${lotLabel} • ${slotFormatted} • ${drawDateFormatted}
+                </span>
+              </div>
+
+              <!-- Seletor Discreto de Consulta Manual (Compacto, nunca vaza) -->
+              <div class="flex items-center gap-1.5 shrink-0 max-w-full">
+                <label for="puxadas-select-animal" class="text-[10px] uppercase font-bold text-slate-400 shrink-0">Trocar Bicho:</label>
+                <select id="puxadas-select-animal" onchange="onPuxadasAnimalSelectChange(this.value)"
+                  class="bg-slate-950 border border-slate-700 hover:border-violet-500 rounded-lg px-2 py-1 text-xs text-violet-200 font-bold focus:outline-none focus:border-violet-400 cursor-pointer shadow-inner max-w-[150px] sm:max-w-[190px] truncate">
+                  ${animalOptions}
+                </select>
+              </div>
+            </div>
+
+            <!-- Grade Central Compacta: Bicho (Esq) + Milhar/Dezena (Dir) -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+              <!-- Bicho Sorteado -->
+              <div class="sm:col-span-7 flex items-center gap-3 min-w-0">
+                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 via-slate-800 to-emerald-950 border border-emerald-400/60 flex items-center justify-center text-3xl sm:text-4xl shadow-md shrink-0">
+                  ${baseAnimal.emoji || '🐾'}
+                </div>
+                <div class="min-w-0 space-y-0.5">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[8px] font-black uppercase px-1.5 py-0.2 rounded bg-emerald-500/25 text-emerald-300">1º PRÊMIO</span>
+                    <span class="text-base sm:text-lg font-black text-white uppercase tracking-wide truncate">${baseAnimal.animal}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 text-xs font-mono text-slate-300 flex-wrap">
+                    <span class="font-bold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/60">Gr. ${String(baseAnimal.group).padStart(2, '0')}</span>
+                    <span class="text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800">Dez: <strong class="text-amber-300 font-bold">${baseAnimal.tens?.join(' • ') || ''}</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Destaque da Milhar, Centena e Dezena (Compacto) -->
+              <div class="sm:col-span-5 grid grid-cols-2 gap-2">
+                <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-col justify-center text-center">
+                  <span class="text-[8px] uppercase font-bold text-amber-400 flex items-center justify-center gap-1">
+                    <span>👑</span> Milhar 1º
+                  </span>
+                  <span class="text-lg sm:text-xl font-mono font-black text-amber-300 tracking-wider mt-0.5">${milharPrize1}</span>
+                </div>
+                <div class="p-2 rounded-lg bg-slate-950/80 border border-slate-800 flex flex-col justify-center text-center">
+                  <span class="text-[8px] uppercase font-bold text-slate-400">Dezena / Centena</span>
+                  <div class="flex items-center justify-center gap-1 mt-0.5 font-mono">
+                    <span class="text-base font-black text-emerald-400">${dezenaPrize1}</span>
+                    <span class="text-xs text-slate-500">/</span>
+                    <span class="text-xs font-bold text-cyan-300">${centenaPrize1}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fita Compacta dos 7 Prêmios -->
+            ${prizesStripHtml}
+          </div>
+        `;
+      } else {
+        // MODO 2: Consulta Manual (COMPACTO & RESPONSIVO)
+        baseContainer.innerHTML = `
+          <div class="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-violet-950/40 via-slate-900 to-slate-900 border border-violet-500/40 shadow-lg space-y-2.5 animate-fade-in overflow-hidden max-w-full">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800">
+              <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-500/20 text-violet-300 border border-violet-500/40 text-[10px] font-black uppercase tracking-wider">
+                  🔍 CONSULTA MANUAL
+                </span>
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                  [${lotLabel}]
+                </span>
+              </div>
+
+              <div class="flex items-center gap-1.5 flex-wrap shrink-0 max-w-full">
+                <button type="button" onclick="loadPuxadasModalContent(null)"
+                  class="px-2 py-1 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-200 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer">
+                  <span>↺</span> <span>Voltar ao 1º Prêmio: ${baseAnimal.animal} (${milharPrize1})</span>
+                </button>
+
+                <select id="puxadas-select-animal" onchange="onPuxadasAnimalSelectChange(this.value)"
+                  class="bg-slate-950 border border-slate-700 hover:border-violet-500 rounded-lg px-2 py-1 text-xs text-violet-200 font-bold focus:outline-none focus:border-violet-400 cursor-pointer shadow-inner max-w-[150px] sm:max-w-[190px] truncate">
+                  ${animalOptions}
+                </select>
+              </div>
+            </div>
+
+            <!-- Bicho Consultado Compacto -->
+            <div class="flex items-center gap-3 py-1">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600/25 to-slate-800 border border-violet-400/50 flex items-center justify-center text-3xl shadow-md shrink-0">
+                ${currentBaseInfo.emoji}
+              </div>
+              <div class="min-w-0 space-y-0.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-[8px] font-black uppercase px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">BICHO EM CONSULTA</span>
+                  <span class="text-base sm:text-lg font-black text-white uppercase tracking-wide truncate">${currentBaseInfo.animal}</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs font-mono text-slate-300 flex-wrap">
+                  <span class="font-bold text-violet-300 bg-violet-950/70 px-2 py-0.5 rounded border border-violet-800/60">Gr. ${String(currentBaseInfo.group).padStart(2, '0')}</span>
+                  <span class="text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800">Dezenas: <strong class="text-amber-200 font-bold">${currentBaseInfo.tens?.join(' • ') || ''}</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // 2. Banner de Transição da Puxada (COMPACTO)
+    const transitionBanner = document.getElementById('puxadas-transition-banner');
     const pulledAnimals = currentBaseInfo.pulled || [];
+    if (transitionBanner) {
+      transitionBanner.innerHTML = `
+        <div class="p-2.5 px-3 rounded-xl bg-violet-950/40 border border-violet-500/30 flex items-center justify-between gap-2 flex-wrap animate-fade-in">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-base shrink-0">🧲</span>
+            <div class="min-w-0">
+              <span class="text-xs font-black text-white uppercase tracking-wider">
+                Bichos que o ${currentBaseInfo.animal} Puxa:
+              </span>
+              <span class="text-[11px] text-violet-200/90 ml-1">
+                (atrai <b>${pulledAnimals.length} animais</b> pela tradição)
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" onclick="copyAllPuxadasThousands(this)"
+              class="px-2 py-1 rounded-lg bg-amber-950/50 hover:bg-amber-900 border border-amber-700/50 text-amber-300 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer">
+              <span>👑</span> <span>Copiar Milhares</span>
+            </button>
+            <button type="button" onclick="copyAllPuxadasHundreds(this)"
+              class="px-2 py-1 rounded-lg bg-cyan-950/50 hover:bg-cyan-900 border border-cyan-700/50 text-cyan-300 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer">
+              <span>💎</span> <span>Copiar Centenas</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Prepara listas de milhares e centenas para cópia global
     window._currentPuxadasThousands = [];
     window._currentPuxadasHundreds = [];
     pulledAnimals.forEach(p => {
@@ -1048,6 +1291,7 @@ async function loadPuxadasModalContent(selectedGroup = null) {
       countEl.textContent = `${pulledAnimals.length} animais puxados`;
     }
 
+    // 3. Renderiza a Lista de Animais Puxados (COMPACTA)
     const listContainer = document.getElementById('puxadas-animals-list');
     if (listContainer) {
       listContainer.innerHTML = pulledAnimals.map(anim => {
@@ -1057,7 +1301,7 @@ async function loadPuxadasModalContent(selectedGroup = null) {
         const hundredsPills = hList.map(h => `
           <button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')"
             title="Clique para copiar a centena ${h}"
-            class="px-2 py-1 rounded-lg bg-cyan-950/70 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200 font-mono text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-sm">
+            class="px-2 py-0.5 rounded-md bg-cyan-950/70 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200 hover:text-cyan-100 font-mono text-xs font-bold transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95">
             ${h}
           </button>
         `).join(' ');
@@ -1065,75 +1309,83 @@ async function loadPuxadasModalContent(selectedGroup = null) {
         const thousandsPills = mList.map(m => `
           <button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')"
             title="Clique para copiar o milhar ${m}"
-            class="px-2 py-1 rounded-lg bg-amber-950/70 border border-amber-600/60 hover:border-amber-400 text-amber-200 font-mono text-xs font-bold tracking-wider transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-sm">
+            class="px-2 py-0.5 rounded-md bg-amber-950/70 border border-amber-600/60 hover:border-amber-400 text-amber-200 hover:text-amber-100 font-mono text-xs font-bold transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95">
             ${m}
           </button>
         `).join(' ');
 
         const hStr = hList.join(', ');
         const mStr = mList.join(', ');
-        const allGameStr = `🐾 ${anim.animal.toUpperCase()} (Grupo ${String(anim.group).padStart(2, '0')})\n💎 Centenas: ${hStr}\n👑 Milhares: ${mStr}`;
+
+        const pulledBadge = isDrawBase
+          ? `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+               🧲 Puxado pelo ${currentBaseInfo.animal}
+             </span>`
+          : `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30">
+               🧲 Puxado pelo ${currentBaseInfo.animal}
+             </span>`;
 
         return `
-          <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-violet-500/40 transition-all space-y-3 shadow-md animate-fade-in">
+          <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-violet-500/40 transition-all space-y-2 shadow-sm overflow-hidden max-w-full">
             <!-- Cabeçalho do Bicho Puxado -->
-            <div class="flex items-center justify-between gap-3 pb-2.5 border-b border-slate-800/80">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-2xl shrink-0 shadow-inner">
+            <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-800/80 flex-wrap sm:flex-nowrap">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-lg bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-xl shadow-inner shrink-0">
                   ${anim.emoji}
                 </div>
-                <div>
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-black text-white">${anim.animal.toUpperCase()}</span>
-                    <span class="text-xs font-mono font-bold text-violet-300">Grupo ${String(anim.group).padStart(2, '0')}</span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-sm font-black text-white truncate">${anim.animal.toUpperCase()}</span>
+                    <span class="text-[11px] font-mono font-bold text-violet-300 bg-violet-950/60 px-1.5 py-0.2 rounded border border-violet-800/50">Gr. ${String(anim.group).padStart(2, '0')}</span>
+                    ${pulledBadge}
                   </div>
-                  <span class="text-[10px] text-slate-400 font-mono">Dezenas: ${anim.tens.join(', ')}</span>
+                  <span class="text-[11px] text-slate-300 font-mono mt-0.5 block">Dezenas: <strong class="text-amber-300 font-bold">${anim.tens.join(', ')}</strong></span>
                 </div>
               </div>
-              <button type="button" onclick="copyCompleteAnimalCard(this, '${anim.emoji}', '${anim.animal}', '${String(anim.group).padStart(2, '0')}', '${anim.tens.join(', ')}', '${hStr}', '${mStr}')"
-                class="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-violet-400 text-[11px] font-bold text-slate-200 hover:text-white transition-all flex items-center gap-1 active:scale-95 shadow-sm" title="Copiar jogo completo deste animal">
+              <button type="button" onclick="copyCompleteAnimalCard(this, '${anim.emoji}', '${anim.animal}', ${anim.group}, '${anim.tens.join(', ')}', '${hStr}', '${mStr}')"
+                class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm shrink-0">
                 <span>📋</span> <span>Copiar Jogo</span>
               </button>
             </div>
 
-            <!-- Grade: Centenas Quentes & Milhares Quentes -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <!-- Bloco de Centenas Quentes -->
-              <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between space-y-2">
+            <!-- Grade Compacta: Centenas & Milhares Quentes -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <!-- Centenas Quentes -->
+              <div class="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between space-y-1.5">
                 <div>
-                  <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-[9px] font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1">
                       <span>💎</span> Centenas Quentes
                     </span>
-                    <span class="text-[9px] text-slate-400">3 Dígitos</span>
+                    <span class="text-[8px] text-slate-500">3 Dígitos</span>
                   </div>
-                  <div class="flex flex-wrap gap-1.5">
+                  <div class="flex flex-wrap gap-1">
                     ${hundredsPills || '<span class="text-xs text-slate-500">-</span>'}
                   </div>
                 </div>
                 ${hList.length > 0 ? `
                 <button type="button" onclick="copyCategoryList(this, '${hStr}', 'Centenas de ${anim.animal}')"
-                  class="w-full mt-1.5 py-1 px-2 rounded-lg bg-cyan-950/50 hover:bg-cyan-900/80 border border-cyan-800/50 hover:border-cyan-500 text-[10px] font-bold text-cyan-300 hover:text-white transition-all flex items-center justify-center gap-1 shadow-sm active:scale-95">
+                  class="w-full mt-1 py-0.5 px-2 rounded bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/50 text-cyan-300 text-[10px] font-bold transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1">
                   <span>📋</span> <span>Copiar Centenas</span>
                 </button>` : ''}
               </div>
 
-              <!-- Bloco de Milhares Quentes -->
-              <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between space-y-2">
+              <!-- Milhares Quentes -->
+              <div class="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between space-y-1.5">
                 <div>
-                  <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-[9px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
                       <span>👑</span> Milhares Quentes
                     </span>
-                    <span class="text-[9px] text-slate-400">4 Dígitos</span>
+                    <span class="text-[8px] text-slate-500">4 Dígitos</span>
                   </div>
-                  <div class="flex flex-wrap gap-1.5">
+                  <div class="flex flex-wrap gap-1">
                     ${thousandsPills || '<span class="text-xs text-slate-500">-</span>'}
                   </div>
                 </div>
                 ${mList.length > 0 ? `
                 <button type="button" onclick="copyCategoryList(this, '${mStr}', 'Milhares de ${anim.animal}')"
-                  class="w-full mt-1.5 py-1 px-2 rounded-lg bg-amber-950/50 hover:bg-amber-900/80 border border-amber-800/50 hover:border-amber-500 text-[10px] font-bold text-amber-300 hover:text-white transition-all flex items-center justify-center gap-1 shadow-sm active:scale-95">
+                  class="w-full mt-1 py-0.5 px-2 rounded bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/50 text-amber-300 text-[10px] font-bold transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1">
                   <span>📋</span> <span>Copiar Milhares</span>
                 </button>` : ''}
               </div>
@@ -1178,8 +1430,24 @@ window.copyAllPuxadasHundreds = async function (btn) {
   }
 };
 
-async function loadCruzModalContent() {
-  const dateVal = document.getElementById('target-date')?.value || null;
+window.loadCruzModalContent = async function(forceDate = null) {
+  const cruzDateInput = document.getElementById('cruz-target-date');
+  const mainDateInput = document.getElementById('target-date');
+
+  let dateVal = forceDate;
+  if (!dateVal && cruzDateInput && cruzDateInput.value) {
+    dateVal = cruzDateInput.value;
+  }
+  if (!dateVal && mainDateInput && mainDateInput.value) {
+    dateVal = mainDateInput.value;
+  }
+  if (!dateVal) {
+    dateVal = new Date().toISOString().split('T')[0];
+  }
+
+  if (cruzDateInput && cruzDateInput.value !== dateVal) {
+    cruzDateInput.value = dateVal;
+  }
 
   try {
     const data = await api.getCruzDoDia(dateVal);
@@ -1313,6 +1581,29 @@ async function loadCruzModalContent() {
     showToast('Erro ao carregar Cruz do Dia: ' + err.message, 'error');
   }
 }
+
+
+window.changeCruzDate = function(val) {
+  if (typeof loadCruzModalContent === 'function') {
+    loadCruzModalContent(val);
+  }
+};
+
+window.setCruzDateToday = function() {
+  const today = new Date().toISOString().split('T')[0];
+  if (typeof loadCruzModalContent === 'function') {
+    loadCruzModalContent(today);
+  }
+};
+
+window.setCruzDateTomorrow = function() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const tomorrow = d.toISOString().split('T')[0];
+  if (typeof loadCruzModalContent === 'function') {
+    loadCruzModalContent(tomorrow);
+  }
+};
 
 window.copyAllCruzThousands = async function (btn) {
   if (!window._currentCruzThousands || window._currentCruzThousands.length === 0) {
@@ -1475,7 +1766,7 @@ function calculateConfidenceData(group) {
 
   if (presencePct >= 10) {
     points += 4;
-    badges.push({ icon: '📈', label: `${presencePct}% no cercado recente`, color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' });
+    badges.push({ icon: '📈', label: `${presencePct}% no 1º ao 5º recente`, color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' });
   }
 
   const confidence = Math.min(Math.max(Math.round(points), 68), 98);
@@ -1555,14 +1846,12 @@ function renderAnimalCards(data) {
     animalHundreds = Array.from(new Set(animalHundreds)).slice(0, 4);
 
     // 3. Milhares deste animal
-    // Cruz do Dia metadata
     const cruzMeta = g.metadata?.cruz_do_dia;
 
     let animalThousands = allThousands
       .filter(m => m.group_number === grpNum || animalTens.includes(m.value.slice(-2)))
       .map(m => m.value);
 
-    // Prioriza milhares exclusivas da Cruz do Dia para este animal
     if (cruzMeta?.thousands && cruzMeta.thousands.length > 0) {
       animalThousands = Array.from(new Set([...cruzMeta.thousands, ...animalThousands]));
     }
@@ -1573,20 +1862,20 @@ function renderAnimalCards(data) {
         animalThousands.push(`1${h}`);
       });
     }
-    animalThousands = Array.from(new Set(animalThousands)).slice(0, 6);
+    animalThousands = Array.from(new Set(animalThousands)).slice(0, 4);
 
     const tensHtml = animalTens.length > 0
-      ? animalTens.map(t => `<button type="button" onclick="copySingleNumber(event, '${t}', 'Dezena')" title="Clique para copiar a dezena ${t}" class="px-2.5 py-1 rounded-lg bg-indigo-950/70 border border-indigo-700/60 hover:border-indigo-400 text-indigo-200 font-mono font-black text-sm tracking-wide shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">${t}</button>`).join(' ')
+      ? animalTens.map(t => `<button type="button" onclick="copySingleNumber(event, '${t}', 'Dezena')" title="Clique para copiar a dezena ${t}" class="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-700/60 hover:border-indigo-400 text-indigo-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">${t}</button>`).join(' ')
       : '<span class="text-xs text-slate-500">-</span>';
 
     const hundredsHtml = animalHundreds.length > 0
-      ? animalHundreds.map(h => `<button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')" title="Clique para copiar a centena ${h}" class="px-2.5 py-1 rounded-lg bg-cyan-950/70 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200 font-mono font-black text-sm tracking-wide shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">${h}</button>`).join(' ')
+      ? animalHundreds.map(h => `<button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')" title="Clique para copiar a centena ${h}" class="px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">${h}</button>`).join(' ')
       : '<span class="text-xs text-slate-500">-</span>';
 
     const thousandsHtml = animalThousands.length > 0
       ? animalThousands.map(m => {
           const isCruzMilhar = cruzMeta?.thousands?.includes(m);
-          return `<button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Clique para copiar o milhar ${m}${isCruzMilhar ? ' (Cruz do Dia)' : ''}" class="px-2.5 py-1 rounded-lg ${isCruzMilhar ? 'bg-cyan-950/80 border border-cyan-500/70 text-cyan-200' : 'bg-amber-950/70 border border-amber-600/60 text-amber-200'} font-mono font-black text-sm tracking-widest shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${m}${isCruzMilhar ? '<span class="text-[9px] text-cyan-300 ml-1">✨</span>' : ''}</button>`;
+          return `<button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Clique para copiar o milhar ${m}${isCruzMilhar ? ' (Cruz do Dia)' : ''}" class="px-2 py-0.5 rounded ${isCruzMilhar ? 'bg-cyan-950/80 border border-cyan-500/70 text-cyan-200' : 'bg-amber-950/80 border border-amber-600/60 text-amber-200'} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${m}${isCruzMilhar ? '<span class="text-[9px] text-cyan-300 ml-0.5">✨</span>' : ''}</button>`;
         }).join(' ')
       : '<span class="text-xs text-slate-500">-</span>';
 
@@ -1594,155 +1883,101 @@ function renderAnimalCards(data) {
     const hundredsStr = animalHundreds.join(', ');
     const thousandsStr = animalThousands.join(', ');
 
+    // Badges rápidos de convergência (máximo 2 mais importantes)
+    const quickBadges = (therm.badges || []).slice(0, 2).map(b => `
+      <span class="hidden md:inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${b.color}">
+        ${b.icon} ${b.label}
+      </span>
+    `).join(' ');
+
     return `
-      <div class="card-glass p-4 sm:p-5 rounded-2xl border border-slate-800 hover:border-emerald-500/40 transition-all animate-fade-in space-y-3.5">
-        <!-- Topo: Bicho, Emoji, Ranking e Termômetro -->
-        <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-800/80">
-          <div class="flex items-center gap-3.5">
-            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-3xl animal-badge shrink-0 bg-emerald-500/15 border border-emerald-500/30 shadow-inner">
+      <div class="card-glass p-2.5 sm:p-3 rounded-xl border border-slate-800/90 hover:border-emerald-500/40 transition-all animate-fade-in space-y-2">
+        <!-- Linha 1: Bicho + Força/Confiança + Ações (Horizontal Integrada) -->
+        <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+          <div class="flex items-center gap-2 min-w-0 flex-wrap">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-lg animal-badge shrink-0 bg-emerald-500/15 border border-emerald-500/30 shadow-inner">
               ${animEmoji}
             </div>
-            <div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-xs font-black px-2.5 py-0.5 rounded-full ${idx === 0 ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-sm' : 'bg-slate-800 text-slate-300'}">
-                  #${idx + 1}
-                </span>
-                <h3 class="font-black text-base sm:text-lg text-white tracking-tight">${animName}</h3>
-                <span class="text-xs font-mono font-bold text-slate-400">Grupo ${grpStr}</span>
-              </div>
-              <div class="flex items-center gap-1.5 mt-1">
-                <span class="text-[11px] ${therm.levelColor} font-bold flex items-center gap-1">
-                  <span>${therm.flame}</span> <span>${therm.desc}</span>
-                </span>
-              </div>
+            <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+              <span class="text-[10px] font-black px-1.5 py-0.2 rounded ${idx === 0 ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-sm' : 'bg-slate-800 text-slate-300'}">
+                #${idx + 1}
+              </span>
+              <h3 class="font-black text-sm sm:text-base text-white tracking-tight">${animName}</h3>
+              <span class="text-[11px] font-mono font-bold text-slate-400 bg-slate-900/90 px-1.5 py-0.2 rounded border border-slate-800">Gr. ${grpStr}</span>
+
+              <!-- Selo Único de Confiança (Sem duplicações) -->
+              <span class="inline-flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-md ${therm.levelColor} bg-slate-950/90 border border-slate-800">
+                <span>${therm.flame}</span>
+                <span>${therm.confidence}%</span>
+                <span class="hidden sm:inline font-semibold text-[10px] text-slate-400">• ${therm.desc}</span>
+              </span>
+
+              <!-- Selos de Convergência Compactos -->
+              ${quickBadges}
             </div>
           </div>
 
-          <div class="flex items-center gap-2.5 shrink-0">
+          <!-- Ações do Card -->
+          <div class="flex items-center gap-1.5 shrink-0">
             <button type="button" onclick="copyCompleteAnimalCard(this, '${animEmoji}', '${animName}', '${grpStr}', '${tensStr}', '${hundredsStr}', '${thousandsStr}')"
               title="Copiar jogo completo deste animal"
-              class="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 hover:border-emerald-500/50 text-xs font-bold text-slate-200 hover:text-white transition-all flex items-center gap-1.5 active:scale-95 shadow-sm cursor-pointer">
-              <span>📋</span> <span class="hidden sm:inline">Copiar</span>
+              class="px-2.5 py-1 rounded-lg bg-indigo-600/25 hover:bg-indigo-600/45 border border-indigo-500/30 hover:border-indigo-400 text-indigo-200 hover:text-white text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm">
+              <span>📋</span> <span>Copiar</span>
             </button>
-            <div class="text-right">
-              <div class="flex items-center justify-end gap-1">
-                <span class="text-sm sm:text-base animate-pulse">${therm.flame}</span>
-                <span class="text-xl sm:text-2xl font-black font-mono leading-none ${therm.levelColor}">${therm.confidence}%</span>
-              </div>
-              <div class="text-[9px] uppercase font-black tracking-wider ${therm.levelColor} mt-0.5 flex items-center justify-end gap-1">
-                <span>🌡️</span> <span>${therm.level}</span>
-              </div>
+            <button type="button" onclick="openFactorsModal('Grupo ${grpStr} - ${animName}', ${score}, ${JSON.stringify(g.factors || []).replace(/"/g, '&quot;')})"
+              class="text-slate-400 hover:text-indigo-300 font-bold flex items-center gap-0.5 text-[11px] transition-colors cursor-pointer px-1 py-1">
+              <span>Fatores</span> &rarr;
+            </button>
+          </div>
+        </div>
+
+        <!-- Linha 2: Fila Contínua de Números (Dezenas • Centenas • Milhares em Linha Única) -->
+        <div class="p-2 rounded-lg bg-slate-950/70 border border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <!-- Dezenas -->
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400 flex items-center gap-1 shrink-0">
+              <span>🔢</span> Dez:
+            </span>
+            <div class="flex items-center gap-1 flex-wrap">
+              ${tensHtml}
+            </div>
+          </div>
+
+          <span class="text-slate-800 hidden sm:inline">•</span>
+
+          <!-- Centenas -->
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="text-[10px] font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1 shrink-0">
+              <span>💎</span> Cen:
+            </span>
+            <div class="flex items-center gap-1 flex-wrap">
+              ${hundredsHtml}
+            </div>
+          </div>
+
+          <span class="text-slate-800 hidden sm:inline">•</span>
+
+          <!-- Milhares -->
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1 shrink-0">
+              <span>👑</span> Mil:
+            </span>
+            <div class="flex items-center gap-1 flex-wrap">
+              ${thousandsHtml}
             </div>
           </div>
         </div>
 
-        <!-- Barra do Termômetro e Selos de Convergência da IA -->
-        <div class="p-2.5 sm:p-3 rounded-xl bg-slate-950/80 border border-slate-800/90 space-y-2">
-          <div class="flex items-center justify-between text-xs flex-wrap gap-1">
-            <div class="flex items-center gap-1.5">
-              <span class="text-sm">${therm.flame}</span>
-              <span class="text-slate-200 font-black">Termômetro de Confiança:</span>
-              <span class="${therm.levelColor} font-black">${therm.desc}</span>
-            </div>
-            <span class="text-[11px] text-slate-400 font-mono font-bold">Convergência: ${therm.confidence}%</span>
-          </div>
-
-          <!-- Barra de Calor -->
-          <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden p-0.5 border border-slate-800">
-            <div class="h-full rounded-full bg-gradient-to-r ${therm.barColor} transition-all duration-700 shadow-sm" style="width: ${therm.confidence}%"></div>
-          </div>
-
-          <!-- Selos de Por Que Esse Bicho Tá Forte -->
-          <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
-            <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Convergência:</span>
-            ${therm.badges.length > 0
-              ? therm.badges.map(b => `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${b.color} shadow-sm">${b.icon} ${b.label}</span>`).join(' ')
-              : `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">📊 Estatística Regular</span>`
-            }
-          </div>
-        </div>
-
-        <!-- Ficha Completa: Dezenas, Centenas e Milhares do Animal -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          <!-- Bloco de Dezenas -->
-          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-2.5">
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                  <span>🔢</span> Dezenas
-                </span>
-                <span class="text-[9px] font-bold text-indigo-400">2 Dígitos</span>
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                ${tensHtml}
-              </div>
-            </div>
-            ${animalTens.length > 0 ? `
-            <button type="button" onclick="copyCategoryList(this, '${tensStr}', 'Dezenas de ${animName}')"
-              class="w-full mt-2 py-1.5 px-2 rounded-lg bg-indigo-950/50 hover:bg-indigo-900/80 border border-indigo-800/50 hover:border-indigo-500 text-[11px] font-bold text-indigo-300 hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
-              <span>📋</span> <span>Copiar Dezenas</span>
-            </button>` : ''}
-          </div>
-
-          <!-- Bloco de Centenas -->
-          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-2.5">
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                  <span>💎</span> Centenas
-                </span>
-                <span class="text-[9px] font-bold text-cyan-400">3 Dígitos</span>
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                ${hundredsHtml}
-              </div>
-            </div>
-            ${animalHundreds.length > 0 ? `
-            <button type="button" onclick="copyCategoryList(this, '${hundredsStr}', 'Centenas de ${animName}')"
-              class="w-full mt-2 py-1.5 px-2 rounded-lg bg-cyan-950/50 hover:bg-cyan-900/80 border border-cyan-800/50 hover:border-cyan-500 text-[11px] font-bold text-cyan-300 hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
-              <span>📋</span> <span>Copiar Centenas</span>
-            </button>` : ''}
-          </div>
-
-          <!-- Bloco de Milhares -->
-          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-2.5">
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                  <span>👑</span> Milhares
-                </span>
-                <span class="text-[9px] font-bold text-amber-400">4 Dígitos</span>
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                ${thousandsHtml}
-              </div>
-            </div>
-            ${animalThousands.length > 0 ? `
-            <button type="button" onclick="copyCategoryList(this, '${thousandsStr}', 'Milhares de ${animName}')"
-              class="w-full mt-2 py-1.5 px-2 rounded-lg bg-amber-950/50 hover:bg-amber-900/80 border border-amber-800/50 hover:border-amber-500 text-[11px] font-bold text-amber-300 hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
-              <span>📋</span> <span>Copiar Milhares</span>
-            </button>` : ''}
-          </div>
-        </div>
-
-        <!-- Rodapé da Ficha com Recomendação de Cercado -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/60 text-xs">
-          <div class="text-[11px] text-amber-300 font-medium leading-snug">
-            <span>🛡️</span> <b>Sugestão de Jogada:</b> Apostar no <b>Grupo ${grpStr}</b> e <b>Dezenas no Cercado (1º ao 5º)</b> para garantir premiação.
-          </div>
-          <button type="button" onclick="openFactorsModal('Grupo ${grpStr} - ${animName}', ${score}, ${JSON.stringify(g.factors || []).replace(/"/g, '&quot;')})"
-            class="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 transition-colors self-end sm:self-auto text-[11px]">
-            Ver Fatores &rarr;
-          </button>
+        <!-- Linha 3: Rodapé Minimalista -->
+        <div class="flex items-center justify-between text-[10px] text-slate-400 px-1 pt-0.5">
+          <span>🛡️ <b class="text-amber-300">Sugestão:</b> Grupo ${grpStr} e Dezenas no 1º ao 5º</span>
+          <span class="text-slate-500 hidden sm:inline">Toque em qualquer número para copiar avulso</span>
         </div>
       </div>
     `;
   }).join('');
 }
 
-/* ==========================================================================
-   SEÇÃO: FECHAMENTO HÍBRIDO ANTI-ALEATORIEDADE
-   ========================================================================== */
 function renderHybridSection(hybridCombo) {
   const container = document.getElementById('hybrid-container');
   if (!container) return;
@@ -1987,11 +2222,11 @@ function renderDDZUI() {
   }).join('');
 
   container.innerHTML = `
-    <div class="card-glass p-4 sm:p-6 rounded-2xl border border-slate-800 hover:border-indigo-500/40 transition-all space-y-4">
+    <div class="card-glass p-3 sm:p-4 rounded-xl border border-slate-800 hover:border-indigo-500/40 transition-all space-y-3">
       <!-- Topo: Título, Descrição e Botão Copiar Tudo -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
         <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-2xl shadow-inner shrink-0">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-base shadow-inner shrink-0">
             🎯
           </div>
           <div>
@@ -2188,11 +2423,11 @@ function renderFixedAnimalUI() {
   }).join('');
 
   container.innerHTML = `
-    <div class="card-glass p-4 sm:p-6 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-950/10 via-slate-900/80 to-slate-900/90 shadow-xl space-y-4 relative overflow-hidden">
+    <div class="card-glass p-3 sm:p-4 rounded-xl border border-amber-500/30 bg-gradient-to-b from-amber-950/10 via-slate-900/80 to-slate-900/90 shadow-lg space-y-3 relative overflow-hidden">
       <!-- Topo -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
         <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-600/20 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner shrink-0">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-600/20 border border-amber-500/40 flex items-center justify-center text-base shadow-inner shrink-0">
             🎲
           </div>
           <div>
@@ -2337,7 +2572,7 @@ function renderGroups(groups) {
       const presenceBadge = (presencePct !== undefined && presencePct !== null)
         ? `<div class="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300">
              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30">
-               <span>📈</span> ${presencePct}% de presença no cercado (últimos 30 sorteios)
+               <span>📈</span> ${presencePct}% de presença no 1º ao 5º (últimos 30 sorteios)
              </span>
            </div>`
         : '';
@@ -2415,7 +2650,7 @@ function renderTens(tens) {
       (t, idx) => {
         const presencePct = t.metadata?.presence_pct;
         const presenceBadge = (presencePct !== undefined && presencePct !== null)
-          ? `<span class="inline-block text-[10px] text-emerald-400 font-semibold ml-1.5 px-1.5 py-0.2 rounded bg-emerald-950/40 border border-emerald-800/40" title="Presente em ${presencePct}% dos últimos 30 sorteios no cercado">📈 ${presencePct}%</span>`
+          ? `<span class="inline-block text-[10px] text-emerald-400 font-semibold ml-1.5 px-1.5 py-0.2 rounded bg-emerald-950/40 border border-emerald-800/40" title="Presente em ${presencePct}% dos últimos 30 sorteios (1º ao 5º)">📈 ${presencePct}%</span>`
           : '';
 
         return `
@@ -2712,7 +2947,7 @@ window.copyCompleteAnimalCard = async function (btn, emoji, name, group, tens, h
     `🔢 Dezenas: ${tens || '-'}`,
     `💎 Centenas: ${hundreds || '-'}`,
     `👑 Milhares: ${thousands || '-'}`,
-    `🛡️ Sugestão: Grupo ${group} e Dezenas no Cercado (1º ao 5º)`
+    `🛡️ Sugestão: Grupo ${group} e Dezenas no 1º ao 5º`
   ];
   const ok = await window.copyToClipboard(lines.join('\n'), btn, 'Copiado!');
   if (ok) {
@@ -3075,7 +3310,7 @@ window.showTrialExpiredModal = async function() {
     const renewBtn = document.getElementById('btn-whatsapp-renew');
     if (renewBtn) {
       if (phone) {
-        const msg = `Olá! Testei o Bicho Master por 7 dias${userIdentifier} e quero continuar usando. Como faço para liberar meu acesso?`;
+        const msg = `Olá! Quero ativar meu plano no Bicho Master${userIdentifier} e quero continuar usando. Como faço para liberar meu acesso?`;
         renewBtn.href = `https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`;
         renewBtn.target = '_blank';
         renewBtn.onclick = null;
@@ -3102,6 +3337,7 @@ function updateAuthUI() {
   const mobBottomNav = document.getElementById('mob-bottom-nav');
   const drawerUserLabel = document.getElementById('drawer-user-label');
   const drawerAdminLink = document.getElementById('drawer-admin-link');
+  const mainHeader = document.getElementById('app-main-header');
   const tenant = api.getCurrentTenant();
 
   if (tenant) {
@@ -3111,7 +3347,8 @@ function updateAuthUI() {
       return;
     }
 
-    // Usuário logado e ativo: esconde tela de login e exibe dashboard completo
+    // Usuário logado e ativo: esconde tela de login e exibe dashboard completo e cabeçalho
+    if (mainHeader) mainHeader.classList.remove('hidden');
     if (appGate) appGate.classList.add('hidden');
     if (mainContainer) mainContainer.classList.remove('hidden');
     if (mobBottomNav) mobBottomNav.classList.remove('hidden');
@@ -3155,7 +3392,7 @@ function updateAuthUI() {
           <div class="flex items-center gap-1.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs px-2.5 py-1 rounded-full font-semibold shadow-sm">
             <span>⏳</span>
             <span class="truncate max-w-[90px]" title="${displayName}">${displayName}</span>
-            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/30 text-indigo-200 border border-indigo-500/40">${daysLeft}d</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/30 text-indigo-200 border border-indigo-500/40">PRO</span>
             <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair">✕</button>
           </div>
         `;
@@ -3164,7 +3401,8 @@ function updateAuthUI() {
       if (badgeContainer) badgeContainer.innerHTML = trialBadgeHtml;
     }
   } else {
-    // Não logado: Bloqueia visualização do dashboard e exibe gate de login
+    // Não logado: Bloqueia cabeçalho superior e dashboard, exibe apenas a tela inicial limpa de login/cadastro
+    if (mainHeader) mainHeader.classList.add('hidden');
     if (appGate) appGate.classList.remove('hidden');
     if (mainContainer) mainContainer.classList.add('hidden');
     if (mobBottomNav) mobBottomNav.classList.add('hidden');
@@ -3199,43 +3437,213 @@ window.switchGateTab = function(tab) {
   }
 };
 
-window.triggerGoogleSignIn = async function() {
-  if (window.google && window.google.accounts && window.google.accounts.id) {
-    try {
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMomentum()) {
-          promptManualGoogleEmail();
-        }
-      });
-      return;
-    } catch (e) {
-      console.warn('Google prompt fallback:', e);
-    }
-  }
-  promptManualGoogleEmail();
-};
+window.handleMainLogin = async function(event) {
+  event.preventDefault();
+  const idInput = document.getElementById('login-input-identity');
+  const passInput = document.getElementById('login-input-password');
+  const errEl = document.getElementById('login-error-msg');
+  const btn = document.getElementById('btn-submit-main-login');
 
-window.promptManualGoogleEmail = async function() {
-  const email = prompt('Digite seu e-mail do Gmail para iniciar instantaneamente seus 7 dias de degustação grátis:');
-  if (!email || !email.trim()) return;
-  const cleanEmail = email.trim().toLowerCase();
-  if (!cleanEmail.includes('@')) {
-    alert('Por favor, digite um e-mail válido.');
+  const identity = (idInput?.value || '').trim();
+  const password = (passInput?.value || '').trim();
+
+  if (!identity || !password) {
+    if (errEl) {
+      errEl.textContent = 'Por favor, preencha o usuário e a senha.';
+      errEl.classList.remove('hidden');
+    }
     return;
   }
+
+  if (errEl) errEl.classList.add('hidden');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Autenticando...';
+  }
+
   try {
-    const tenant = await api.loginGoogle({
-      email: cleanEmail,
-      name: cleanEmail.split('@')[0],
-      provider: 'google'
+    const res = await api.login({
+      username: identity,
+      email: identity,
+      password: password,
+      key: password
     });
-    showToast(`Bem-vindo, ${tenant.name}! Você tem 7 dias grátis para testar o Bicho Master.`, 'success');
+
+    const role = res.role || (res.tenant && res.tenant.role);
+    if (role === 'admin') {
+      showToast('Bem-vindo, Administrador Master Vinicius!', 'success');
+    } else {
+      showToast(`Bem-vindo, ${res.name || 'Usuário'}!`, 'success');
+    }
+
     updateAuthUI();
     await Promise.all([loadPrediction(), loadDrawResults()]);
   } catch (err) {
-    alert(err.message || 'Erro ao iniciar degustação.');
+    if (errEl) {
+      if (identity.includes('@')) {
+        errEl.innerHTML = `
+          <div>${err.message || 'Conta não encontrada ou senha incorreta.'}</div>
+          <div class="mt-2 pt-1.5 border-t border-rose-500/30 flex items-center justify-between gap-2">
+            <span class="text-[11px] text-slate-300">Não tem conta ainda?</span>
+            <button type="button" onclick="openRegisterModal('${identity}')" class="text-[11px] text-amber-300 underline hover:text-amber-200 font-bold cursor-pointer">
+              Criar perfil com este Gmail ➔
+            </button>
+          </div>
+        `;
+      } else {
+        errEl.textContent = err.message || 'Credenciais inválidas.';
+      }
+      errEl.classList.remove('hidden');
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Entrar na Plataforma';
+    }
   }
 };
+
+window.openRegisterModal = function(prefillEmail = '') {
+  const modal = document.getElementById('modal-google-signup');
+  const nameInput = document.getElementById('input-register-name');
+  const emailInput = document.getElementById('input-register-email');
+  const phoneInput = document.getElementById('input-register-phone');
+  const passInput = document.getElementById('input-register-password');
+  const errEl = document.getElementById('register-error-msg');
+
+  if (errEl) errEl.classList.add('hidden');
+
+  // Preenche e-mail se passado ou se foi digitado no formulário principal de login
+  if (!prefillEmail) {
+    const mainIdentity = (document.getElementById('login-input-identity')?.value || '').trim();
+    if (mainIdentity.includes('@')) {
+      prefillEmail = mainIdentity;
+    }
+  }
+
+  if (emailInput && prefillEmail) {
+    emailInput.value = prefillEmail;
+  }
+
+  // Configura máscara amigável para telefone brasileiro: (XX) XXXXX-XXXX
+  if (phoneInput && !phoneInput._maskConfigured) {
+    phoneInput._maskConfigured = true;
+    phoneInput.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '');
+      if (v.length > 11) v = v.substring(0, 11);
+      if (v.length > 6) {
+        e.target.value = `(${v.substring(0, 2)}) ${v.substring(2, 7)}-${v.substring(7)}`;
+      } else if (v.length > 2) {
+        e.target.value = `(${v.substring(0, 2)}) ${v.substring(2)}`;
+      } else if (v.length > 0) {
+        e.target.value = `(${v}`;
+      }
+    });
+  }
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+      if (nameInput && !nameInput.value) {
+        nameInput.focus();
+      } else if (emailInput && !emailInput.value) {
+        emailInput.focus();
+      } else if (phoneInput && !phoneInput.value) {
+        phoneInput.focus();
+      } else if (passInput) {
+        passInput.focus();
+      }
+    }, 100);
+  }
+};
+
+window.openGoogleSignupModal = window.openRegisterModal;
+
+window.closeRegisterModal = function() {
+  const modal = document.getElementById('modal-google-signup');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.closeGoogleSignupModal = window.closeRegisterModal;
+
+window.handleProfileRegister = async function(event) {
+  event.preventDefault();
+  const nameInput = document.getElementById('input-register-name');
+  const emailInput = document.getElementById('input-register-email');
+  const phoneInput = document.getElementById('input-register-phone');
+  const passInput = document.getElementById('input-register-password');
+  const errEl = document.getElementById('register-error-msg');
+  const btn = document.getElementById('btn-submit-register');
+
+  const name = (nameInput?.value || '').trim();
+  const email = (emailInput?.value || '').trim().toLowerCase();
+  const phone = (phoneInput?.value || '').trim();
+  const password = (passInput?.value || '').trim();
+
+  if (!name) {
+    if (errEl) {
+      errEl.textContent = 'Por favor, informe seu nome completo.';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (!email || !email.includes('@')) {
+    if (errEl) {
+      errEl.textContent = 'Por favor, informe um e-mail válido (ex: seu.nome@gmail.com).';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (email === 'k1qvinicius@gmail.com' || email === 'admin') {
+    if (errEl) {
+      errEl.textContent = 'Esta é a conta Master. Faça login pelo formulário principal com sua senha master.';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (!password || password.length < 3) {
+    if (errEl) {
+      errEl.textContent = 'A senha de acesso deve conter pelo menos 3 caracteres.';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (errEl) errEl.classList.add('hidden');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> <span>Criando seu perfil...</span>';
+  }
+
+  try {
+    const tenant = await api.register({
+      name: name,
+      email: email,
+      phone: phone,
+      password: password
+    });
+
+    showToast(`🎉 Perfil criado com sucesso! Bem-vindo(a), ${tenant.name || 'Usuário'}!`, 'success');
+    closeRegisterModal();
+    updateAuthUI();
+    await loadDashboardData();
+  } catch (err) {
+    if (errEl) {
+      errEl.textContent = err.message || 'Erro ao realizar cadastro. Tente novamente.';
+      errEl.classList.remove('hidden');
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>🚀</span> <span>Criar Meu Perfil e Entrar</span>';
+    }
+  }
+};
+
+window.handleGoogleInstantSignup = window.handleProfileRegister;
 
 window.handleGateTesterLogin = async function(event) {
   event.preventDefault();
@@ -3260,7 +3668,7 @@ window.handleGateTesterLogin = async function(event) {
     if (val.includes('@')) {
       // Login com e-mail direto / Google com 7 dias grátis
       tenant = await api.loginGoogle({ email: val.toLowerCase(), name: val.split('@')[0] });
-      showToast(`Bem-vindo, ${tenant.name}! 7 dias de degustação ativados.`, 'success');
+      showToast(`Bem-vindo, ${tenant.name}! Acesso liberado com sucesso.`, 'success');
     } else {
       // Login com chave de testador
       tenant = await api.login(val);
@@ -3447,3 +3855,304 @@ window.handleDrawerLogout = function () {
 window.saveSnapshot = saveSnapshot;
 
 
+
+window.switchPuxadasLottery = async function (lotteryCode) {
+  if (!lotteryCode) return;
+  currentLottery = lotteryCode;
+  localStorage.setItem('bicho_active_lottery', lotteryCode);
+  updateLotteryButtonsUI();
+  _puxadasDataCache = null;
+  await loadPuxadasModalContent(null);
+  initSlotSelector(currentLottery);
+  loadPrediction();
+  loadDrawResults();
+  updateHomeScreenData();
+};
+
+
+/* ==========================================================================
+   TELA 7: MILHARES ATRASADAS & FREQUENTES (RADAR ESTATÍSTICO)
+   ========================================================================== */
+let _milharesDataCache = null;
+let currentMilharesTab = 'rj_atrasadas';
+
+window.loadMilharesAtrasadas = async function(forceRefresh = false) {
+  const refreshBtn = document.getElementById('btn-refresh-milhares');
+  const refreshIcon = document.getElementById('milhares-refresh-icon');
+  const lastUpdatedEl = document.getElementById('milhares-last-updated');
+
+  if (forceRefresh) {
+    _milharesDataCache = null;
+  }
+
+  if (refreshBtn) refreshBtn.disabled = true;
+  if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+  try {
+    if (!_milharesDataCache) {
+      const res = await api.getMilharesRankings();
+      _milharesDataCache = res.data || {};
+    }
+
+    if (lastUpdatedEl && _milharesDataCache.updated_at) {
+      try {
+        const dt = new Date(_milharesDataCache.updated_at);
+        lastUpdatedEl.textContent = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      } catch {
+        lastUpdatedEl.textContent = 'Hoje';
+      }
+    } else if (lastUpdatedEl) {
+      lastUpdatedEl.textContent = 'Hoje';
+    }
+
+    renderMilharesTable(currentMilharesTab);
+  } catch (err) {
+    console.error('Erro ao carregar rankings de milhares:', err);
+    const tbody = document.getElementById('milhares-table-body');
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="py-8 text-center text-rose-400">
+            <div class="flex flex-col items-center justify-center gap-2">
+              <span class="text-xl">⚠️</span>
+              <p class="font-bold">Não foi possível sincronizar o ranking de milhares no momento.</p>
+              <button onclick="loadMilharesAtrasadas(true)" class="px-3 py-1.5 rounded-lg bg-slate-800 text-amber-300 border border-slate-700 text-xs font-bold hover:bg-slate-700 transition-all cursor-pointer">
+                Tentar novamente
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    showToast('Falha ao carregar ranking de milhares.', 'error');
+  } finally {
+    if (refreshBtn) refreshBtn.disabled = false;
+    if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+  }
+};
+
+window.switchMilharesTab = function(tabKey) {
+  const validTabs = ['rj_atrasadas', 'rj_frequentes', 'federal_atrasadas', 'federal_frequentes'];
+  if (!validTabs.includes(tabKey)) tabKey = 'rj_atrasadas';
+  currentMilharesTab = tabKey;
+
+  validTabs.forEach(t => {
+    const btn = document.getElementById(`tab-milhares-${t}`);
+    if (btn) {
+      if (t === tabKey) {
+        btn.className = 'milhares-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap bg-amber-500 text-slate-950 shadow-sm cursor-pointer';
+      } else {
+        btn.className = 'milhares-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer';
+      }
+    }
+  });
+
+  const descEl = document.getElementById('milhares-tab-desc');
+  if (descEl) {
+    const descriptions = {
+      rj_atrasadas: 'As milhares com maior quantidade de dias corridos sem aparição do 1º ao 5º prêmio na apuração do Rio de Janeiro.',
+      rj_frequentes: 'As milhares que mais vezes foram sorteadas do 1º ao 5º prêmio na apuração do Rio de Janeiro.',
+      federal_atrasadas: 'As milhares mais atrasadas na Loteria Federal (maior seca de extrações sem sair).',
+      federal_frequentes: 'As milhares com maior histórico de saídas registradas na Loteria Federal.',
+    };
+    descEl.textContent = descriptions[tabKey] || '';
+  }
+
+  renderMilharesTable(tabKey);
+};
+
+function renderMilharesTable(tabKey) {
+  const tbody = document.getElementById('milhares-table-body');
+  const countBadge = document.getElementById('milhares-count-badge');
+  if (!tbody) return;
+
+  if (!_milharesDataCache) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="py-8 text-center text-slate-500">
+          <div class="flex items-center justify-center gap-2">
+            <span class="animate-spin text-amber-400">⏳</span> Carregando estatísticas das milhares...
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const items = _milharesDataCache[tabKey] || [];
+  if (countBadge) countBadge.textContent = items.length;
+
+  if (!items || items.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="py-8 text-center text-slate-400">
+          Nenhuma milhar registrada nesta categoria no momento.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const isAtrasadas = tabKey.includes('atrasadas');
+
+  tbody.innerHTML = items.map((item, idx) => {
+    const rankNum = idx + 1;
+    let rankBadge = `<span class="font-bold text-slate-400">${rankNum}º</span>`;
+    if (rankNum === 1) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 font-black text-xs">🥇</span>`;
+    else if (rankNum === 2) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-400/20 text-slate-200 border border-slate-400/50 font-black text-xs">🥈</span>`;
+    else if (rankNum === 3) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700/20 text-amber-500 border border-amber-700/50 font-black text-xs">🥉</span>`;
+
+    const atrasoHtml = isAtrasadas
+      ? `<span class="text-amber-400 font-black font-mono text-sm">${item.dias_atraso !== null && item.dias_atraso !== undefined ? item.dias_atraso + ' dias' : '--'}</span>`
+      : `<span class="text-emerald-400 font-bold font-mono text-sm">${item.dias_atraso ? item.dias_atraso + ' dias atrás' : (item.vezes_sorteada || 'Alta')}</span>`;
+
+    return `
+      <tr class="hover:bg-slate-900/60 transition-colors">
+        <td class="py-2.5 px-3 text-center">${rankBadge}</td>
+        <td class="py-2.5 px-3">
+          <span class="font-mono font-black text-amber-300 text-sm tracking-wider">${item.milhar}</span>
+        </td>
+        <td class="py-2.5 px-3">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">${item.icone || '🐾'}</span>
+            <div>
+              <div class="font-black text-white text-xs">${item.bicho || 'Bicho'}</div>
+              <div class="text-[10px] text-slate-400">Grupo ${String(item.grupo).padStart(2, '0')} • Dz ${item.dezena || item.milhar.slice(-2)}</div>
+            </div>
+          </div>
+        </td>
+        <td class="py-2.5 px-3 text-slate-300 font-medium">${item.ultima_data || '--'}</td>
+        <td class="py-2.5 px-3">
+          <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[11px]">
+            ${item.extracao || ''} ${item.premio ? '• ' + item.premio : ''}
+          </span>
+        </td>
+        <td class="py-2.5 px-3 text-right">${atrasoHtml}</td>
+        <td class="py-2.5 px-3 text-center">
+          <button type="button" onclick="quickTrackMilhar('${item.milhar}')"
+            class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[10px] font-bold transition-all active:scale-95 cursor-pointer">
+            🔍 Rastrear
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.handleMilharTrackSubmit = function() {
+  const input = document.getElementById('input-milhar-search');
+  const val = input ? input.value.trim() : '';
+  if (!val) {
+    showToast('Digite uma milhar de 0000 a 9999.', 'warning');
+    return;
+  }
+  executeMilharTracking(val);
+};
+
+window.quickTrackMilhar = function(milhar) {
+  const input = document.getElementById('input-milhar-search');
+  if (input) input.value = milhar;
+  executeMilharTracking(milhar);
+};
+
+async function executeMilharTracking(rawMilhar) {
+  const clean = rawMilhar.replace(/\D/g, '');
+  if (!clean) {
+    showToast('Informe apenas números.', 'warning');
+    return;
+  }
+  const formattedMilhar = clean.slice(-4).padStart(4, '0');
+
+  const btn = document.getElementById('btn-track-milhar');
+  const card = document.getElementById('milhar-tracker-card');
+  const origBtnHtml = btn ? btn.innerHTML : '';
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = 'Buscando...';
+  }
+
+  try {
+    const res = await api.rastrearMilhar(formattedMilhar);
+    const data = res.data;
+
+    if (card) {
+      card.classList.remove('hidden');
+    }
+
+    const bichoIcon = document.getElementById('tracker-bicho-icon');
+    const milharDisplay = document.getElementById('tracker-milhar-display');
+    const bichoDisplay = document.getElementById('tracker-bicho-display');
+    const grupoDisplay = document.getElementById('tracker-grupo-display');
+    const dezenaEl = document.getElementById('tracker-dezena');
+    const centenaEl = document.getElementById('tracker-centena');
+
+    const vezesEl = document.getElementById('tracker-vezes');
+    const vezesSubEl = document.getElementById('tracker-vezes-sub');
+    const secaGeralEl = document.getElementById('tracker-seca-geral');
+    const secaGeralSubEl = document.getElementById('tracker-seca-geral-sub');
+    const secaCabecaEl = document.getElementById('tracker-seca-cabeca');
+    const secaCabecaSubEl = document.getElementById('tracker-seca-cabeca-sub');
+    const favoritoEl = document.getElementById('tracker-favorito');
+    const favoritoSubEl = document.getElementById('tracker-favorito-sub');
+
+    const alertaBox = document.getElementById('tracker-alerta-box');
+    const alertaText = document.getElementById('tracker-alerta-text');
+
+    if (bichoIcon) bichoIcon.textContent = data.icone || '🐾';
+    if (milharDisplay) milharDisplay.textContent = data.milhar;
+    if (bichoDisplay) bichoDisplay.textContent = data.bicho || '';
+    if (grupoDisplay) grupoDisplay.textContent = `Grupo ${String(data.grupo).padStart(2, '0')}`;
+    if (dezenaEl) dezenaEl.textContent = data.dezena || data.milhar.slice(-2);
+    if (centenaEl) centenaEl.textContent = data.centena || data.milhar.slice(-3);
+
+    if (vezesEl) vezesEl.textContent = data.vezes_sorteada || '--';
+    if (vezesSubEl) vezesSubEl.textContent = data.vezes_sorteada_detalhes || 'Total histórico';
+    if (secaGeralEl) secaGeralEl.textContent = data.ultima_vez || '--';
+    if (secaGeralSubEl) secaGeralSubEl.textContent = data.ultima_vez_detalhes || 'Última saída';
+    if (secaCabecaEl) secaCabecaEl.textContent = data.seca_primeiro_premio || '--';
+    if (secaCabecaSubEl) secaCabecaSubEl.textContent = data.seca_primeiro_premio_detalhes || 'Seca no 1º prêmio';
+    if (favoritoEl) favoritoEl.textContent = data.onde_mais_sai || 'Equilibrado';
+    if (favoritoSubEl) favoritoSubEl.textContent = 'Horário mais frequente';
+
+    if (alertaBox && alertaText) {
+      if (data.alerta_seca) {
+        alertaText.textContent = data.alerta_seca;
+        alertaBox.classList.remove('hidden');
+      } else {
+        alertaBox.classList.add('hidden');
+      }
+    }
+
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  } catch (err) {
+    console.error('Erro ao rastrear milhar:', err);
+    showToast(err.message || 'Falha ao buscar estatísticas da milhar.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origBtnHtml;
+    }
+  }
+}
+
+window.copyTrackedMilhar = function(btn) {
+  const display = document.getElementById('tracker-milhar-display');
+  const milhar = display ? display.textContent.trim() : '';
+  if (!milhar) return;
+
+  navigator.clipboard.writeText(milhar).then(() => {
+    if (btn) {
+      const origHtml = btn.innerHTML;
+      btn.innerHTML = '<span>✅</span> <span>Copiado!</span>';
+      setTimeout(() => {
+        btn.innerHTML = origHtml;
+      }, 1500);
+    }
+    showToast(`Milhar ${milhar} copiada!`, 'success');
+  }).catch(() => {
+    showToast(`Milhar: ${milhar}`);
+  });
+};
