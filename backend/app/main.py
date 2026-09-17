@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from .database import init_db
-from .api import results, analysis, metrics, admin, auth
+from .api import results, analysis, metrics, admin, auth, milhares
 
 app = FastAPI(
     title="BICHO MASTER API",
@@ -49,12 +49,30 @@ def on_startup():
     except Exception as e:
         print(f"Aviso ao inicializar loterias adicionais: {e}")
 
+    # Inicia o robô de sincronização em segundo plano (exceto em modo de teste automatizado)
+    if os.environ.get("BICHO_TEST_MODE") != "1":
+        try:
+            from .engine.scheduler import scraper_worker
+            scraper_worker.start()
+        except Exception as e:
+            print(f"Aviso ao iniciar worker de scraping: {e}")
+
+
+@app.on_event("shutdown")
+def on_shutdown():
+    try:
+        from .engine.scheduler import scraper_worker
+        scraper_worker.stop()
+    except Exception:
+        pass
+
 # Registro das rotas da API
 app.include_router(auth.router, prefix="/api")
 app.include_router(results.router, prefix="/api")
 app.include_router(analysis.router, prefix="/api")
 app.include_router(metrics.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(milhares.router, prefix="/api")
 
 # Diretório do Frontend
 FRONTEND_DIR = os.path.join(
