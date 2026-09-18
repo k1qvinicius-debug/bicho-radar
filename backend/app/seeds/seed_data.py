@@ -20,7 +20,7 @@ def generate_seed_data(num_days: int = 45) -> int:
     init_db()
 
     slots_weekday = ["PPT", "PTM", "PT", "PTV", "PTN", "COR"]
-    slots_wed_sat = ["PPT", "PTM", "PT", "PTV", "FED", "COR"]
+    slots_wed = ["PPT", "PTM", "PT", "PTV", "FED", "COR"]
 
     start_date = datetime.now().date() - timedelta(days=num_days)
     draws_inserted = 0
@@ -42,7 +42,7 @@ def generate_seed_data(num_days: int = 45) -> int:
             date_str = cur_date.strftime("%Y-%m-%d")
             weekday = cur_date.weekday()
 
-            slots_today = slots_wed_sat if weekday in [2, 5] else slots_weekday
+            slots_today = slots_wed if weekday == 2 else slots_weekday
 
             for slot in slots_today:
                 # Não gera sorteios futuros
