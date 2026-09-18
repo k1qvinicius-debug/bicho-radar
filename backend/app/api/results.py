@@ -90,11 +90,11 @@ def list_results(
         if lottery:
             lot_code = lottery.upper()
             if lot_code == "FEDERAL":
-                query += " AND (lottery = 'FEDERAL' OR slot = 'FED')"
-                count_query += " AND (lottery = 'FEDERAL' OR slot = 'FED')"
+                query += " AND (lottery = 'FEDERAL' OR slot = 'FED') AND day_of_week IN (2, 6)"
+                count_query += " AND (lottery = 'FEDERAL' OR slot = 'FED') AND day_of_week IN (2, 6)"
             elif lot_code == "RJ":
-                query += " AND (lottery = 'RJ' OR (lottery IS NULL AND ? = 'RJ') OR slot = 'FED')"
-                count_query += " AND (lottery = 'RJ' OR (lottery IS NULL AND ? = 'RJ') OR slot = 'FED')"
+                query += " AND (lottery = 'RJ' OR (lottery IS NULL AND ? = 'RJ'))"
+                count_query += " AND (lottery = 'RJ' OR (lottery IS NULL AND ? = 'RJ'))"
                 params.append(lot_code)
             else:
                 query += " AND lottery = ?"
