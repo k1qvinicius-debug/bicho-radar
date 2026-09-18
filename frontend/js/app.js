@@ -3073,32 +3073,70 @@ async function loadDrawResults(dateOverride = null) {
     const activeLotKey = (currentLottery || 'RJ').toUpperCase();
     allRecentDrawsByDate = {};
     items.forEach((draw) => {
-      if (draw.lottery && draw.lottery.toUpperCase() !== activeLotKey) {
-        return;
+      // Federal corre estritamente às quartas-feiras e aos domingos
+      if (activeLotKey === 'FEDERAL') {
+        let isFedDay = false;
+        try {
+          const parts = draw.draw_date.split('-');
+          if (parts.length === 3) {
+            const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            const dow = dt.getDay(); // 0 = Domingo, 3 = Quarta
+            if (dow === 0 || dow === 3) isFedDay = true;
+          }
+        } catch (e) {}
+        if (!isFedDay) return; // Ignora qualquer sábado ou outro dia para a Federal
+        if (draw.lottery && draw.lottery.toUpperCase() !== 'FEDERAL' && draw.slot !== 'FED') {
+          return;
+        }
+      } else {
+        if (draw.lottery && draw.lottery.toUpperCase() !== activeLotKey) {
+          return;
+        }
       }
       const d = draw.draw_date;
       if (!allRecentDrawsByDate[d]) allRecentDrawsByDate[d] = {};
       allRecentDrawsByDate[d][draw.slot] = draw;
     });
 
-    // Garante que a data de hoje esteja presente na lista
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Garante que a data de hoje esteja presente na lista apenas se for dia de sorteio
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const todayDow = today.getDay(); // 0 = Dom, 3 = Qua
     const datesSet = new Set(Object.keys(allRecentDrawsByDate));
-    datesSet.add(todayStr);
 
-    // Lista ordenada do mais recente para o mais antigo (até 8 dias)
-    availableDatesList = Array.from(datesSet).sort().reverse().slice(0, 8);
+    if (activeLotKey === 'FEDERAL') {
+      if (todayDow === 0 || todayDow === 3) {
+        datesSet.add(todayStr);
+      }
+      // Filtra para garantir que NENHUM sábado ou outro dia entre nas pills da Federal
+      availableDatesList = Array.from(datesSet)
+        .filter(dateStr => {
+          try {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+              const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+              const dow = dt.getDay();
+              return dow === 0 || dow === 3; // Somente Domingo e Quarta
+            }
+          } catch (e) {}
+          return false;
+        })
+        .sort().reverse().slice(0, 8);
+    } else {
+      datesSet.add(todayStr);
+      availableDatesList = Array.from(datesSet).sort().reverse().slice(0, 8);
+    }
 
     // Determina a data ativa
-    if (dateOverride) {
+    if (dateOverride && availableDatesList.includes(dateOverride)) {
       selectedResultDate = dateOverride;
     } else if (!selectedResultDate || !availableDatesList.includes(selectedResultDate)) {
       const todayHasDraws = allRecentDrawsByDate[todayStr] && Object.keys(allRecentDrawsByDate[todayStr]).length > 0;
-      if (todayHasDraws) {
+      if (todayHasDraws && availableDatesList.includes(todayStr)) {
         selectedResultDate = todayStr;
       } else {
         const latestWithDraws = availableDatesList.find(d => allRecentDrawsByDate[d] && Object.keys(allRecentDrawsByDate[d]).length > 0);
-        selectedResultDate = latestWithDraws || todayStr;
+        selectedResultDate = latestWithDraws || availableDatesList[0] || todayStr;
       }
     }
 
