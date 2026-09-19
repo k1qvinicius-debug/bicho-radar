@@ -306,6 +306,38 @@ def get_cruz_do_dia_endpoint(
     return get_cruz_do_dia(effective_date)
 
 
+@router.get("/transition-matrix", response_model=Dict[str, Any])
+def get_transition_matrix_endpoint(
+    lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    from_slot: Optional[str] = Query(None, description="Horário anterior de origem"),
+    from_group: Optional[int] = Query(None, ge=1, le=25, description="Grupo do 1º prêmio anterior (1 a 25)"),
+    target_slot: Optional[str] = Query(None, description="Horário alvo"),
+    limit: int = Query(5, ge=1, le=25, description="Quantidade de transições"),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
+):
+    """
+    Retorna a análise de transição empírica (Cadeias de Markov)
+    calculada a partir de dezenas de milhares de sorteios reais da loteria especificada.
+    """
+    from ..engine.transition_matrix import get_transition_analysis
+
+    # Se from_group não foi informado, descobre automaticamente o último apurado da banca
+    if not from_group:
+        from ..engine.puxadas_engine import get_puxadas_analysis
+        pux = get_puxadas_analysis(target_slot=target_slot, lottery=lottery)
+        base = pux.get("base_animal", {})
+        from_group = base.get("group")
+        from_slot = from_slot or base.get("slot")
+
+    return get_transition_analysis(
+        lottery=lottery,
+        from_slot=from_slot,
+        from_group=from_group,
+        target_slot=target_slot,
+        limit=limit
+    )
+
+
 @router.get("/puxadas", response_model=Dict[str, Any])
 def get_puxadas_endpoint(
     target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD). Padrão: hoje"),
