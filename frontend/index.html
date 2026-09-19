@@ -29,6 +29,32 @@
   </script>
   <link rel="icon" type="image/png" href="/img/favicon.png?v=35.0" />
   <link rel="stylesheet" href="/css/style.css" />
+  <!-- Prevenção imediata de flash da tela de login para usuários autenticados -->
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('bicho_tenant') || sessionStorage.getItem('bicho_tenant');
+        if (t) {
+          document.documentElement.classList.add('is-authenticated');
+        }
+      } catch(e) {}
+    })();
+  </script>
+  <style>
+    /* Se o usuário já está logado, nunca pisca a tela de login durante carregamento */
+    html.is-authenticated #app-auth-gate {
+      display: none !important;
+    }
+    html.is-authenticated #app-main-header {
+      display: block !important;
+    }
+    html.is-authenticated #main-content-container {
+      display: block !important;
+    }
+    html.is-authenticated #mob-bottom-nav {
+      display: flex !important;
+    }
+  </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-24 md:pb-12 antialiased selection:bg-indigo-500 selection:text-white">
 
