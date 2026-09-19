@@ -124,17 +124,17 @@ class WeightsConfigModel(BaseModel):
     id: Optional[int] = None
     name: str = "Quentes do Momento (Alta Assertividade)"
     is_active: bool = True
-    weight_frequency_total: float = Field(10.0, ge=0.0, le=100.0)
-    weight_frequency_recent: float = Field(35.0, ge=0.0, le=100.0)
-    weight_delay: float = Field(10.0, ge=0.0, le=100.0)
-    weight_slot_affinity: float = Field(25.0, ge=0.0, le=100.0)
-    weight_repetition: float = Field(20.0, ge=0.0, le=100.0)
-    weight_day_of_week: float = Field(5.0, ge=0.0, le=100.0)
-    recent_decay_rate: float = Field(0.12, ge=0.01, le=0.5)
-    top_groups_count: int = Field(5, ge=1, le=25)
-    top_tens_count: int = Field(10, ge=1, le=100)
-    top_hundreds_count: int = Field(15, ge=1, le=100)
-    top_thousands_count: int = Field(15, ge=1, le=100)
+    weight_frequency_total: float = Field(default=10.0, ge=0.0, le=100.0)
+    weight_frequency_recent: float = Field(default=35.0, ge=0.0, le=100.0)
+    weight_delay: float = Field(default=10.0, ge=0.0, le=100.0)
+    weight_slot_affinity: float = Field(default=25.0, ge=0.0, le=100.0)
+    weight_repetition: float = Field(default=20.0, ge=0.0, le=100.0)
+    weight_day_of_week: float = Field(default=5.0, ge=0.0, le=100.0)
+    recent_decay_rate: float = Field(default=0.12, ge=0.01, le=0.5)
+    top_groups_count: int = Field(default=5, ge=1, le=25)
+    top_tens_count: int = Field(default=10, ge=1, le=100)
+    top_hundreds_count: int = Field(default=15, ge=1, le=100)
+    top_thousands_count: int = Field(default=15, ge=1, le=100)
 
 
 class FactorItem(BaseModel):
@@ -172,6 +172,7 @@ class PredictionOutput(BaseModel):
     strategy: str = "hybrid"
     hybrid_combo: Optional[Dict[str, Any]] = None
     quadrant_summary: Optional[Dict[str, Any]] = None
+    transition_data: Optional[Dict[str, Any]] = None
     disclaimer: str = "Análise baseada em padrões estatísticos, frequência e atrasos. Não há garantia de resultados futuros."
 
 
@@ -235,6 +236,7 @@ class TenantModel(BaseModel):
     status: str = "active"
     notes: Optional[str] = None
     email: Optional[str] = None
+    phone: Optional[str] = None
     auth_provider: Optional[str] = "key"
     trial_started_at: Optional[str] = None
     trial_expires_at: Optional[str] = None
@@ -251,6 +253,7 @@ class TenantCreateModel(BaseModel):
     name: str
     tenant_key: Optional[str] = None
     email: Optional[str] = None
+    phone: Optional[str] = None
     role: str = "tester"
     notes: Optional[str] = None
     expires_at: Optional[str] = None
@@ -259,6 +262,7 @@ class TenantCreateModel(BaseModel):
 
 class TenantUpdateModel(BaseModel):
     name: Optional[str] = None
+    phone: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
     expires_at: Optional[str] = None
@@ -270,6 +274,7 @@ class SystemSettingsModel(BaseModel):
     support_whatsapp: Optional[str] = ""
     trial_days: Optional[int] = 7
     app_name: Optional[str] = "Bicho Master Pro"
+    google_client_id: Optional[str] = ""
 
 
 class LoginRequestModel(BaseModel):
@@ -279,6 +284,14 @@ class LoginRequestModel(BaseModel):
     credential: Optional[str] = None
     email: Optional[str] = None
     name: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class RegisterRequestModel(BaseModel):
+    name: str = Field(..., description="Nome completo do usuário")
+    email: str = Field(..., description="E-mail ou Gmail do usuário")
+    phone: Optional[str] = Field(None, description="Número de WhatsApp com DDD")
+    password: str = Field(..., description="Senha de acesso à plataforma")
 
 
 class LoginResponseModel(BaseModel):
