@@ -19,24 +19,48 @@ router = APIRouter(prefix="/analysis", tags=["Análise Preditiva"])
 
 
 def get_default_next_slot(lottery: str = "RJ") -> str:
-    """Calcula o horário padrão mais adequado com base na hora atual e na loteria selecionada."""
+    """
+    Calcula o próximo horário pendente mais adequado.
+    Verifica no banco quais sorteios já foram apurados hoje para a loteria
+    e avança automaticamente para o primeiro horário pendente.
+    """
     from ..domain import get_lottery_slots
     slots = get_lottery_slots(lottery)
     if not slots:
         return "PPT"
 
-    now = datetime.now()
-    cur_min = now.hour * 60 + now.minute
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    drawn_slots = set()
 
-    # Procura o primeiro slot que ocorra após o minuto atual
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            eff_lot = (lottery or "RJ").upper()
+            if eff_lot == "FEDERAL":
+                cursor.execute(
+                    "SELECT DISTINCT slot FROM draw_results WHERE (lottery = 'FEDERAL' OR slot = 'FED') AND draw_date = ?",
+                    (today_str,)
+                )
+            elif eff_lot == "RJ":
+                cursor.execute(
+                    "SELECT DISTINCT slot FROM draw_results WHERE (lottery = 'RJ' OR lottery IS NULL) AND draw_date = ?",
+                    (today_str,)
+                )
+            else:
+                cursor.execute(
+                    "SELECT DISTINCT slot FROM draw_results WHERE lottery = ? AND draw_date = ?",
+                    (eff_lot, today_str)
+                )
+            drawn_slots = {str(r[0]).strip().upper() for r in cursor.fetchall()}
+    except Exception:
+        drawn_slots = set()
+
+    # 1. Procura o primeiro slot oficial que ainda NÃO foi apurado hoje
     for s in slots:
-        t_parts = s.get("time", "").split(":")
-        if len(t_parts) == 2:
-            slot_min = int(t_parts[0]) * 60 + int(t_parts[1])
-            if cur_min <= slot_min:
-                return s["code"]
+        if s["code"].upper() not in drawn_slots:
+            return s["code"]
 
-    # Se já passaram todos os horários de hoje, retorna o primeiro horário do dia seguinte
+    # 2. Se todos os horários de hoje já foram apurados, retorna o primeiro horário de amanhã
     return slots[0]["code"]
 
 
@@ -182,9 +206,10 @@ def list_snapshots(
     lottery: Optional[str] = Query(None),
     target_date: Optional[str] = Query(None),
     tenant_id: Optional[int] = Query(None),
+    mine_only: Optional[bool] = Query(False, description="Exibir apenas análises do próprio usuário"),
     current_tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional)
 ):
-    """Lista o histórico de análises salvas com status de conferência, isoladas por testador e loteria."""
+    """Lista o histórico de análises salvas com status de conferência, incluindo auditorias oficiais da plataforma."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         query = """
@@ -214,13 +239,19 @@ def list_snapshots(
             query += " AND s.target_date = ?"
             params.append(target_date)
 
-        # Se for um testador comum (não admin), exibe apenas os seus próprios snapshots
-        if isinstance(current_tenant, dict) and current_tenant.get("role") != "admin":
-            query += " AND s.tenant_id = ?"
-            params.append(current_tenant["id"])
-        elif tenant_id:
+        # Regra de exibição:
+        # 1. Se tenant_id foi solicitado explicitamente:
+        if tenant_id:
             query += " AND s.tenant_id = ?"
             params.append(tenant_id)
+        # 2. Se o usuário marcou 'apenas minhas análises':
+        elif mine_only and isinstance(current_tenant, dict) and current_tenant.get("role") != "admin":
+            query += " AND s.tenant_id = ?"
+            params.append(current_tenant["id"])
+        # 3. Para qualquer usuário logado (cliente/testador): exibe as auditorias oficiais da plataforma (tenant_id = 1 ou NULL) e as suas próprias
+        elif isinstance(current_tenant, dict) and current_tenant.get("role") != "admin":
+            query += " AND (s.tenant_id = 1 OR s.tenant_id = ? OR s.tenant_id IS NULL)"
+            params.append(current_tenant["id"])
 
         query += " ORDER BY s.target_date DESC, s.id DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
@@ -264,7 +295,7 @@ def get_snapshot_details(snapshot_id: int):
 @router.get("/cruz-do-dia", response_model=Dict[str, Any])
 def get_cruz_do_dia_endpoint(
     target_date: Optional[str] = Query(None, description="Data da Cruz (YYYY-MM-DD). Padrão: hoje"),
-    tenant: Dict[str, Any] = Depends(require_tenant),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
     """
     Retorna a Cruz do Dia com dígitos cardeais, Bicho do Dia, animais formados
@@ -279,14 +310,14 @@ def get_cruz_do_dia_endpoint(
 def get_puxadas_endpoint(
     target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD). Padrão: hoje"),
     target_slot: Optional[str] = Query(None, description="Horário alvo"),
-    lottery: Optional[str] = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
-    tenant: Dict[str, Any] = Depends(require_tenant),
+    lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
     """
     Retorna a análise de Puxadas Tradicionais com base no último sorteio apurado da loteria escolhida
     e o catálogo completo das puxadas dos 25 grupos.
     """
     from ..engine.puxadas_engine import get_puxadas_analysis
-    return get_puxadas_analysis(target_date=target_date, target_slot=target_slot, lottery=lottery)
+    return get_puxadas_analysis(target_date=target_date, target_slot=target_slot, lottery=lottery or "RJ")
 
 
