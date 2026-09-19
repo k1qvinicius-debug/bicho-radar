@@ -97,19 +97,22 @@ class StatisticalEngine:
 
         weights = copy(custom_weights or self.weights)
         if strategy == "frequency":
-            weights.weight_frequency_recent = 50.0
+            weights.weight_frequency_recent = 60.0
             weights.weight_frequency_total = 30.0
-            weights.weight_delay = 10.0
-            weights.weight_repetition = 10.0
-        elif strategy == "delay":
-            weights.weight_delay = 70.0
-            weights.weight_frequency_recent = 15.0
-            weights.weight_frequency_total = 10.0
-            weights.weight_repetition = 5.0
-        elif strategy == "puxada":
+            weights.weight_delay = 5.0
             weights.weight_repetition = 15.0
-            weights.weight_delay = 20.0
+            weights.weight_slot_affinity = 20.0
+        elif strategy == "delay":
+            weights.weight_delay = 80.0
+            weights.weight_frequency_recent = 5.0
+            weights.weight_frequency_total = 5.0
+            weights.weight_repetition = 0.0
+            weights.weight_slot_affinity = 10.0
+        elif strategy == "puxada":
+            weights.weight_repetition = 10.0
+            weights.weight_delay = 15.0
             weights.weight_frequency_recent = 25.0
+            weights.weight_slot_affinity = 15.0
 
         draws = self.fetch_historical_draws(cutoff_date=target_date, cutoff_slot=target_slot, lottery=effective_lottery)
         total_draws = len(draws)
@@ -145,7 +148,7 @@ class StatisticalEngine:
         top_groups = self._analyze_groups(draws, target_slot, target_day_of_week, weights, target_date, strategy=strategy)
 
         # 2. Análise de Dezenas
-        top_tens = self._analyze_tens(draws, target_slot, target_day_of_week, weights, top_groups, target_date=target_date)
+        top_tens = self._analyze_tens(draws, target_slot, target_day_of_week, weights, top_groups, target_date=target_date, strategy=strategy)
 
         # 3. Análise de Centenas
         top_hundreds = self._analyze_hundreds(draws, target_slot, weights, top_tens)
@@ -296,7 +299,7 @@ class StatisticalEngine:
                 "estimated_prize_brl": 300.0,
                 "suggested_bet": "R$ 1,00 / duque (R$ 15,00 total)",
                 "prize_est": "R$ 300,00",
-                "description": "Cobertura máxima de cercado combinando as 6 dezenas de maior momentum em 15 duques.",
+                "description": "Cobertura máxima do 1º ao 5º combinando as 6 dezenas de maior momentum em 15 duques.",
                 "recommended": False
             })
 
@@ -443,7 +446,7 @@ class StatisticalEngine:
                 "group_number": freq_ten.group_number,
                 "animal_name": freq_ten.animal_name,
                 "animal_emoji": freq_ten.animal_emoji or "🐾",
-                "reason": f"Líder de momentum recente ({pct}% no cercado)"
+                "reason": f"Líder de momentum recente ({pct}% do 1º ao 5º)"
             })
 
         # 5. Balanceamento de Quadrantes (Baixa 00-49 vs Alta 50-99)
@@ -818,7 +821,7 @@ class StatisticalEngine:
                 ))
             elif g in last_g_all:
                 factors.append(FactorItem(
-                    name="Ciclo de Cercado Ativo",
+                    name="Presença Recente (1º ao 5º)",
                     description="Saiu entre o 2º e 5º prêmio no último sorteio",
                     impact_points=round(score_rep * (w.weight_repetition / total_weight), 1),
                     type="neutral"
@@ -826,42 +829,60 @@ class StatisticalEngine:
 
             anim = get_animal_info(g)
 
-            # Bônus de Cruz do Dia e Bicho do Dia
+            # Bônus calibrados estritamente por Estratégia
             is_bicho_dia = (g == cruz_bicho_dia)
             cruz_item = cruz_animals_map.get(g)
-            if is_bicho_dia or cruz_item:
-                if is_bicho_dia:
-                    bonus = 35.0
-                    tens_str = ", ".join(cruz_item["tens"]) if cruz_item else ", ".join(anim["tens"])
-                    final_score = round(final_score + bonus, 1)
-                    factors.append(FactorItem(
-                        name="Bicho do Dia (Cruz)",
-                        description=f"Destaque Máximo do Dia pela Cruz numerológica (+{bonus} pts) - Dezenas: {tens_str}",
-                        impact_points=bonus,
-                        type="positive"
-                    ))
-                elif cruz_item:
-                    bonus = 5.0
-                    cruz_tens_str = ", ".join(cruz_item["tens"])
-                    final_score = round(final_score + bonus, 1)
-                    factors.append(FactorItem(
-                        name="Cruz do Dia",
-                        description=f"Presente na Cruz do Dia tradicional (+{bonus} pts) - Dezenas: {cruz_tens_str}",
-                        impact_points=bonus,
-                        type="positive"
-                    ))
-
-            # Bônus de Puxada Tradicional do último 1º prêmio
             is_pulled = (g in puxados_pelo_ultimo)
-            if is_pulled and last_g1_info:
-                pux_bonus = 28.0 if strategy == "puxada" else 22.0
-                final_score = round(final_score + pux_bonus, 1)
-                factors.append(FactorItem(
-                    name="Puxada Tradicional",
-                    description=f"Reação em Cadeia (+{pux_bonus} pts): Puxado pelo 1º prêmio anterior ({last_g1_info['emoji']} {last_g1_info['name']})",
-                    impact_points=pux_bonus,
-                    type="positive"
-                ))
+
+            if strategy == "frequency":
+                # Frequência pura: sem bônus estáticos de Cruz ou Puxada
+                pass
+            elif strategy == "delay":
+                # Atraso puro: sem bônus estáticos de Cruz ou Puxada
+                pass
+            elif strategy == "puxada":
+                # Puxada tradicional: animais puxados pelo último 1º prêmio recebem pontuação destacada
+                if is_pulled and last_g1_info:
+                    pux_bonus = 50.0
+                    final_score = round(final_score + pux_bonus, 1)
+                    factors.append(FactorItem(
+                        name="Puxada Tradicional",
+                        description=f"Reação em Cadeia (+{pux_bonus} pts): Puxado pelo 1º prêmio anterior ({last_g1_info['emoji']} {last_g1_info['name']})",
+                        impact_points=pux_bonus,
+                        type="positive"
+                    ))
+            else:  # hybrid
+                if is_bicho_dia or cruz_item:
+                    if is_bicho_dia:
+                        bonus = 18.0
+                        tens_str = ", ".join(cruz_item["tens"]) if cruz_item else ", ".join(anim["tens"])
+                        final_score = round(final_score + bonus, 1)
+                        factors.append(FactorItem(
+                            name="Bicho do Dia (Cruz)",
+                            description=f"Destaque do Dia pela Cruz (+{bonus} pts) - Dezenas: {tens_str}",
+                            impact_points=bonus,
+                            type="positive"
+                        ))
+                    elif cruz_item:
+                        bonus = 6.0
+                        cruz_tens_str = ", ".join(cruz_item["tens"])
+                        final_score = round(final_score + bonus, 1)
+                        factors.append(FactorItem(
+                            name="Cruz do Dia",
+                            description=f"Presente na Cruz do Dia (+{bonus} pts) - Dezenas: {cruz_tens_str}",
+                            impact_points=bonus,
+                            type="positive"
+                        ))
+
+                if is_pulled and last_g1_info:
+                    pux_bonus = 14.0
+                    final_score = round(final_score + pux_bonus, 1)
+                    factors.append(FactorItem(
+                        name="Puxada Tradicional",
+                        description=f"Reação em Cadeia (+{pux_bonus} pts): Puxado pelo 1º prêmio anterior ({last_g1_info['emoji']} {last_g1_info['name']})",
+                        impact_points=pux_bonus,
+                        type="positive"
+                    ))
 
             window_size = min(total_draws, 30) or 1
             presence_pct = round((recent_30_count_all[g] / window_size) * 100, 1)
@@ -906,6 +927,13 @@ class StatisticalEngine:
             )
             group_items.append(item)
 
+        if strategy == "puxada" and puxados_pelo_ultimo:
+            pulled_items = [item for item in group_items if item.group_number in puxados_pelo_ultimo]
+            other_items = [item for item in group_items if item.group_number not in puxados_pelo_ultimo]
+            pulled_items.sort(key=lambda x: x.score, reverse=True)
+            other_items.sort(key=lambda x: x.score, reverse=True)
+            return pulled_items + other_items
+
         group_items.sort(key=lambda x: x.score, reverse=True)
         return group_items
 
@@ -916,7 +944,8 @@ class StatisticalEngine:
         target_day: int,
         w: WeightsConfigModel,
         top_groups: List[RankedItem],
-        target_date: Optional[str] = None
+        target_date: Optional[str] = None,
+        strategy: str = "hybrid"
     ) -> List[RankedItem]:
         total_draws = len(draws)
         count_1st = Counter()
@@ -976,6 +1005,7 @@ class StatisticalEngine:
                 pass
 
         group_scores = {g.group_number: g.score for g in top_groups}
+        top_pulled_groups = {g.group_number for g in top_groups[:5] if g.metadata and g.metadata.get("puxada") and g.metadata["puxada"].get("is_pulled")}
         tens_items: List[RankedItem] = []
 
         for val in range(100):
@@ -1010,22 +1040,38 @@ class StatisticalEngine:
             final_score = round((raw_score * 0.70) + (parent_grp_score * 0.30), 1)
 
             factors: List[FactorItem] = []
-            if d_str in bicho_dia_tens_set:
-                final_score = round(final_score + 14.0, 1)
-                factors.append(FactorItem(
-                    name="Dezena do Bicho do Dia",
-                    description="Dezena do Bicho do Dia na Cruz (+14.0 pts)",
-                    impact_points=14.0,
-                    type="positive"
-                ))
-            elif d_str in cruz_tens_set:
-                final_score = round(final_score + 6.0, 1)
-                factors.append(FactorItem(
-                    name="Dezena da Cruz",
-                    description="Formada diretamente pelos dígitos da Cruz (+6.0 pts)",
-                    impact_points=6.0,
-                    type="positive"
-                ))
+            if strategy == "frequency":
+                # Frequência pura
+                pass
+            elif strategy == "delay":
+                # Atraso puro
+                pass
+            elif strategy == "puxada":
+                if grp in top_pulled_groups:
+                    final_score = round(final_score + 22.0, 1)
+                    factors.append(FactorItem(
+                        name="Dezena de Animal Puxado",
+                        description=f"Pertence ao Grupo {grp} ({anim['name']}), atraído pelo último 1º prêmio (+22.0 pts)",
+                        impact_points=22.0,
+                        type="positive"
+                    ))
+            else:  # hybrid
+                if d_str in bicho_dia_tens_set:
+                    final_score = round(final_score + 14.0, 1)
+                    factors.append(FactorItem(
+                        name="Dezena do Bicho do Dia",
+                        description="Dezena do Bicho do Dia na Cruz (+14.0 pts)",
+                        impact_points=14.0,
+                        type="positive"
+                    ))
+                elif d_str in cruz_tens_set:
+                    final_score = round(final_score + 6.0, 1)
+                    factors.append(FactorItem(
+                        name="Dezena da Cruz",
+                        description="Formada diretamente pelos dígitos da Cruz (+6.0 pts)",
+                        impact_points=6.0,
+                        type="positive"
+                    ))
 
             if parent_grp_score >= 40.0:
                 factors.append(FactorItem(
