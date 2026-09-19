@@ -144,8 +144,30 @@ class StatisticalEngine:
                 strategy=strategy,
             )
 
+        # Análise de Transição Histórica (Cadeias de Markov)
+        from .transition_matrix import get_transition_analysis
+        last_draw = draws[-1] if draws else {}
+        last_g1 = get_group_for_number(last_draw["prize_1"]) if last_draw else None
+        last_slot = last_draw.get("slot") if last_draw else None
+
+        transition_data = None
+        if last_g1:
+            try:
+                transition_data = get_transition_analysis(
+                    lottery=effective_lottery,
+                    from_slot=last_slot,
+                    from_group=last_g1,
+                    target_slot=target_slot,
+                    limit=5
+                )
+            except Exception:
+                transition_data = None
+
         # 1. Análise de Grupos
-        top_groups = self._analyze_groups(draws, target_slot, target_day_of_week, weights, target_date, strategy=strategy)
+        top_groups = self._analyze_groups(
+            draws, target_slot, target_day_of_week, weights, target_date,
+            strategy=strategy, transition_data=transition_data
+        )
 
         # 2. Análise de Dezenas
         top_tens = self._analyze_tens(draws, target_slot, target_day_of_week, weights, top_groups, target_date=target_date, strategy=strategy)
@@ -194,6 +216,7 @@ class StatisticalEngine:
             strategy=strategy,
             hybrid_combo=hybrid_combo,
             quadrant_summary=quadrant_summary,
+            transition_data=transition_data,
         )
 
     def _generate_ddz_combinations(self, top_tens: List[RankedItem]) -> List[Dict[str, Any]]:
@@ -637,6 +660,7 @@ class StatisticalEngine:
         w: WeightsConfigModel,
         target_date: Optional[str] = None,
         strategy: str = "hybrid",
+        transition_data: Optional[Dict[str, Any]] = None,
     ) -> List[RankedItem]:
         total_draws = len(draws)
         count_1st = Counter()
@@ -722,6 +746,12 @@ class StatisticalEngine:
         except Exception:
             puxados_pelo_ultimo = []
             last_g1_info = None
+
+        # Mapeia probabilidades da Matriz de Transição Histórica
+        transition_map = {}
+        if transition_data and transition_data.get("has_data"):
+            for t_item in transition_data.get("top_transitions", []):
+                transition_map[t_item["group"]] = t_item
 
         group_items: List[RankedItem] = []
 
@@ -884,6 +914,19 @@ class StatisticalEngine:
                         type="positive"
                     ))
 
+            # Transição Histórica (Cadeias de Markov)
+            trans_item = transition_map.get(g)
+            if trans_item and strategy in ("hybrid", "frequency"):
+                trans_pct = trans_item["probability_pct"]
+                trans_bonus = round(min(16.0, (trans_pct / 6.0) * 10.0), 1)
+                final_score = round(final_score + trans_bonus, 1)
+                factors.append(FactorItem(
+                    name="Transição Histórica (Markov)",
+                    description=f"Alta probabilidade empírica (+{trans_bonus} pts): {trans_pct}% de saída histórica após {last_g1_info['emoji']} {last_g1_info['name']}",
+                    impact_points=trans_bonus,
+                    type="positive"
+                ))
+
             window_size = min(total_draws, 30) or 1
             presence_pct = round((recent_30_count_all[g] / window_size) * 100, 1)
 
@@ -922,7 +965,12 @@ class StatisticalEngine:
                         "pulled_by_group": last_g1 if is_pulled else None,
                         "pulled_by_name": last_g1_info["name"] if is_pulled and last_g1_info else None,
                         "pulled_by_emoji": last_g1_info["emoji"] if is_pulled and last_g1_info else None,
-                    } if is_pulled else None
+                    } if is_pulled else None,
+                    "transition": {
+                        "is_top_transition": bool(trans_item),
+                        "probability_pct": trans_item["probability_pct"] if trans_item else 0.0,
+                        "hot_tens": trans_item["hot_tens"] if trans_item else [],
+                    } if trans_item else None
                 }
             )
             group_items.append(item)
