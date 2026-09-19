@@ -78,6 +78,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   setupEventListeners();
 
+  // Inicia monitor em tempo real para detecção instantânea de novos resultados (a cada 25 segundos)
+  startInstantResultsMonitor();
+
   // Verifica se há tela solicitada via hash (#palpites, #cruz, #puxadas, #atrasados, #resultados) ou query param
   const hash = window.location.hash.replace('#', '');
   const urlParams = new URLSearchParams(window.location.search);
@@ -531,18 +534,35 @@ async function initSlotSelector(lottery = currentLottery) {
       return;
     }
 
-    // Determina horário automático baseado no horário atual e grade da loteria
+    // Determina horário automático: prioriza o primeiro horário que AINDA NÃO FOI APURADO hoje
     const now = new Date();
-    const minutes = now.getHours() * 60 + now.getMinutes();
-    let defaultSlot = slots[0].code;
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const isToday = !targetDate || targetDate === todayStr;
 
-    for (const s of slots) {
-      if (s.time) {
-        const parts = s.time.split(':');
-        const sMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-        if (minutes <= sMin) {
-          defaultSlot = s.code;
-          break;
+    // Coleta slots já apurados hoje no cache de resultados recentes
+    const drawnCodes = new Set();
+    if (isToday && typeof recentResults !== 'undefined' && recentResults && recentResults.length > 0) {
+      recentResults.forEach(r => {
+        if (r.draw_date === todayStr && (r.lottery === lottery || (!r.lottery && lottery === 'RJ') || (lottery === 'FEDERAL' && r.slot === 'FED'))) {
+          if (r.slot) drawnCodes.add(r.slot.toUpperCase());
+        }
+      });
+    }
+
+    let defaultSlot = slots[0].code;
+    const pendingSlot = slots.find(s => !drawnCodes.has(s.code.toUpperCase()));
+    if (pendingSlot) {
+      defaultSlot = pendingSlot.code;
+    } else {
+      const minutes = now.getHours() * 60 + now.getMinutes();
+      for (const s of slots) {
+        if (s.time) {
+          const parts = s.time.split(':');
+          const sMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+          if (minutes <= sMin) {
+            defaultSlot = s.code;
+            break;
+          }
         }
       }
     }
@@ -559,6 +579,66 @@ async function initSlotSelector(lottery = currentLottery) {
   } catch (err) {
     console.error('Erro ao inicializar horários:', err);
   }
+}
+
+
+/* ==========================================================================
+   MONITOR EM TEMPO REAL: DETECÇÃO INSTANTÂNEA DE NOVAS APURAÇÕES
+   ========================================================================== */
+let _lastKnownDrawId = null;
+let _resultsMonitorInterval = null;
+
+function startInstantResultsMonitor() {
+  if (_resultsMonitorInterval) return;
+
+  _resultsMonitorInterval = setInterval(async () => {
+    try {
+      const res = await api.getRecentResults(currentLottery, 1);
+      if (!res || res.length === 0) return;
+
+      const latest = res[0];
+      if (_lastKnownDrawId === null) {
+        _lastKnownDrawId = latest.id;
+        return;
+      }
+
+      // Se o ID do último sorteio mudou, um novo resultado acabou de ser gravado!
+      if (latest.id !== _lastKnownDrawId) {
+        _lastKnownDrawId = latest.id;
+        console.log('⚡ Novo resultado apurado detectado:', latest);
+
+        // 1. Limpa cache de puxadas
+        _puxadasDataCache = null;
+
+        // 2. Recarrega os resultados
+        await loadDrawResults();
+
+        // 3. Atualiza o seletor de horários para avançar automaticamente para o próximo pendente
+        await initSlotSelector(currentLottery);
+
+        // 4. Recarrega palpites instantaneamente com a nova base apurada
+        if (api.isLoggedIn()) {
+          await loadPrediction();
+        }
+
+        // 5. Se o modal/tela de puxadas estiver aberto, atualiza imediatamente
+        const viewPuxadas = document.getElementById('view-puxadas');
+        if (viewPuxadas && !viewPuxadas.classList.contains('hidden')) {
+          await loadPuxadasModalContent(null, true);
+        }
+
+        // 6. Atualiza dados na Home
+        updateHomeScreenData();
+
+        // 7. Notifica o usuário
+        const p1 = latest.prize_1 || '----';
+        const animalInfo = latest.animal ? `(${latest.animal.toUpperCase()})` : '';
+        showToast(`⚡ Novo resultado apurado: ${latest.slot} - ${p1} ${animalInfo}! Palpites e Puxadas atualizados instantaneamente.`, 'success');
+      }
+    } catch (e) {
+      // Silencioso em caso de oscilação momentânea de rede
+    }
+  }, 25000);
 }
 
 window.toggleLotteryFilterCard = function() {
@@ -976,6 +1056,7 @@ window.closeCruzModal = function () {
 window.openPuxadasModal = async function () {
   _puxadasDataCache = null;
   switchScreen('puxadas');
+  await loadPuxadasModalContent(null, true);
 };
 
 window.closePuxadasModal = function () {
@@ -1043,9 +1124,9 @@ window.syncPuxadasModal = async function () {
   }
 };
 
-async function loadPuxadasModalContent(selectedGroup = null) {
+async function loadPuxadasModalContent(selectedGroup = null, forceRefresh = false) {
   try {
-    if (!_puxadasDataCache || _puxadasDataCache.lottery !== currentLottery) {
+    if (forceRefresh || !_puxadasDataCache || _puxadasDataCache.lottery !== currentLottery) {
       _puxadasDataCache = await api.getPuxadas(null, null, currentLottery);
     }
     const data = _puxadasDataCache;
