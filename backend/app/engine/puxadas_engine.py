@@ -215,33 +215,35 @@ def get_puxadas_analysis(
 
         if target_slot and target_date:
             target_weight = get_slot_order_weight(target_slot)
-            query = f"SELECT * FROM draw_results WHERE {lot_filter} AND draw_date <= ? ORDER BY draw_date DESC"
+            query = f"SELECT * FROM draw_results WHERE {lot_filter} AND draw_date <= ? ORDER BY draw_date DESC, id DESC LIMIT 60"
             cursor.execute(query, lot_params + [target_date])
             candidates = [dict(r) for r in cursor.fetchall()]
 
-            valid_candidates = [
-                d for d in candidates
-                if d["draw_date"] < target_date or (d["draw_date"] == target_date and get_slot_order_weight(d.get("slot")) < target_weight)
-            ]
+            # Se o próprio target_slot já foi apurado nesta data, ele é o sorteio base
+            exact_match = next((d for d in candidates if d["draw_date"] == target_date and str(d.get("slot")).upper() == target_slot.upper()), None)
+            if exact_match:
+                last_draw = exact_match
+            else:
+                valid_candidates = [
+                    d for d in candidates
+                    if d["draw_date"] < target_date or (d["draw_date"] == target_date and get_slot_order_weight(d.get("slot")) < target_weight)
+                ]
 
-            if valid_candidates:
-                valid_candidates.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot")), d.get("id", 0)), reverse=True)
-                last_draw = valid_candidates[0]
+                if valid_candidates:
+                    valid_candidates.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot")), d.get("id", 0)), reverse=True)
+                    last_draw = valid_candidates[0]
 
         if not last_draw:
-            if target_date:
-                cursor.execute(f"SELECT MAX(draw_date) FROM draw_results WHERE {lot_filter} AND draw_date <= ?", lot_params + [target_date])
-            else:
-                cursor.execute(f"SELECT MAX(draw_date) FROM draw_results WHERE {lot_filter}", lot_params)
-            row = cursor.fetchone()
-            latest_date = row[0] if row else None
-
-            if latest_date:
-                cursor.execute(f"SELECT * FROM draw_results WHERE {lot_filter} AND draw_date = ?", lot_params + [latest_date])
-                draws_on_date = [dict(r) for r in cursor.fetchall()]
-                if draws_on_date:
-                    draws_on_date.sort(key=lambda d: (get_slot_order_weight(d.get("slot")), d.get("id", 0)), reverse=True)
-                    last_draw = draws_on_date[0]
+            # Busca os sorteios mais recentes apurados no banco para a banca escolhida
+            cursor.execute(f"SELECT * FROM draw_results WHERE {lot_filter} ORDER BY draw_date DESC, id DESC LIMIT 60", lot_params)
+            recent_rows = [dict(r) for r in cursor.fetchall()]
+            if recent_rows:
+                if target_date:
+                    filtered = [d for d in recent_rows if d["draw_date"] <= target_date]
+                    if filtered:
+                        recent_rows = filtered
+                recent_rows.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot")), d.get("id", 0)), reverse=True)
+                last_draw = recent_rows[0]
 
     if not last_draw:
         default_group = 17  # Macaco
@@ -310,6 +312,11 @@ def get_puxadas_analysis(
             "hundreds": base_proj["hundreds"],
             "thousands": base_proj["thousands"],
             "milhar": prize_1,
+            "dezena": prize_1[-2:] if len(prize_1) >= 2 else prize_1,
+            "centena": prize_1[-3:] if len(prize_1) >= 3 else prize_1,
+            "slot": last_draw_dict.get("slot"),
+            "draw_date": last_draw_dict.get("draw_date"),
+            "prizes": [last_draw_dict.get(f"prize_{i}") for i in range(1, 8)],
             "source_slot": f"{last_draw_dict['slot']} ({last_draw_dict['draw_date']})",
             "lottery": effective_lottery,
             "lottery_name": lot_info["name"]
