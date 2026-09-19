@@ -195,6 +195,7 @@ window.switchScreen = function(screenName, updateHash = true) {
     loadCruzModalContent();
   } else if (screenName === 'puxadas') {
     _puxadasDataCache = null;
+        _predictionCache.clear();
     loadPuxadasModalContent();
   } else if (screenName === 'atrasados') {
     loadAtrasadosModalList();
@@ -1014,18 +1015,39 @@ const btnSyncWebResults = document.getElementById('btn-sync-web-results');
   }
 }
 
-async function loadPrediction() {
+const _predictionCache = new Map();
+
+function getPredictionCacheKey(lottery, date, slot, strategy) {
+  return `${lottery || 'RJ'}_${date || 'today'}_${slot || 'default'}_${strategy || 'hybrid'}`;
+}
+
+async function loadPrediction(forceRefresh = false) {
   if (!api.isLoggedIn()) return;
   const loadingEl = document.getElementById('loading-state');
   const contentEl = document.getElementById('content-state');
-  const dateVal = document.getElementById('target-date')?.value;
-  const slotVal = document.getElementById('target-slot')?.value;
+  const dateVal = document.getElementById('target-date')?.value || '';
+  const slotVal = document.getElementById('target-slot')?.value || '';
+  const cacheKey = getPredictionCacheKey(currentLottery, dateVal, slotVal, currentStrategy);
 
-  if (loadingEl) loadingEl.classList.remove('hidden');
-  if (contentEl) contentEl.classList.add('opacity-40');
+  // 1. Resposta INSTANTÂNEA via Cache (0ms - sem travar a tela)
+  if (!forceRefresh && _predictionCache.has(cacheKey)) {
+    currentPrediction = _predictionCache.get(cacheKey);
+    renderDashboard(currentPrediction);
+    return;
+  }
+
+  // Se ainda não temos dados renderizados na tela, exibe o loading suave
+  const hasRendered = currentPrediction && currentPrediction.top_groups && currentPrediction.top_groups.length > 0;
+  if (!hasRendered && loadingEl) {
+    loadingEl.classList.remove('hidden');
+  }
+  if (contentEl && !hasRendered) {
+    contentEl.classList.add('opacity-40');
+  }
 
   try {
     currentPrediction = await api.getPrediction(dateVal, slotVal, currentStrategy, currentLottery);
+    _predictionCache.set(cacheKey, currentPrediction);
     renderDashboard(currentPrediction);
   } catch (err) {
     if (api.isLoggedIn()) {
