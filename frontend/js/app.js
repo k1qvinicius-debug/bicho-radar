@@ -3445,7 +3445,14 @@ async function initTenantAuth() {
       showToast('Chave de acesso inválida ou suspensa.', 'error');
     }
   } else {
-    await api.checkSession();
+    // Atualiza a interface instantaneamente com os dados salvos no navegador (sem travar a tela na tela de login)
+    updateAuthUI();
+    // Valida a sessão em segundo plano sem piscar login
+    try {
+      await api.checkSession();
+    } catch (e) {
+      console.warn('Verificação de sessão em segundo plano:', e);
+    }
   }
 
   // Verifica se o usuário atual está com teste expirado
@@ -3502,6 +3509,8 @@ function updateAuthUI() {
   const tenant = api.getCurrentTenant();
 
   if (tenant) {
+    document.documentElement.classList.add('is-authenticated');
+
     // Se o teste estiver expirado e não for admin, bloqueia e exibe modal
     if (tenant.role !== 'admin' && (tenant.subscription_status === 'expired' || (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining <= 0))) {
       showTrialExpiredModal();
@@ -3562,6 +3571,7 @@ function updateAuthUI() {
       if (badgeContainer) badgeContainer.innerHTML = trialBadgeHtml;
     }
   } else {
+    document.documentElement.classList.remove('is-authenticated');
     // Não logado: Bloqueia cabeçalho superior e dashboard, exibe apenas a tela inicial limpa de login/cadastro
     if (mainHeader) mainHeader.classList.add('hidden');
     if (appGate) appGate.classList.remove('hidden');
