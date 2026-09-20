@@ -16,6 +16,7 @@ try:
     import psycopg2.extras
     PSYCOPG2_AVAILABLE = True
 except ImportError:
+    psycopg2: Any = None
     PSYCOPG2_AVAILABLE = False
 
 logger = logging.getLogger("bicho_analytics.database")
@@ -135,16 +136,25 @@ class PgCursorWrapper:
         return self
 
     def fetchone(self):
-        row = self._cur.fetchone()
-        return PgRowWrapper(row) if row is not None else None
+        try:
+            row = self._cur.fetchone()
+            return PgRowWrapper(row) if row is not None else None
+        except Exception:
+            return None
 
     def fetchall(self):
-        rows = self._cur.fetchall()
-        return [PgRowWrapper(r) for r in rows]
+        try:
+            rows = self._cur.fetchall()
+            return [PgRowWrapper(r) for r in rows]
+        except Exception:
+            return []
 
     def fetchmany(self, size=None):
-        rows = self._cur.fetchmany(size) if size else self._cur.fetchmany()
-        return [PgRowWrapper(r) for r in rows]
+        try:
+            rows = self._cur.fetchmany(size) if size else self._cur.fetchmany()
+            return [PgRowWrapper(r) for r in rows]
+        except Exception:
+            return []
 
     @property
     def rowcount(self):
@@ -367,11 +377,17 @@ def init_db() -> None:
             """)
 
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email TEXT;")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS phone TEXT;")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS auth_provider TEXT DEFAULT 'key';")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMP;")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_expires_at TIMESTAMP;")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active';")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_type TEXT DEFAULT 'free';")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS registration_ip TEXT;")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS last_ip TEXT;")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS device_id TEXT;")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_tenants_reg_ip ON tenants(registration_ip);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_tenants_device_id ON tenants(device_id);")
 
         else:
             # DDL para SQLite
@@ -478,7 +494,7 @@ def init_db() -> None:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tenants_key ON tenants(tenant_key);")
 
             cursor.execute("PRAGMA table_info(analysis_snapshots)")
-            snap_cols = [col["name"] for col in cursor.fetchall()]
+            snap_cols = [(col[1] if isinstance(col, tuple) else col["name"]) for col in cursor.fetchall()]
             if "tenant_id" not in snap_cols:
                 cursor.execute("ALTER TABLE analysis_snapshots ADD COLUMN tenant_id INTEGER DEFAULT 1")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_tenant ON analysis_snapshots(tenant_id);")
@@ -488,7 +504,7 @@ def init_db() -> None:
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_lottery ON analysis_snapshots(lottery);")
 
             cursor.execute("PRAGMA table_info(draw_results)")
-            draw_cols = [col["name"] for col in cursor.fetchall()]
+            draw_cols = [(col[1] if isinstance(col, tuple) else col["name"]) for col in cursor.fetchall()]
             if "lottery" not in draw_cols:
                 cursor.execute("ALTER TABLE draw_results ADD COLUMN lottery TEXT DEFAULT 'RJ'")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_draws_lottery ON draw_results(lottery);")
@@ -502,9 +518,11 @@ def init_db() -> None:
             """)
 
             cursor.execute("PRAGMA table_info(tenants)")
-            tenant_cols = [col["name"] for col in cursor.fetchall()]
+            tenant_cols = [(col[1] if isinstance(col, tuple) else col["name"]) for col in cursor.fetchall()]
             if "email" not in tenant_cols:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN email TEXT")
+            if "phone" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN phone TEXT")
             if "auth_provider" not in tenant_cols:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN auth_provider TEXT DEFAULT 'key'")
             if "trial_started_at" not in tenant_cols:
@@ -515,19 +533,32 @@ def init_db() -> None:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN subscription_status TEXT DEFAULT 'active'")
             if "plan_type" not in tenant_cols:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN plan_type TEXT DEFAULT 'free'")
+            if "registration_ip" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN registration_ip TEXT")
+            if "last_ip" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN last_ip TEXT")
+            if "device_id" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN device_id TEXT")
 
-        # Garante que a conta Master Admin exista com a chave 0203040 e status ativo
-        cursor.execute("SELECT id FROM tenants WHERE role = 'admin'")
+        # Garante que a conta Master Admin exista com e-mail k1qvinicius@gmail.com, chave 0203040 e status ativo
+        cursor.execute("SELECT id FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com'")
         admin_row = cursor.fetchone()
         if not admin_row:
             cursor.execute("""
-            INSERT INTO tenants (name, tenant_key, role, status, subscription_status, plan_type, notes)
-            VALUES ('K. Vinicius (KVS)', '0203040', 'admin', 'active', 'active', 'lifetime', 'Conta principal de administração do sistema')
+            INSERT INTO tenants (name, email, tenant_key, role, status, subscription_status, plan_type, notes)
+            VALUES ('Vinicius (Master Admin)', 'k1qvinicius@gmail.com', '0203040', 'admin', 'active', 'active', 'lifetime', 'Conta principal de administração do sistema')
             """)
         else:
             cursor.execute("""
-            UPDATE tenants SET tenant_key = '0203040', name = 'K. Vinicius (KVS)', subscription_status = 'active', status = 'active' WHERE role = 'admin'
-            """)
+            UPDATE tenants 
+            SET tenant_key = '0203040', 
+                email = 'k1qvinicius@gmail.com', 
+                name = 'Vinicius (Master Admin)', 
+                role = 'admin',
+                subscription_status = 'active', 
+                status = 'active' 
+            WHERE id = ?
+            """, (admin_row[0],))
 
         # Insere configuração de peso padrão se a tabela estiver vazia
         cursor.execute("SELECT COUNT(*) FROM engine_weights")
