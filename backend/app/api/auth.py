@@ -2,7 +2,7 @@
 Endpoints de Autenticação para Testadores e Administrador Master.
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Dict, Any, Optional
 from ..database import get_db_connection
 from ..models import LoginRequestModel, LoginResponseModel, RegisterRequestModel
@@ -20,14 +20,26 @@ from ..auth import (
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 
+def get_client_ip(request: Request) -> str:
+    """Extrai o IP real do cliente mesmo atrás de proxy reverso (Traefik/Cloudflare/Coolify)."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip()
+    return request.client.host if request.client else ""
+
+
 @router.post("/login", response_model=LoginResponseModel)
-def login(payload: LoginRequestModel):
+def login(payload: LoginRequestModel, request: Request):
     """
     Autentica um usuário via:
     1. Usuário ('admin') e Senha ('0203040') para Administrador Master.
     2. Chave de Acesso única (para testadores convidados ou admin).
     """
     tenant = None
+    ip = get_client_ip(request)
 
     # Caso 1: Login por Usuário/E-mail e Senha (Admin)
     user_val = (payload.username or payload.email or "").strip().lower()
@@ -80,6 +92,18 @@ def login(payload: LoginRequestModel):
             detail="Esta conta está suspensa ou desativada. Fale com o administrador."
         )
 
+    # Atualiza IP e device_id do tenant
+    try:
+        with get_db_connection() as conn:
+            conn.cursor().execute("""
+                UPDATE tenants 
+                SET last_ip = COALESCE(?, last_ip),
+                    device_id = COALESCE(?, device_id)
+                WHERE id = ?
+            """, (ip, payload.device_id, tenant["id"]))
+    except Exception:
+        pass
+
     update_tenant_activity(tenant["id"])
     token = create_token_for_tenant(tenant)
     trial_info = tenant.get("trial_info") or calculate_trial_info(tenant)
@@ -108,14 +132,16 @@ import json
 
 
 @router.post("/google", response_model=LoginResponseModel)
-def login_google(payload: LoginRequestModel):
+def login_google(payload: LoginRequestModel, request: Request):
     """
     Autenticação via Google (Gmail).
-    Cria automaticamente a conta de testador com 7 dias de degustação caso seja o primeiro acesso.
+    Cria automaticamente a conta de testador com 5 dias de degustação caso seja o primeiro acesso.
+    Bloqueia novos testes no mesmo IP ou dispositivo.
     """
     email = payload.email
     name = payload.name or ""
     sub = None
+    ip = get_client_ip(request)
 
     # Se vier credencial JWT do Google Sign-In, decodifica com segurança o payload do token
     if payload.credential:
@@ -136,7 +162,7 @@ def login_google(payload: LoginRequestModel):
         raise HTTPException(status_code=400, detail="E-mail do Google não informado ou inválido.")
 
     from ..auth import get_or_create_google_tenant, calculate_trial_info
-    tenant = get_or_create_google_tenant(email, name, sub)
+    tenant = get_or_create_google_tenant(email, name, sub, ip=ip, device_id=payload.device_id)
     if not tenant:
         raise HTTPException(status_code=500, detail="Falha ao registrar ou localizar conta do Google.")
 
@@ -170,7 +196,7 @@ def login_google(payload: LoginRequestModel):
 
 
 @router.post("/register", response_model=LoginResponseModel)
-def register(payload: RegisterRequestModel):
+def register(payload: RegisterRequestModel, request: Request):
     """
     Cadastra um novo perfil completo de usuário:
     - Nome Completo
@@ -178,11 +204,13 @@ def register(payload: RegisterRequestModel):
     - Telefone / WhatsApp com DDD
     - Senha de Acesso
     Gera automaticamente 5 dias de degustação gratuita e retorna o token de autenticação.
+    Bloqueia novos testes no mesmo IP ou dispositivo.
     """
     email = (payload.email or "").strip().lower()
     name = (payload.name or "").strip()
     phone = (payload.phone or "").strip()
     password = (payload.password or "").strip()
+    ip = get_client_ip(request)
 
     if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="Informe um e-mail ou Gmail válido.")
@@ -196,7 +224,7 @@ def register(payload: RegisterRequestModel):
     if len(password) < 3:
         raise HTTPException(status_code=400, detail="A senha deve conter pelo menos 3 dígitos/caracteres.")
 
-    tenant = register_new_tenant(name=name, email=email, phone=phone, password=password)
+    tenant = register_new_tenant(name=name, email=email, phone=phone, password=password, ip=ip, device_id=payload.device_id)
     if not tenant:
         raise HTTPException(status_code=500, detail="Falha ao cadastrar conta. Tente novamente.")
 
