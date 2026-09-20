@@ -3620,53 +3620,66 @@ function updateAuthUI() {
   const btnHeaderPlans = document.getElementById('btn-header-plans');
   const tenant = api.getCurrentTenant();
 
-  // Garante que o cabeçalho e dashboard estejam sempre visíveis e interativos
-  if (mainHeader) mainHeader.classList.remove('hidden');
-  if (mainContainer) mainContainer.classList.remove('hidden');
-  if (mobBottomNav) mobBottomNav.classList.remove('hidden');
-
-  if (tenant && tenant.role === 'admin') {
+  if (tenant) {
     document.documentElement.classList.add('is-authenticated');
     if (appGate) appGate.classList.add('hidden');
-    if (navAdminLink) navAdminLink.classList.remove('hidden');
-    if (mobAdminLink) mobAdminLink.classList.remove('hidden');
-    if (drawerAdminLink) drawerAdminLink.classList.remove('hidden');
-    if (drawerUserLabel) drawerUserLabel.textContent = 'K. Vinicius (Master Vitalício)';
-    if (btnHeaderPlans) btnHeaderPlans.classList.add('hidden');
-    if (badgeContainer) {
-      badgeContainer.innerHTML = `
-        <div class="flex items-center gap-2 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/40 text-amber-300 text-xs px-3 py-1 rounded-full font-bold shadow-md shadow-amber-500/10">
-          <span>👑</span>
-          <span class="font-black tracking-wide">K. Vinicius</span>
-          <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 shadow-sm">Acesso Vitalício</span>
-          <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair">✕</button>
-        </div>
-      `;
+    if (mainHeader) mainHeader.classList.remove('hidden');
+    if (mainContainer) mainContainer.classList.remove('hidden');
+    if (mobBottomNav) mobBottomNav.classList.remove('hidden');
+
+    if (tenant.role === 'admin') {
+      if (navAdminLink) navAdminLink.classList.remove('hidden');
+      if (mobAdminLink) mobAdminLink.classList.remove('hidden');
+      if (drawerAdminLink) drawerAdminLink.classList.remove('hidden');
+      if (drawerUserLabel) drawerUserLabel.textContent = 'K. Vinicius (Master Vitalício)';
+      if (btnHeaderPlans) btnHeaderPlans.classList.add('hidden');
+      if (badgeContainer) {
+        badgeContainer.innerHTML = `
+          <div class="flex items-center gap-2 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/40 text-amber-300 text-xs px-3 py-1 rounded-full font-bold shadow-md shadow-amber-500/10">
+            <span>👑</span>
+            <span class="font-black tracking-wide">K. Vinicius</span>
+            <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 shadow-sm">Acesso Vitalício</span>
+            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair">✕</button>
+          </div>
+        `;
+      }
+    } else {
+      // Modo Testador / Visitante
+      if (navAdminLink) navAdminLink.classList.add('hidden');
+      if (mobAdminLink) mobAdminLink.classList.add('hidden');
+      if (drawerAdminLink) drawerAdminLink.classList.add('hidden');
+      if (btnHeaderPlans) btnHeaderPlans.classList.remove('hidden');
+
+      const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
+        ? tenant.trial_info.days_remaining
+        : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 5);
+
+      if (drawerUserLabel) {
+        drawerUserLabel.textContent = tenant.name || 'Testador Convidado';
+      }
+
+      if (badgeContainer) {
+        badgeContainer.innerHTML = `
+          <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded-full shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="font-medium">${days}d de teste</span>
+            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Desconectar">✕</button>
+          </div>
+        `;
+      }
     }
   } else {
-    // Modo Testador / Visitante
+    // Não autenticado: exibe tela de login/cadastro limpa
+    document.documentElement.classList.remove('is-authenticated');
+    if (mainHeader) mainHeader.classList.add('hidden');
+    if (appGate) appGate.classList.remove('hidden');
+    if (mainContainer) mainContainer.classList.add('hidden');
+    if (mobBottomNav) mobBottomNav.classList.add('hidden');
     if (navAdminLink) navAdminLink.classList.add('hidden');
     if (mobAdminLink) mobAdminLink.classList.add('hidden');
     if (drawerAdminLink) drawerAdminLink.classList.add('hidden');
-    if (btnHeaderPlans) btnHeaderPlans.classList.remove('hidden');
-
-    const days = (tenant && tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
-      ? tenant.trial_info.days_remaining
-      : (tenant && tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 5);
-
-    if (drawerUserLabel) {
-      drawerUserLabel.textContent = (tenant && tenant.name) ? tenant.name : 'Testador Convidado';
-    }
-
-    if (badgeContainer) {
-      badgeContainer.innerHTML = `
-        <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded-full shadow-sm">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="font-medium">${days}d de teste</span>
-          <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Desconectar">✕</button>
-        </div>
-      `;
-    }
+    if (drawerUserLabel) drawerUserLabel.textContent = 'Não Conectado';
+    if (badgeContainer) badgeContainer.innerHTML = '';
   }
 
   updateHomeScreenData();
@@ -4990,5 +5003,30 @@ window.loginAsAdminQuick = async function() {
     window.location.reload();
   } catch (err) {
     alert('Senha incorreta ou erro ao autenticar: ' + (err.message || 'Tente novamente.'));
+  }
+};
+
+
+// Atalho secreto do Administrador: 3 cliques rápidos no logo
+let _logoClicks = 0;
+let _logoClickTimer = null;
+window.handleSecretLogoClick = function() {
+  _logoClicks++;
+  clearTimeout(_logoClickTimer);
+  if (_logoClicks >= 3) {
+    _logoClicks = 0;
+    const pass = prompt('Acesso Administrativo Master:\nDigite sua senha:');
+    if (!pass || !pass.trim()) return;
+    api.login({ username: 'admin', password: pass.trim(), key: pass.trim() })
+      .then(res => {
+        showToast('👑 Bem-vindo, Administrador Master K. Vinicius!', 'success');
+        updateAuthUI();
+        window.location.reload();
+      })
+      .catch(err => {
+        alert('Acesso negado: ' + (err.message || 'Senha incorreta.'));
+      });
+  } else {
+    _logoClickTimer = setTimeout(() => { _logoClicks = 0; }, 1500);
   }
 };
