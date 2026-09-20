@@ -56,8 +56,8 @@ def get_tenant_by_key(key: str) -> Optional[Dict[str, Any]]:
         if row:
             return dict(row)
         # Fallback de compatibilidade para a chave master do administrador
-        if key.strip() in ("0203040", "admin123", "admin", "adminmaster"):
-            cursor.execute("SELECT * FROM tenants WHERE role = 'admin' LIMIT 1")
+        if key.strip() in ("0203040", "admin123", "admin", "adminmaster") or key.strip().lower() == "k1qvinicius@gmail.com":
+            cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com' LIMIT 1")
             row = cursor.fetchone()
             if row:
                 return dict(row)
@@ -132,8 +132,8 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "status": "trial",
             "is_expired": False,
-            "days_remaining": 7,
-            "badge": "⏳ Teste Grátis • 7 dias"
+            "days_remaining": 5,
+            "badge": "⏳ Teste Grátis • 5 dias"
         }
 
     try:
@@ -168,27 +168,54 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "status": "trial",
             "is_expired": False,
-            "days_remaining": 7,
+            "days_remaining": 5,
             "badge": "⏳ Teste Grátis"
         }
 
 
 def get_or_create_google_tenant(email: str, name: str, sub: Optional[str] = None) -> Dict[str, Any]:
     """
-    Localiza ou cria uma conta de testador vinculada ao e-mail do Google (Gmail)
-    com período de degustação de exatamente 7 dias corridos.
+    Localiza ou cria uma conta de testador vinculada ao e-mail do Google (Gmail).
+    Se o e-mail for k1qvinicius@gmail.com, garante direitos de Administrador Master.
     """
     email_clean = email.strip().lower()
     name_clean = name.strip() or email_clean.split("@")[0]
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
+
+        # Reconhece automaticamente o e-mail do Administrador Master Vinicius
+        if email_clean == "k1qvinicius@gmail.com":
+            cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com'")
+            row = cursor.fetchone()
+            if row:
+                tenant = dict(row)
+                cursor.execute("""
+                    UPDATE tenants 
+                    SET email = 'k1qvinicius@gmail.com', name = 'Vinicius (Master Admin)', role = 'admin',
+                        tenant_key = '0203040', status = 'active', subscription_status = 'active', plan_type = 'lifetime',
+                        last_active_at = ?
+                    WHERE id = ?
+                """, (now_str, tenant["id"]))
+                cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant["id"],))
+                return dict(cursor.fetchone())
+            else:
+                cursor.execute("""
+                    INSERT INTO tenants (
+                        name, email, tenant_key, role, status,
+                        auth_provider, subscription_status, plan_type, notes, created_at, last_active_at
+                    ) VALUES ('Vinicius (Master Admin)', 'k1qvinicius@gmail.com', '0203040', 'admin', 'active',
+                              'google', 'active', 'lifetime', 'Administrador Master Vinicius', ?, ?)
+                """, (now_str, now_str))
+                cursor.execute("SELECT * FROM tenants WHERE LOWER(email) = 'k1qvinicius@gmail.com'")
+                return dict(cursor.fetchone())
+
         cursor.execute("SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ? OR tenant_key = ?", (email_clean, email_clean))
         row = cursor.fetchone()
 
-        now_str = time.strftime("%Y-%m-%d %H:%M:%S")
-        # 7 dias a partir de agora: 7 * 86400 segundos
-        trial_expire_ts = time.time() + (7 * 86400)
+        # 5 dias a partir de agora: 5 * 86400 segundos
+        trial_expire_ts = time.time() + (5 * 86400)
         trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
 
         if row:
@@ -196,7 +223,7 @@ def get_or_create_google_tenant(email: str, name: str, sub: Optional[str] = None
             cursor.execute("UPDATE tenants SET last_active_at = ? WHERE id = ?", (now_str, tenant["id"]))
             return tenant
 
-        # Se não existe, cria um novo tenant com 7 dias de teste
+        # Se não existe, cria um novo tenant com 5 dias de teste
         key = generate_clean_key("usr")
         is_pg = hasattr(conn, "_conn")
         if is_pg:
@@ -205,7 +232,7 @@ def get_or_create_google_tenant(email: str, name: str, sub: Optional[str] = None
                 name, email, tenant_key, role, status,
                 auth_provider, trial_started_at, trial_expires_at,
                 subscription_status, plan_type, notes, created_at, last_active_at
-            ) VALUES (?, ?, ?, 'tester', 'active', 'google', ?, ?, 'trial', 'free', 'Cadastro via Google (7 dias grátis)', ?, ?)
+            ) VALUES (?, ?, ?, 'tester', 'active', 'google', ?, ?, 'trial', 'free', 'Cadastro via Google (5 dias grátis)', ?, ?)
             """, (name_clean, email_clean, key, now_str, trial_expire_str, now_str, now_str))
         else:
             cursor.execute("""
@@ -213,10 +240,66 @@ def get_or_create_google_tenant(email: str, name: str, sub: Optional[str] = None
                 name, email, tenant_key, role, status,
                 auth_provider, trial_started_at, trial_expires_at,
                 subscription_status, plan_type, notes, created_at, last_active_at
-            ) VALUES (?, ?, ?, 'tester', 'active', 'google', ?, ?, 'trial', 'free', 'Cadastro via Google (7 dias grátis)', ?, ?)
+            ) VALUES (?, ?, ?, 'tester', 'active', 'google', ?, ?, 'trial', 'free', 'Cadastro via Google (5 dias grátis)', ?, ?)
             """, (name_clean, email_clean, key, now_str, trial_expire_str, now_str, now_str))
 
         cursor.execute("SELECT * FROM tenants WHERE tenant_key = ?", (key,))
+        new_row = cursor.fetchone()
+        return dict(new_row) if new_row else {}
+
+
+def register_new_tenant(name: str, email: str, phone: Optional[str], password: str) -> Dict[str, Any]:
+    """
+    Cria ou atualiza um novo perfil de usuário completo (Nome, E-mail, Telefone, Senha).
+    Garante 5 dias de degustação gratuita, status ativo e role 'tester'.
+    """
+    email_clean = (email or "").strip().lower()
+    name_clean = (name or "").strip() or (email_clean.split("@")[0] if "@" in email_clean else "Usuário")
+    phone_clean = (phone or "").strip()
+    password_clean = (password or "").strip()
+
+    if not password_clean:
+        password_clean = generate_clean_key("usr")
+
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    trial_expire_ts = time.time() + (5 * 86400)
+    trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        # Verifica se já existe por email
+        cursor.execute("SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ?", (email_clean,))
+        row = cursor.fetchone()
+
+        if row:
+            tenant = dict(row)
+            # Atualiza nome, telefone, senha e atividade se fornecidos
+            cursor.execute("""
+                UPDATE tenants 
+                SET name = ?, phone = ?, tenant_key = ?, last_active_at = ?
+                WHERE id = ?
+            """, (name_clean, phone_clean or tenant.get("phone"), password_clean, now_str, tenant["id"]))
+            cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant["id"],))
+            return dict(cursor.fetchone())
+
+        # Novo cadastro: cria tenant
+        # Verifica se a senha já está sendo usada como chave única por outra conta
+        cursor.execute("SELECT id FROM tenants WHERE tenant_key = ?", (password_clean,))
+        if cursor.fetchone():
+            key = f"{password_clean}-{generate_clean_key()[:4]}"
+        else:
+            key = password_clean
+
+        cursor.execute("""
+            INSERT INTO tenants (
+                name, email, phone, tenant_key, role, status,
+                auth_provider, trial_started_at, trial_expires_at,
+                subscription_status, plan_type, notes, created_at, last_active_at
+            ) VALUES (?, ?, ?, ?, 'tester', 'active', 'cadastro', ?, ?, 'trial', 'free', 'Cadastro de Perfil Completo (5 dias grátis)', ?, ?)
+        """, (name_clean, email_clean, phone_clean, key, now_str, trial_expire_str, now_str, now_str))
+
+        cursor.execute("SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ?", (email_clean,))
         new_row = cursor.fetchone()
         return dict(new_row) if new_row else {}
 
