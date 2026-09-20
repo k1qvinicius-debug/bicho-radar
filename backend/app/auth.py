@@ -206,7 +206,7 @@ def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email
             """, (device_clean, email_clean))
             row = cursor.fetchone()
             if row:
-                return "O período de degustação gratuita de 5 dias já foi utilizado neste dispositivo. Para continuar utilizando as ferramentas e palpites, escolha um dos nossos Planos VIP."
+                return "O período de teste grátis de 5 dias já foi utilizado neste dispositivo. Para continuar utilizando as ferramentas e palpites, escolha um dos nossos Planos VIP."
 
         # 2. Verifica por IP de Registro ou Último IP (da mesma rede)
         if ip_clean and ip_clean not in ("127.0.0.1", "::1", "localhost"):
@@ -220,7 +220,7 @@ def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email
             """, (ip_clean, ip_clean, email_clean))
             row = cursor.fetchone()
             if row:
-                return "O período de degustação gratuita de 5 dias já foi utilizado nesta rede/conexão de internet. Para continuar utilizando, escolha um dos nossos Planos VIP."
+                return "O período de teste grátis de 5 dias já foi utilizado nesta rede/conexão de internet. Para continuar utilizando, escolha um dos nossos Planos VIP."
 
     return None
 
@@ -235,7 +235,7 @@ def get_or_create_google_tenant(
     """
     Localiza ou cria uma conta de testador vinculada ao e-mail do Google (Gmail).
     Se o e-mail for k1qvinicius@gmail.com, garante direitos de Administrador Master.
-    Bloqueia novos testes caso o IP ou dispositivo já tenham sido usados para degustação.
+    Bloqueia novos testes caso o IP ou dispositivo já tenham sido usados para teste.
     """
     email_clean = email.strip().lower()
     name_clean = name.strip() or email_clean.split("@")[0]
@@ -289,7 +289,7 @@ def get_or_create_google_tenant(
             """, (now_str, ip, device_id, tenant["id"]))
             return tenant
 
-        # NOVO CADASTRO: Verifica se IP ou Dispositivo já usaram degustação grátis
+        # NOVO CADASTRO: Verifica se IP ou Dispositivo já usaram teste grátis
         abuse_err = check_trial_abuse(ip, device_id, email_clean)
         if abuse_err:
             raise HTTPException(status_code=403, detail=abuse_err)
@@ -320,7 +320,7 @@ def register_new_tenant(
 ) -> Dict[str, Any]:
     """
     Cria ou atualiza um novo perfil de usuário completo (Nome, E-mail, Telefone, Senha).
-    Garante 5 dias de degustação gratuita, status ativo e role 'tester'.
+    Garante 5 dias de teste grátis, status ativo e role 'tester'.
     Bloqueia criação caso o IP ou dispositivo já tenham utilizado teste anterior.
     """
     email_clean = (email or "").strip().lower()
@@ -355,7 +355,7 @@ def register_new_tenant(
             cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant["id"],))
             return dict(cursor.fetchone())
 
-        # NOVO CADASTRO: Verifica se IP ou Dispositivo já usaram degustação grátis
+        # NOVO CADASTRO: Verifica se IP ou Dispositivo já usaram teste grátis
         abuse_err = check_trial_abuse(ip, device_id, email_clean)
         if abuse_err:
             raise HTTPException(status_code=403, detail=abuse_err)
@@ -428,7 +428,7 @@ def require_tenant(
             detail="Esta conta de acesso está suspensa ou inativa. Contate o administrador."
         )
 
-    # Validação do período de degustação / assinatura
+    # Validação do período de teste / assinatura
     trial_info = tenant.get("trial_info") or calculate_trial_info(tenant)
     if trial_info["is_expired"] and tenant.get("role") != "admin":
         # Se acabou de expirar, atualiza status no banco
