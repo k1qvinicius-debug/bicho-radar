@@ -278,10 +278,10 @@ function updateHomeScreenData() {
       if (tenant.role === 'admin') {
         userNameEl.innerHTML = `K. Vinicius (KVS) <span class="ml-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold font-sans align-middle shadow-sm">👑 Master</span>`;
       } else {
-        userNameEl.textContent = tenant.name || 'Testador Convidado';
+        userNameEl.innerHTML = `${tenant.name || 'Testador'} <button type="button" onclick="loginAsAdminQuick()" class="ml-2 text-xs font-normal text-amber-400 hover:text-amber-300 underline cursor-pointer" title="Entrar como Administrador Master">É o Administrador? Clique aqui</button>`;
       }
     } else {
-      userNameEl.textContent = 'Convidado';
+      userNameEl.innerHTML = `Convidado <button type="button" onclick="loginAsAdminQuick()" class="ml-2 text-xs font-normal text-amber-400 hover:text-amber-300 underline cursor-pointer" title="Entrar como Administrador Master">Entrar como Admin</button>`;
     }
   }
 
@@ -3663,10 +3663,15 @@ function updateAuthUI() {
       const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined) ? tenant.trial_info.days_remaining : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 5);
       if (badgeContainer) {
         badgeContainer.innerHTML = `
-          <div class="flex items-center gap-2 bg-slate-800/90 border border-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full shadow-sm">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="font-medium">${days}d de teste</span>
-            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair / Entrar como Admin">✕</button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="loginAsAdminQuick()" class="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 text-xs px-2.5 py-1 rounded-full font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer" title="Acessar painel do Administrador">
+              <span>👑</span> <span>Entrar como Admin</span>
+            </button>
+            <div class="flex items-center gap-2 bg-slate-800/90 border border-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full shadow-sm">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="font-medium">${days}d de teste</span>
+              <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair da conta">✕</button>
+            </div>
           </div>
         `;
       }
@@ -4968,4 +4973,23 @@ window.subscribePlan = async function(planKey) {
   const waUrl = `https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`;
 
   window.open(waUrl, '_blank');
+};
+
+window.loginAsAdminQuick = async function() {
+  const pass = prompt('Acesso Administrativo Master:\nDigite sua senha de administrador (0203040):');
+  if (!pass || !pass.trim()) return;
+  try {
+    if (typeof showToast === 'function') showToast('Autenticando como Administrador Master...', 'info');
+    const res = await api.login({
+      username: 'admin',
+      email: 'k1qvinicius@gmail.com',
+      password: pass.trim(),
+      key: pass.trim()
+    });
+    if (typeof showToast === 'function') showToast('👑 Bem-vindo, Administrador Master K. Vinicius!', 'success');
+    updateAuthUI();
+    window.location.reload();
+  } catch (err) {
+    alert('Senha incorreta ou acesso negado: ' + (err.message || 'Tente novamente.'));
+  }
 };
