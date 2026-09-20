@@ -108,7 +108,7 @@ window.addEventListener('hashchange', () => {
    Telas: 'home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados'
    ========================================================================== */
 window.switchScreen = function(screenName, updateHash = true) {
-  const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas'];
+  const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master'];
   if (!screens.includes(screenName)) screenName = 'home';
 
   // Oculta todas as telas e exibe a selecionada
@@ -126,7 +126,7 @@ window.switchScreen = function(screenName, updateHash = true) {
   // Oculta a barra de loterias na tela da Cruz do Dia e no Início
   const globalLotteryBar = document.getElementById('global-lottery-bar-container');
   if (globalLotteryBar) {
-    if (screenName === 'cruz' || screenName === 'home' || screenName === 'milhares-atrasadas') {
+    if (screenName === 'cruz' || screenName === 'home' || screenName === 'milhares-atrasadas' || screenName === 'centena-master') {
       globalLotteryBar.classList.add('hidden');
     } else {
       globalLotteryBar.classList.remove('hidden');
@@ -191,7 +191,9 @@ window.switchScreen = function(screenName, updateHash = true) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   // Dispara carregamentos sob demanda se necessário
-  if (screenName === 'cruz') {
+  if (screenName === 'centena-master') {
+    loadCentenaMasterContent();
+  } else if (screenName === 'cruz') {
     loadCruzModalContent();
   } else if (screenName === 'puxadas') {
     _puxadasDataCache = null;
@@ -830,6 +832,9 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
   if (screenName === 'home') {
     const homeBtn = document.getElementById('sidebar-btn-home');
     if (homeBtn) homeBtn.classList.add('sidebar-item-active');
+  } else if (screenName === 'centena-master') {
+    const cmBtn = document.getElementById('sidebar-btn-centena-master');
+    if (cmBtn) cmBtn.classList.add('sidebar-item-active');
   } else if (screenName === 'cruz') {
     const cruzBtn = document.getElementById('sidebar-btn-cruz');
     if (cruzBtn) cruzBtn.classList.add('sidebar-item-active');
@@ -845,6 +850,7 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
   const screenTitles = {
     'home': 'Visão Geral',
     'palpites': 'Palpites do Motor',
+    'centena-master': 'Centena Master',
     'cruz': 'Cruz do Dia',
     'puxadas': 'Radar de Puxadas',
     'atrasados': 'Mais Atrasados',
@@ -4520,3 +4526,289 @@ function renderTransitionMatrixSection(transitionData) {
     </div>
   `;
 }
+
+
+// ===================================================================
+// CENTENA MASTER (ALGORITMO CHAVE 24)
+// ===================================================================
+window._currentCentenaMasterData = null;
+
+window.loadCentenaMasterContent = async function(forceDate = null) {
+  const cmDateInput = document.getElementById('centena-master-target-date');
+  const mainDateInput = document.getElementById('target-date');
+
+  let dateVal = forceDate;
+  if (!dateVal && cmDateInput && cmDateInput.value) {
+    dateVal = cmDateInput.value;
+  }
+  if (!dateVal && mainDateInput && mainDateInput.value) {
+    dateVal = mainDateInput.value;
+  }
+  if (!dateVal) {
+    dateVal = new Date().toISOString().split('T')[0];
+  }
+
+  if (cmDateInput && cmDateInput.value !== dateVal) {
+    cmDateInput.value = dateVal;
+  }
+
+  const stepsGrid = document.getElementById('centena-master-steps-grid');
+  const cardsGrid = document.getElementById('centena-master-cards-grid');
+  const groupsContainer = document.getElementById('centena-master-groups-container');
+  const tensContainer = document.getElementById('centena-master-tens-container');
+  const badgeEl = document.getElementById('centena-master-summary-badge');
+  const hitsCountEl = document.getElementById('centena-master-hits-count');
+
+  if (cardsGrid) {
+    cardsGrid.innerHTML = `
+      <div class="col-span-full py-12 flex flex-col items-center justify-center text-center space-y-3">
+        <div class="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-xs text-slate-400 font-medium">Calculando Centena Master pela Chave 24...</p>
+      </div>`;
+  }
+
+  try {
+    const lot = currentLottery || 'RJ';
+    const data = await api.getCentenaMaster(dateVal, lot);
+    window._currentCentenaMasterData = data;
+
+    if (badgeEl) {
+      badgeEl.textContent = `Dia ${data.day} • Chave ${data.key}`;
+    }
+
+    if (hitsCountEl) {
+      if (data.total_hits_today > 0) {
+        hitsCountEl.innerHTML = `<span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-xs animate-pulse">🎯 ${data.total_hits_today} acerto(s) apurado(s) hoje!</span>`;
+      } else {
+        hitsCountEl.textContent = `Conferido em tempo real com ${data.lottery}`;
+      }
+    }
+
+    // 1. Renderiza os 4 passos da escada
+    if (stepsGrid && data.steps) {
+      stepsGrid.innerHTML = data.steps.map(s => `
+        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-black uppercase tracking-wider text-amber-400">Passo ${s.step}</span>
+            <span class="text-[9px] text-slate-400">${s.label}</span>
+          </div>
+          <div class="text-[11px] text-slate-300 font-mono space-y-0.5">
+            <div>${s.left_calc}</div>
+            <div>${s.right_calc}</div>
+          </div>
+          <div class="pt-1 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[9px] text-slate-500 uppercase font-bold">Linha ${s.step}:</span>
+            <span class="text-xs font-black font-mono text-amber-300 px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/20">${s.result}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 2. Renderiza os 6 cards de centenas
+    if (cardsGrid && data.centenas) {
+      cardsGrid.innerHTML = data.centenas.map(c => {
+        const hitBadge = c.is_hit ? `
+          <div class="mb-2 p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black flex items-center gap-1.5 animate-pulse">
+            <span>🎯</span>
+            <span>BINGO no ${c.hits[0].prize}º Prêmio (${c.hits[0].slot}: ${c.hits[0].milhar})</span>
+          </div>` : '';
+
+        const cardBorder = c.is_hit 
+          ? 'border-emerald-500 shadow-lg shadow-emerald-500/20 bg-slate-900/90' 
+          : 'border-slate-800 hover:border-amber-500/50 bg-slate-900/70';
+
+        const invertedPills = (c.inverted || []).slice(0, 5).map(inv => 
+          `<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] font-mono">${inv}</span>`
+        ).join(' ');
+
+        return `
+          <div class="card-glass p-3.5 rounded-xl border ${cardBorder} transition-all duration-300 flex flex-col justify-between space-y-3 relative overflow-hidden group">
+            <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-amber-500/5 rounded-full blur-xl group-hover:bg-amber-500/10 transition-all"></div>
+            <div>
+              ${hitBadge}
+              <div class="flex items-start justify-between">
+                <div>
+                  <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Centena ${c.index}</span>
+                  <div class="text-3xl font-black font-mono text-amber-300 tracking-wider group-hover:scale-105 transition-transform origin-left">
+                    ${c.centena}
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-2xl">${c.emoji || '❓'}</div>
+                  <div class="text-[11px] font-bold text-slate-200">${c.animal}</div>
+                  <div class="text-[10px] font-bold text-amber-400">Grupo ${String(c.group).padStart(2, '0')}</div>
+                </div>
+              </div>
+
+              <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span class="text-slate-400">Dezena da Centena:</span>
+                <span class="font-mono font-bold text-slate-200 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">${c.ten}</span>
+              </div>
+
+              <div class="mt-2 flex flex-col space-y-1">
+                <span class="text-[10px] text-slate-500 font-bold uppercase">Invertidas sugeridas:</span>
+                <div class="flex flex-wrap gap-1">
+                  ${invertedPills}
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800/80">
+              <button type="button" onclick="copyCentena('${c.centena}', this)"
+                class="w-full py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer">
+                <span>📋</span> <span>Copiar Centena ${c.centena}</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 3. Renderiza Terno de Grupo e Passes
+    if (groupsContainer && data.games) {
+      const ternoHtml = (data.games.terno_grupo || []).map(g => `
+        <span class="px-2 py-1 rounded-lg bg-indigo-950/60 border border-indigo-800/60 text-indigo-300 text-xs font-bold flex items-center gap-1">
+          <span>${g.emoji}</span>
+          <span>${g.animal} (${String(g.group).padStart(2, '0')})</span>
+        </span>
+      `).join(' ');
+
+      const duquesHtml = (data.games.duques_grupo || []).map(d => `
+        <div class="px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center justify-between text-xs">
+          <span class="text-slate-300 font-medium">${d.animals}</span>
+          <span>${d.emojis}</span>
+        </div>
+      `).join('');
+
+      groupsContainer.innerHTML = `
+        <div class="space-y-1.5">
+          <span class="text-[11px] font-bold text-slate-400 uppercase">Terno de Grupo Fechado:</span>
+          <div class="flex flex-wrap gap-1.5">
+            ${ternoHtml || '<span class="text-xs text-slate-500">Nenhum grupo disponível</span>'}
+          </div>
+        </div>
+        <div class="space-y-1 pt-1.5">
+          <span class="text-[11px] font-bold text-slate-400 uppercase">Passes / Duques de Grupo:</span>
+          <div class="space-y-1">
+            ${duquesHtml || '<span class="text-xs text-slate-500">Nenhum duque disponível</span>'}
+          </div>
+        </div>
+      `;
+    }
+
+    // 4. Renderiza Terno e Duques de Dezenas
+    if (tensContainer && data.games) {
+      const duquesDezHtml = (data.games.duques_dezenas || []).map(d => `
+        <span class="px-2 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60 font-mono font-bold text-emerald-300 text-xs">${d}</span>
+      `).join(' ');
+
+      tensContainer.innerHTML = `
+        <div class="space-y-1.5">
+          <span class="text-[11px] font-bold text-slate-400 uppercase">Terno de Dezenas:</span>
+          <div class="p-2 rounded-lg bg-emerald-950/60 border border-emerald-800/60 font-mono font-black text-emerald-300 text-sm">
+            ${data.games.terno_dezenas || 'Nenhum terno disponível'}
+          </div>
+        </div>
+        <div class="space-y-1.5 pt-1.5">
+          <span class="text-[11px] font-bold text-slate-400 uppercase">Duques de Dezenas Combinados:</span>
+          <div class="flex flex-wrap gap-1.5">
+            ${duquesDezHtml || '<span class="text-xs text-slate-500">Nenhum duque disponível</span>'}
+          </div>
+        </div>
+      `;
+    }
+
+  } catch (err) {
+    console.error('Erro ao carregar Centena Master:', err);
+    if (cardsGrid) {
+      cardsGrid.innerHTML = `
+        <div class="col-span-full p-4 rounded-xl bg-red-950/30 border border-red-500/30 text-center text-red-300 text-xs">
+          Erro ao carregar dados do Centena Master. Tente novamente em instantes.
+        </div>`;
+    }
+  }
+};
+
+window.changeCentenaMasterDate = function(val) {
+  if (typeof loadCentenaMasterContent === 'function') {
+    loadCentenaMasterContent(val);
+  }
+};
+
+window.setCentenaMasterDateYesterday = function() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const yesterday = d.toISOString().split('T')[0];
+  const input = document.getElementById('centena-master-target-date');
+  if (input) input.value = yesterday;
+  if (typeof loadCentenaMasterContent === 'function') {
+    loadCentenaMasterContent(yesterday);
+  }
+};
+
+window.setCentenaMasterDateToday = function() {
+  const today = new Date().toISOString().split('T')[0];
+  const input = document.getElementById('centena-master-target-date');
+  if (input) input.value = today;
+  if (typeof loadCentenaMasterContent === 'function') {
+    loadCentenaMasterContent(today);
+  }
+};
+
+window.setCentenaMasterDateTomorrow = function() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const tomorrow = d.toISOString().split('T')[0];
+  const input = document.getElementById('centena-master-target-date');
+  if (input) input.value = tomorrow;
+  if (typeof loadCentenaMasterContent === 'function') {
+    loadCentenaMasterContent(tomorrow);
+  }
+};
+
+window.copyCentena = function(val, btn) {
+  navigator.clipboard.writeText(val).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<span>✅</span> <span>Copiada!</span>';
+    btn.classList.add('bg-emerald-600', 'text-white');
+    setTimeout(() => {
+      btn.innerHTML = orig;
+      btn.classList.remove('bg-emerald-600', 'text-white');
+    }, 1800);
+  }).catch(() => {
+    alert(`Centena: ${val}`);
+  });
+};
+
+window.copyAllCentenaMaster = function(btn) {
+  if (!window._currentCentenaMasterData) return;
+  const d = window._currentCentenaMasterData;
+
+  const centenasList = (d.centenas || []).map(c => 
+    `${c.index}️⃣ ${c.centena} (${c.animal} - G${String(c.group).padStart(2, '0')})`
+  ).join('\n');
+
+  const ternos = (d.games.terno_grupo || []).map(g => 
+    `${String(g.group).padStart(2, '0')} (${g.animal})`
+  ).join(' - ');
+
+  const duques = (d.games.duques_grupo || []).map(p => 
+    `• ${p.animals}`
+  ).join('\n');
+
+  const text = `🎯 *CENTENA MASTER - CHAVE 24* 🎯\n📅 Data: ${d.target_date} | Loteria: ${d.lottery}\n\n🪙 *6 CENTENAS DE OURO:*\n${centenasList}\n\n👑 *TERNO DE GRUPO:*\n${ternos}\n\n🤝 *DUQUES DE GRUPO (PASSE):*\n${duques}\n\n🔢 *DEZENAS FORTES:*\nTerno: ${d.games.terno_dezenas || ''}\nDuques: ${(d.games.duques_dezenas || []).join(' | ')}`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span>✅</span> <span>Palpites Copiados!</span>';
+      btn.classList.add('bg-emerald-600', 'text-white');
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.classList.remove('bg-emerald-600', 'text-white');
+      }, 2000);
+    }
+  }).catch(() => {
+    alert('Erro ao copiar palpites.');
+  });
+};
