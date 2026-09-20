@@ -3640,47 +3640,21 @@ function updateAuthUI() {
       if (navAdminLink) navAdminLink.classList.remove('hidden');
       if (mobAdminLink) mobAdminLink.classList.remove('hidden');
       if (drawerAdminLink) drawerAdminLink.classList.remove('hidden');
-      if (drawerUserLabel) drawerUserLabel.textContent = 'K. Vinicius (Master)';
+      if (drawerUserLabel) drawerUserLabel.textContent = 'K. Vinicius (Master Vitalício)';
+      const btnHeaderPlans = document.getElementById('btn-header-plans');
+      if (btnHeaderPlans) btnHeaderPlans.classList.add('hidden');
       if (badgeContainer) {
         badgeContainer.innerHTML = `
-          <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">
+          <div class="flex items-center gap-2 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/40 text-amber-300 text-xs px-3 py-1 rounded-full font-bold shadow-md shadow-amber-500/10">
             <span>👑</span>
-            <span class="inline">K. Vinicius</span>
-            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Desconectar">✕</button>
-          </div>
-        `;
-      }
-    } else {
-      if (navAdminLink) navAdminLink.classList.add('hidden');
-      if (mobAdminLink) mobAdminLink.classList.add('hidden');
-      if (drawerAdminLink) drawerAdminLink.classList.add('hidden');
-
-      const displayName = tenant.name || tenant.email || 'Testador';
-      if (drawerUserLabel) drawerUserLabel.textContent = displayName;
-
-      // Badge de teste ou assinante
-      let trialBadgeHtml = '';
-      if (tenant.subscription_status === 'active' && tenant.plan_type === 'subscriber') {
-        trialBadgeHtml = `
-          <div class="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">
-            <span>⭐</span>
-            <span class="truncate max-w-[100px]" title="${displayName}">${displayName}</span>
-            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair">✕</button>
-          </div>
-        `;
-      } else {
-        const daysLeft = tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 7;
-        trialBadgeHtml = `
-          <div class="flex items-center gap-1.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs px-2.5 py-1 rounded-full font-semibold shadow-sm">
-            <span>⏳</span>
-            <span class="truncate max-w-[90px]" title="${displayName}">${displayName}</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/30 text-indigo-200 border border-indigo-500/40">PRO</span>
+            <span class="font-black tracking-wide">K. Vinicius</span>
+            <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 shadow-sm">Acesso Vitalício</span>
             <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair">✕</button>
           </div>
         `;
       }
-
-      if (badgeContainer) badgeContainer.innerHTML = trialBadgeHtml;
+    }
+if (badgeContainer) badgeContainer.innerHTML = trialBadgeHtml;
     }
   } else {
     document.documentElement.classList.remove('is-authenticated');
