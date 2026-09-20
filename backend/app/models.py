@@ -272,9 +272,14 @@ class TenantUpdateModel(BaseModel):
 
 class SystemSettingsModel(BaseModel):
     support_whatsapp: Optional[str] = ""
-    trial_days: Optional[int] = 7
+    trial_days: Optional[int] = 5
     app_name: Optional[str] = "Bicho Master Pro"
     google_client_id: Optional[str] = ""
+    plan_link_monthly: Optional[str] = ""
+    plan_link_quarterly: Optional[str] = ""
+    plan_link_semiannual: Optional[str] = ""
+    plan_link_yearly: Optional[str] = ""
+    plan_link_lifetime: Optional[str] = ""
 
 
 class LoginRequestModel(BaseModel):
