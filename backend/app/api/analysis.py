@@ -338,6 +338,7 @@ def get_transition_matrix_endpoint(
     )
 
 
+
 @router.get("/puxadas", response_model=Dict[str, Any])
 def get_puxadas_endpoint(
     target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD). Padrão: hoje"),
@@ -351,5 +352,20 @@ def get_puxadas_endpoint(
     """
     from ..engine.puxadas_engine import get_puxadas_analysis
     return get_puxadas_analysis(target_date=target_date, target_slot=target_slot, lottery=lottery or "RJ")
+
+
+@router.get("/centena-master", response_model=Dict[str, Any])
+def get_centena_master_endpoint(
+    target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD). Padrão: hoje"),
+    lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
+):
+    """
+    Retorna a análise do Centena Master (Algoritmo Chave 24):
+    6 centenas econômicas de alta precisão com conferência em tempo real contra sorteios apurados.
+    """
+    from ..engine.centena_master_engine import calculate_centena_master
+    return calculate_centena_master(target_date=target_date, lottery=lottery or "RJ")
+
 
 
