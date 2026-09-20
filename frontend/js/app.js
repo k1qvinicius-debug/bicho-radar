@@ -4812,3 +4812,171 @@ window.copyAllCentenaMaster = function(btn) {
     alert('Erro ao copiar palpites.');
   });
 };
+
+
+// ===================================================================
+// AUTENTICAÇÃO PROFISSIONAL: ABAS, SENHA E CADASTRO 5 DIAS
+// ===================================================================
+
+window.switchAuthGateTab = function(tab) {
+  const tabLogin = document.getElementById('tab-auth-login');
+  const tabReg = document.getElementById('tab-auth-register');
+  const panelLogin = document.getElementById('panel-auth-login');
+  const panelReg = document.getElementById('panel-auth-register');
+
+  const activeClass = 'py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 cursor-pointer';
+  const inactiveClass = 'py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-white cursor-pointer';
+
+  if (tab === 'register') {
+    if (tabReg) tabReg.className = activeClass;
+    if (tabLogin) tabLogin.className = inactiveClass;
+    if (panelReg) panelReg.classList.remove('hidden');
+    if (panelLogin) panelLogin.classList.add('hidden');
+    const nameInput = document.getElementById('reg-input-name');
+    if (nameInput) setTimeout(() => nameInput.focus(), 50);
+  } else {
+    if (tabLogin) tabLogin.className = activeClass;
+    if (tabReg) tabReg.className = inactiveClass;
+    if (panelLogin) panelLogin.classList.remove('hidden');
+    if (panelReg) panelReg.classList.add('hidden');
+    const idInput = document.getElementById('login-input-identity');
+    if (idInput) setTimeout(() => idInput.focus(), 50);
+  }
+};
+
+window.togglePasswordVisibility = function(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
+  }
+};
+
+window.handleMainRegister = async function(event) {
+  event.preventDefault();
+  const nameInput = document.getElementById('reg-input-name');
+  const emailInput = document.getElementById('reg-input-email');
+  const phoneInput = document.getElementById('reg-input-phone');
+  const passInput = document.getElementById('reg-input-password');
+  const errEl = document.getElementById('register-error-msg');
+  const btn = document.getElementById('btn-submit-main-register');
+
+  const name = (nameInput?.value || '').trim();
+  const email = (emailInput?.value || '').trim().toLowerCase();
+  const phone = (phoneInput?.value || '').trim();
+  const password = (passInput?.value || '').trim();
+
+  if (!email || !password) {
+    if (errEl) {
+      errEl.textContent = 'Preencha seu e-mail e crie uma senha.';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (errEl) errEl.classList.add('hidden');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> Criando sua conta e liberando 5 dias...';
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, phone, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Erro ao realizar cadastro.');
+    }
+
+    // Salva sessão localmente
+    api.setToken(data.token);
+    if (data.tenant) {
+      api.setCurrentTenant(data.tenant);
+    }
+
+    document.documentElement.classList.add('is-authenticated');
+    updateAuthUI();
+
+    // Notificação de boas-vindas
+    alert(`🎉 Parabéns, ${data.tenant?.name || 'Usuário'}! Seus 5 dias de teste grátis foram ativados com sucesso.`);
+  } catch (err) {
+    console.error('Erro de cadastro:', err);
+    if (errEl) {
+      errEl.textContent = err.message || 'Erro ao realizar cadastro. Tente novamente.';
+      errEl.classList.remove('hidden');
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Começar Meus 5 Dias Grátis';
+    }
+  }
+};
+
+window.openAdminQuickPrompt = function() {
+  const pass = prompt('Acesso Administrativo Master:\nDigite a senha do administrador:');
+  if (!pass) return;
+  const idInput = document.getElementById('login-input-identity');
+  const passInput = document.getElementById('login-input-password');
+  if (idInput) idInput.value = 'admin';
+  if (passInput) passInput.value = pass;
+  switchAuthGateTab('login');
+  const form = document.getElementById('form-main-login');
+  if (form) form.requestSubmit();
+};
+
+// ===================================================================
+// ASSINATURA E PLANOS VIP
+// ===================================================================
+window.subscribePlan = async function(planKey) {
+  const planNames = {
+    'monthly': 'Plano Mensal (R$ 14,90)',
+    'quarterly': 'Plano Trimestral (R$ 41,90)',
+    'semiannual': 'Plano Semestral (R$ 79,90)',
+    'yearly': 'Plano Anual (R$ 159,90)',
+    'lifetime': 'Acesso Vitalício VIP (R$ 297,00)',
+    'whatsapp': 'Assinatura VIP'
+  };
+
+  const planTitle = planNames[planKey] || 'Assinatura Bicho Master Pro';
+
+  // Busca configurações públicas para links ou WhatsApp
+  let settings = window._publicSettings;
+  if (!settings) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/settings`);
+      if (res.ok) settings = await res.json();
+      window._publicSettings = settings;
+    } catch (e) {}
+  }
+
+  // 1. Se houver link de checkout configurado para este plano específico, abre ele
+  const planConfig = settings?.plans?.[planKey];
+  if (planConfig && planConfig.link && planConfig.link.startsWith('http')) {
+    window.open(planConfig.link, '_blank');
+    return;
+  }
+
+  // 2. Fallback WhatsApp com mensagem pré-formatada para Pix direto
+  let whatsappNum = (settings?.support_whatsapp || '5511999999999').replace(/\D/g, '');
+  if (!whatsappNum.startsWith('55') && whatsappNum.length >= 10) {
+    whatsappNum = '55' + whatsappNum;
+  }
+
+  const currentUser = api.getCurrentTenant();
+  const userName = currentUser?.name ? ` Me chamo ${currentUser.name}.` : '';
+  const userEmail = currentUser?.email ? ` Meu e-mail: ${currentUser.email}.` : '';
+
+  const msg = `Olá! Quero assinar o *${planTitle}* do Bicho Master Pro.${userName}${userEmail} Pode me enviar a chave Pix para liberação imediata?`;
+  const waUrl = `https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`;
+
+  window.open(waUrl, '_blank');
+};
