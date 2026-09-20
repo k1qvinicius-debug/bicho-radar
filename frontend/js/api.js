@@ -17,7 +17,7 @@ function getAuthHeaders() {
 function notifyTrialExpiredIfForbidden(status, errData) {
   if (status === 403) {
     const detail = (errData && errData.detail) ? String(errData.detail) : '';
-    if (detail.includes('TRIAL_EXPIRED') || detail.includes('expirou') || detail.includes('degustação') || detail.includes('dispositivo') || detail.includes('rede')) {
+    if (detail.includes('TRIAL_EXPIRED') || detail.includes('expirou') || detail.includes('testeção') || detail.includes('dispositivo') || detail.includes('rede')) {
       if (typeof window.showTrialExpiredModal === 'function') {
         window.showTrialExpiredModal();
       } else if (typeof window.showVipPlansModal === 'function') {
@@ -266,7 +266,7 @@ const api = {
       headers: { ...getAuthHeaders() },
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Erro ao estender degustação.' }));
+      const err = await res.json().catch(() => ({ detail: 'Erro ao estender período de teste.' }));
       throw new Error(err.detail || 'Erro ao estender dias.');
     }
     return await res.json();
