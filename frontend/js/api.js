@@ -320,6 +320,16 @@ const api = {
     return await res.json();
   },
 
+  async getCentenaMaster(date = null, lottery = 'RJ') {
+    let url = `${API_BASE}/analysis/centena-master?lottery=${encodeURIComponent(lottery || 'RJ')}`;
+    if (date) url += `&target_date=${encodeURIComponent(date)}`;
+    const res = await fetch(url, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao carregar Centena Master.');
+    return await res.json();
+  },
+
   async getCruzDoDia(date = null) {
     let url = `${API_BASE}/analysis/cruz-do-dia`;
     if (date) url += `?target_date=${encodeURIComponent(date)}`;
