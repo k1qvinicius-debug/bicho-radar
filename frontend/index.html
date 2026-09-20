@@ -286,6 +286,14 @@
           </div>
           <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Universal</span>
         </button>
+        <button type="button" onclick="navigateTo(null, 'centena-master')" id="sidebar-btn-centena-master"
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm">🎯</span>
+            <span>Centena Master</span>
+          </div>
+          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Chave 24</span>
+        </button>
 
         <a href="/historico" id="sidebar-btn-historico"
           class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
@@ -577,7 +585,30 @@
             </div>
           </div>
 
-          <!-- Card 3: Radar de Puxadas -->
+          
+          <!-- Card: Centena Master -->
+          <div onclick="switchScreen('centena-master')"
+            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
+                🎯
+              </div>
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Centena Master</h3>
+                  <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Chave 24</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                  6 Centenas econômicas de alta assertividade calculadas pela escada matemática da Chave 24.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-amber-400">
+              <span>Abrir Centena Master</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </div>
+<!-- Card 3: Radar de Puxadas -->
           <div onclick="switchScreen('puxadas')"
             class="card-glass p-3 rounded-xl border border-slate-800 hover:border-violet-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
             <div class="flex items-start gap-3">
@@ -1051,7 +1082,113 @@
     <!-- =================================================================== -->
     <!-- TELA 4: RADAR DE PUXADAS (TELA NORMAL COMPLETA, SEM POPUP/MODAL) -->
     <!-- =================================================================== -->
-    <div id="view-puxadas" class="space-y-4 animate-fade-in hidden">
+    <div 
+
+    <!-- =================================================================== -->
+    <!-- TELA: CENTENA MASTER (CHAVE 24 - 6 CENTENAS ECONÔMICAS) -->
+    <!-- =================================================================== -->
+    <div id="view-centena-master" class="space-y-4 animate-fade-in hidden">
+      <!-- Barra Superior: Voltar + Ações -->
+      <div class="flex items-center justify-between gap-3 pb-2 border-b border-slate-800">
+        <button type="button" onclick="switchScreen('home')"
+          class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm">
+          <span>←</span> <span>Voltar ao Início</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button id="btn-copy-all-centena-master" onclick="copyAllCentenaMaster(this)"
+            class="px-3 py-1.5 rounded-lg bg-amber-950/60 hover:bg-amber-900 border border-amber-800/60 hover:border-amber-500 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer">
+            <span>📋</span> <span>Copiar Todos os Palpites</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Conteúdo do Centena Master -->
+      <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-amber-500/30 space-y-3">
+        <!-- Header com Título e Seletor de Data -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl shrink-0 shadow-inner">
+              🎯
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-black uppercase tracking-wider text-slate-100">CENTENA MASTER</h2>
+                <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">Chave 24</span>
+              </div>
+              <p class="text-xs text-slate-400">Algoritmo matemático das 6 Centenas Econômicas com conferência em tempo real.</p>
+            </div>
+          </div>
+
+          <!-- Seletor Rápido de Data -->
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1 bg-slate-900/80 border border-slate-800 rounded-lg p-1">
+              <label for="centena-master-target-date" class="text-[10px] font-bold text-slate-400 uppercase px-1">Data:</label>
+              <input type="date" id="centena-master-target-date" onchange="changeCentenaMasterDate(this.value)"
+                class="bg-slate-800 text-slate-100 text-xs font-bold rounded px-2 py-1 border border-slate-700 focus:outline-none focus:border-amber-500 cursor-pointer">
+            </div>
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="setCentenaMasterDateYesterday()"
+                class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors">Ontem</button>
+              <button type="button" onclick="setCentenaMasterDateToday()"
+                class="px-2 py-1 rounded bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 text-xs font-semibold border border-amber-500/50 transition-colors">Hoje</button>
+              <button type="button" onclick="setCentenaMasterDateTomorrow()"
+                class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors">Amanhã</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1. Escada da Chave 24 (Didática e Cyber) -->
+        <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <span>🪜</span> <span>Escada Matemática da Chave 24</span>
+            </span>
+            <span class="text-[11px] text-amber-400 font-bold" id="centena-master-summary-badge">Chave: 24</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="centena-master-steps-grid">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- 2. Grid das 6 Centenas de Ouro -->
+        <div class="space-y-2 pt-1">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+              <span>🪙</span> <span>As 6 Centenas Econômicas do Dia</span>
+            </h3>
+            <span class="text-[11px] text-slate-400 font-medium" id="centena-master-hits-count"></span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="centena-master-cards-grid">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- 3. Jogos Prontos Formatados -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+          <!-- Terno de Grupo e Passes -->
+          <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+            <h4 class="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+              <span>👑</span> <span>Terno de Grupo & Passes</span>
+            </h4>
+            <div id="centena-master-groups-container" class="space-y-2">
+              <!-- Renderizado dinamicamente via JS -->
+            </div>
+          </div>
+
+          <!-- Terno e Duques de Dezenas -->
+          <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+            <h4 class="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+              <span>🔢</span> <span>Terno & Duques de Dezenas</span>
+            </h4>
+            <div id="centena-master-tens-container" class="space-y-2">
+              <!-- Renderizado dinamicamente via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+id="view-puxadas" class="space-y-4 animate-fade-in hidden">
       <!-- Barra Superior: Voltar + Ações -->
       <div class="flex items-center justify-between gap-3 pb-2 border-b border-slate-800">
         <button type="button" onclick="switchScreen('home')"
