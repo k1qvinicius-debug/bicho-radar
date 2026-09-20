@@ -5,7 +5,7 @@ Endpoints de Autenticação para Testadores e Administrador Master.
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, Optional
 from ..database import get_db_connection
-from ..models import LoginRequestModel, LoginResponseModel
+from ..models import LoginRequestModel, LoginResponseModel, RegisterRequestModel
 from ..auth import (
     get_tenant_by_key,
     create_token_for_tenant,
@@ -13,7 +13,8 @@ from ..auth import (
     require_tenant,
     get_current_tenant_optional,
     calculate_trial_info,
-    get_or_create_google_tenant
+    get_or_create_google_tenant,
+    register_new_tenant
 )
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
@@ -28,31 +29,44 @@ def login(payload: LoginRequestModel):
     """
     tenant = None
 
-    # Caso 1: Login por Usuário e Senha (Admin)
-    # Caso 1: Login por Usuário e Senha (Admin)
-    if payload.username and payload.password:
-        u = payload.username.strip().lower()
-        p = payload.password.strip()
-        if u == "admin" and (p in ("0203040", "admin123", "admin", "adminmaster")):
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT * FROM tenants WHERE role = 'admin' LIMIT 1")
-                row = cursor.fetchone()
-                if row:
-                    tenant = dict(row)
+    # Caso 1: Login por Usuário/E-mail e Senha (Admin)
+    user_val = (payload.username or payload.email or "").strip().lower()
+    pass_val = (payload.password or "").strip()
+    key_val = (payload.key or "").strip()
 
-    # Caso 2: Login por Chave de Acesso direta
-    if not tenant and payload.key:
-        key = payload.key.strip()
-        if key in ("0203040", "admin123", "admin", "adminmaster"):
+    if user_val in ("admin", "k1qvinicius@gmail.com", "k1qvinicius") and pass_val in ("0203040", "admin123", "admin", "adminmaster"):
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com' LIMIT 1")
+            row = cursor.fetchone()
+            if row:
+                tenant = dict(row)
+
+    # Caso 2: Login por Chave de Acesso direta ou Senha Master
+    if not tenant and (key_val or pass_val):
+        check_val = key_val or pass_val
+        if check_val in ("0203040", "admin123", "admin", "adminmaster"):
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM tenants WHERE role = 'admin' LIMIT 1")
+                cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com' LIMIT 1")
                 row = cursor.fetchone()
                 if row:
                     tenant = dict(row)
         else:
-            tenant = get_tenant_by_key(key)
+            tenant = get_tenant_by_key(check_val)
+
+    # Caso 3: Login por E-mail cadastrado + Senha / Chave do tenant
+    if not tenant and user_val and (pass_val or key_val):
+        check_pass = pass_val or key_val
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ? AND (tenant_key = ? OR LOWER(tenant_key) = ?) LIMIT 1",
+                (user_val, check_pass, check_pass.lower())
+            )
+            row = cursor.fetchone()
+            if row:
+                tenant = dict(row)
 
     if not tenant:
         raise HTTPException(
@@ -76,6 +90,7 @@ def login(payload: LoginRequestModel):
             "id": tenant["id"],
             "name": tenant["name"],
             "email": tenant.get("email"),
+            "phone": tenant.get("phone"),
             "tenant_key": tenant["tenant_key"],
             "role": tenant["role"],
             "status": tenant["status"],
@@ -141,6 +156,64 @@ def login_google(payload: LoginRequestModel):
             "id": tenant["id"],
             "name": tenant["name"],
             "email": tenant.get("email"),
+            "phone": tenant.get("phone"),
+            "tenant_key": tenant["tenant_key"],
+            "role": tenant["role"],
+            "status": tenant["status"],
+            "subscription_status": tenant.get("subscription_status", "trial"),
+            "trial_expires_at": tenant.get("trial_expires_at"),
+            "trial_info": trial_info,
+            "created_at": str(tenant.get("created_at", "")),
+            "last_active_at": str(tenant.get("last_active_at", ""))
+        }
+    )
+
+
+@router.post("/register", response_model=LoginResponseModel)
+def register(payload: RegisterRequestModel):
+    """
+    Cadastra um novo perfil completo de usuário:
+    - Nome Completo
+    - Gmail / E-mail
+    - Telefone / WhatsApp com DDD
+    - Senha de Acesso
+    Gera automaticamente 5 dias de degustação gratuita e retorna o token de autenticação.
+    """
+    email = (payload.email or "").strip().lower()
+    name = (payload.name or "").strip()
+    phone = (payload.phone or "").strip()
+    password = (payload.password or "").strip()
+
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Informe um e-mail ou Gmail válido.")
+
+    if not name:
+        name = email.split("@")[0]
+
+    if not password:
+        raise HTTPException(status_code=400, detail="Defina uma senha de acesso.")
+
+    if len(password) < 3:
+        raise HTTPException(status_code=400, detail="A senha deve conter pelo menos 3 dígitos/caracteres.")
+
+    tenant = register_new_tenant(name=name, email=email, phone=phone, password=password)
+    if not tenant:
+        raise HTTPException(status_code=500, detail="Falha ao cadastrar conta. Tente novamente.")
+
+    if tenant.get("status") != "active":
+        raise HTTPException(status_code=403, detail="Esta conta está suspensa ou desativada.")
+
+    update_tenant_activity(tenant["id"])
+    token = create_token_for_tenant(tenant)
+    trial_info = calculate_trial_info(tenant)
+
+    return LoginResponseModel(
+        token=token,
+        tenant={
+            "id": tenant["id"],
+            "name": tenant["name"],
+            "email": tenant.get("email"),
+            "phone": tenant.get("phone"),
             "tenant_key": tenant["tenant_key"],
             "role": tenant["role"],
             "status": tenant["status"],
@@ -155,12 +228,60 @@ def login_google(payload: LoginRequestModel):
 
 @router.get("/settings")
 def get_public_settings():
-    """Retorna configurações públicas (WhatsApp de suporte, dias de teste, nome do app)."""
+    """Retorna configurações públicas (WhatsApp de suporte, dias de teste, nome do app, Google Client ID e planos comerciais)."""
     from ..database import get_system_setting
     return {
         "support_whatsapp": get_system_setting("support_whatsapp", ""),
-        "trial_days": int(get_system_setting("trial_days", "7")),
-        "app_name": get_system_setting("app_name", "Bicho Master Pro")
+        "trial_days": int(get_system_setting("trial_days", "5")),
+        "app_name": get_system_setting("app_name", "Bicho Master Pro"),
+        "google_client_id": get_system_setting("google_client_id", ""),
+        "plans": {
+            "monthly": {
+                "name": "Mensal",
+                "price": "14,90",
+                "price_num": 14.90,
+                "period": "mês",
+                "equivalent": "14,90/mês",
+                "badge": "Acesso Básico",
+                "link": get_system_setting("plan_link_monthly", "")
+            },
+            "quarterly": {
+                "name": "Trimestral",
+                "price": "41,90",
+                "price_num": 41.90,
+                "period": "3 meses",
+                "equivalent": "13,97/mês",
+                "badge": "6,3% OFF",
+                "link": get_system_setting("plan_link_quarterly", "")
+            },
+            "semiannual": {
+                "name": "Semestral",
+                "price": "79,90",
+                "price_num": 79.90,
+                "period": "6 meses",
+                "equivalent": "13,31/mês",
+                "badge": "10,6% OFF",
+                "link": get_system_setting("plan_link_semiannual", "")
+            },
+            "yearly": {
+                "name": "Anual",
+                "price": "159,90",
+                "price_num": 159.90,
+                "period": "12 meses",
+                "equivalent": "13,32/mês",
+                "badge": "Mais Econômico",
+                "link": get_system_setting("plan_link_yearly", "")
+            },
+            "lifetime": {
+                "name": "Vitalício VIP",
+                "price": "297,00",
+                "price_num": 297.00,
+                "period": "pagamento único",
+                "equivalent": "Acesso Para Sempre",
+                "badge": "Oferta VIP Permanente",
+                "link": get_system_setting("plan_link_lifetime", "")
+            }
+        }
     }
 
 
@@ -173,6 +294,7 @@ def get_current_user(tenant: Dict[str, Any] = Depends(require_tenant)):
         "id": tenant["id"],
         "name": tenant["name"],
         "email": tenant.get("email"),
+        "phone": tenant.get("phone"),
         "tenant_key": tenant["tenant_key"],
         "role": tenant["role"],
         "status": tenant["status"],
@@ -197,6 +319,7 @@ def check_session(tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_
         "id": tenant["id"],
         "name": tenant["name"],
         "email": tenant.get("email"),
+        "phone": tenant.get("phone"),
         "role": tenant["role"],
         "subscription_status": tenant.get("subscription_status", "trial"),
         "trial_info": trial_info,
