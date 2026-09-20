@@ -17,18 +17,40 @@ function getAuthHeaders() {
 function notifyTrialExpiredIfForbidden(status, errData) {
   if (status === 403) {
     const detail = (errData && errData.detail) ? String(errData.detail) : '';
-    if (detail.includes('TRIAL_EXPIRED') || detail.includes('expirou')) {
+    if (detail.includes('TRIAL_EXPIRED') || detail.includes('expirou') || detail.includes('degustação') || detail.includes('dispositivo') || detail.includes('rede')) {
       if (typeof window.showTrialExpiredModal === 'function') {
         window.showTrialExpiredModal();
+      } else if (typeof window.showVipPlansModal === 'function') {
+        window.showVipPlansModal();
       }
     }
   }
+}
+
+function getOrCreateDeviceId() {
+  let id = null;
+  try {
+    id = localStorage.getItem('bm_device_id');
+    if (!id) {
+      const match = document.cookie.match(/bm_device_id=([^;]+)/);
+      if (match) id = match[1];
+    }
+    if (!id) {
+      id = 'dev_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now().toString(36);
+      localStorage.setItem('bm_device_id', id);
+      document.cookie = m_device_id=; max-age=31536000; path=/; SameSite=Lax;
+    }
+  } catch (e) {
+    id = 'dev_fallback_' + Date.now();
+  }
+  return id;
 }
 
 const api = {
   // =========================================================================
   // AUTENTICAÇÃO E SESSÃO
   // =========================================================================
+
   async login(credentialsOrKey) {
     let payload;
     if (typeof credentialsOrKey === 'string') {
@@ -38,8 +60,9 @@ const api = {
     } else {
       payload = { key: '' };
     }
+    payload.device_id = getOrCreateDeviceId();
 
-    const res = await fetch(`${API_BASE}/auth/login`, {
+    const res = await fetch(${API_BASE}/auth/login, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -59,7 +82,9 @@ const api = {
   },
 
   async loginGoogle(payload) {
-    const res = await fetch(`${API_BASE}/auth/google`, {
+    payload = payload || {};
+    payload.device_id = getOrCreateDeviceId();
+    const res = await fetch(${API_BASE}/auth/google, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -79,7 +104,9 @@ const api = {
   },
 
   async register(payload) {
-    const res = await fetch(`${API_BASE}/auth/register`, {
+    payload = payload || {};
+    payload.device_id = getOrCreateDeviceId();
+    const res = await fetch(${API_BASE}/auth/register, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
