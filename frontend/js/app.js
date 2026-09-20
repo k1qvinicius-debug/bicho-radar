@@ -71,10 +71,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateLotteryButtonsUI();
   await initSlotSelector(currentLottery);
   setDefaultDate();
-  if (api.isLoggedIn()) {
+  try {
     await Promise.all([loadPrediction(), loadDrawResults()]);
-  } else {
-    await loadDrawResults();
+  } catch (err) {
+    console.warn('Erro ao carregar dados iniciais:', err);
+    try { await loadDrawResults(); } catch(e) {}
   }
   setupEventListeners();
 
@@ -3618,77 +3619,64 @@ function updateAuthUI() {
   const drawerUserLabel = document.getElementById('drawer-user-label');
   const drawerAdminLink = document.getElementById('drawer-admin-link');
   const mainHeader = document.getElementById('app-main-header');
+  const btnHeaderPlans = document.getElementById('btn-header-plans');
   const tenant = api.getCurrentTenant();
 
-  if (tenant) {
+  // Garante que o cabeçalho e dashboard estejam sempre visíveis e interativos
+  if (mainHeader) mainHeader.classList.remove('hidden');
+  if (mainContainer) mainContainer.classList.remove('hidden');
+  if (mobBottomNav) mobBottomNav.classList.remove('hidden');
+
+  if (tenant && tenant.role === 'admin') {
     document.documentElement.classList.add('is-authenticated');
-
-    // Se o teste estiver expirado e não for admin, bloqueia e exibe modal
-    if (tenant.role !== 'admin' && (tenant.subscription_status === 'expired' || (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining <= 0))) {
-      showTrialExpiredModal();
-      return;
-    }
-
-    // Usuário logado e ativo: esconde tela de login e exibe dashboard completo e cabeçalho
-    if (mainHeader) mainHeader.classList.remove('hidden');
     if (appGate) appGate.classList.add('hidden');
-    if (mainContainer) mainContainer.classList.remove('hidden');
-    if (mobBottomNav) mobBottomNav.classList.remove('hidden');
-    updateHomeScreenData();
-
-    if (tenant.role === 'admin') {
-      if (navAdminLink) navAdminLink.classList.remove('hidden');
-      if (mobAdminLink) mobAdminLink.classList.remove('hidden');
-      if (drawerAdminLink) drawerAdminLink.classList.remove('hidden');
-      if (drawerUserLabel) drawerUserLabel.textContent = 'K. Vinicius (Master Vitalício)';
-      const btnHeaderPlans = document.getElementById('btn-header-plans');
-      if (btnHeaderPlans) btnHeaderPlans.classList.add('hidden');
-      if (badgeContainer) {
-        badgeContainer.innerHTML = `
-          <div class="flex items-center gap-2 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/40 text-amber-300 text-xs px-3 py-1 rounded-full font-bold shadow-md shadow-amber-500/10">
-            <span>👑</span>
-            <span class="font-black tracking-wide">K. Vinicius</span>
-            <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 shadow-sm">Acesso Vitalício</span>
-            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair">✕</button>
-          </div>
-        `;
-      }
-    } else {
-      if (navAdminLink) navAdminLink.classList.add('hidden');
-      if (mobAdminLink) mobAdminLink.classList.add('hidden');
-      if (drawerAdminLink) drawerAdminLink.classList.add('hidden');
-      if (drawerUserLabel) drawerUserLabel.textContent = tenant.name || 'Testador Convidado';
-      const btnHeaderPlans = document.getElementById('btn-header-plans');
-      if (btnHeaderPlans) btnHeaderPlans.classList.remove('hidden');
-      const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined) ? tenant.trial_info.days_remaining : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 5);
-      if (badgeContainer) {
-        badgeContainer.innerHTML = `
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="loginAsAdminQuick()" class="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 text-xs px-2.5 py-1 rounded-full font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer" title="Acessar painel do Administrador">
-              <span>👑</span> <span>Entrar como Admin</span>
-            </button>
-            <div class="flex items-center gap-2 bg-slate-800/90 border border-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full shadow-sm">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span class="font-medium">${days}d de teste</span>
-              <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair da conta">✕</button>
-            </div>
-          </div>
-        `;
-      }
+    if (navAdminLink) navAdminLink.classList.remove('hidden');
+    if (mobAdminLink) mobAdminLink.classList.remove('hidden');
+    if (drawerAdminLink) drawerAdminLink.classList.remove('hidden');
+    if (drawerUserLabel) drawerUserLabel.textContent = 'K. Vinicius (Master Vitalício)';
+    if (btnHeaderPlans) btnHeaderPlans.classList.add('hidden');
+    if (badgeContainer) {
+      badgeContainer.innerHTML = `
+        <div class="flex items-center gap-2 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/40 text-amber-300 text-xs px-3 py-1 rounded-full font-bold shadow-md shadow-amber-500/10">
+          <span>👑</span>
+          <span class="font-black tracking-wide">K. Vinicius</span>
+          <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 shadow-sm">Acesso Vitalício</span>
+          <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair">✕</button>
+        </div>
+      `;
     }
   } else {
-    document.documentElement.classList.remove('is-authenticated');
-    // Não logado: Bloqueia cabeçalho superior e dashboard, exibe apenas a tela inicial limpa de login/cadastro
-    if (mainHeader) mainHeader.classList.add('hidden');
-    if (appGate) appGate.classList.remove('hidden');
-    if (mainContainer) mainContainer.classList.add('hidden');
-    if (mobBottomNav) mobBottomNav.classList.add('hidden');
+    // Modo Testador / Visitante
     if (navAdminLink) navAdminLink.classList.add('hidden');
     if (mobAdminLink) mobAdminLink.classList.add('hidden');
     if (drawerAdminLink) drawerAdminLink.classList.add('hidden');
-    if (drawerUserLabel) drawerUserLabel.textContent = 'Não Conectado';
-    if (badgeContainer) badgeContainer.innerHTML = '';
+    if (btnHeaderPlans) btnHeaderPlans.classList.remove('hidden');
+
+    const days = (tenant && tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
+      ? tenant.trial_info.days_remaining
+      : (tenant && tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 5);
+
+    if (drawerUserLabel) {
+      drawerUserLabel.textContent = (tenant && tenant.name) ? tenant.name : 'Testador Convidado';
+    }
+
+    if (badgeContainer) {
+      badgeContainer.innerHTML = `
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="loginAsAdminQuick()" class="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 text-xs px-2.5 py-1 rounded-full font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer" title="Entrar com senha master do Administrador">
+            <span>👑</span> <span>Entrar como Admin</span>
+          </button>
+          <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded-full shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="font-medium">${days}d de teste</span>
+            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair da conta de teste">✕</button>
+          </div>
+        </div>
+      `;
+    }
   }
+
+  updateHomeScreenData();
 }
 
 window.switchGateTab = function(tab) {
@@ -4986,10 +4974,28 @@ window.loginAsAdminQuick = async function() {
       password: pass.trim(),
       key: pass.trim()
     });
+    const tenantData = {
+      id: 1,
+      name: 'K. Vinicius (KVS)',
+      email: 'k1qvinicius@gmail.com',
+      role: 'admin',
+      status: 'active',
+      subscription_status: 'active'
+    };
+    if (res && res.tenant) {
+      Object.assign(tenantData, res.tenant);
+      tenantData.role = 'admin';
+      tenantData.name = 'K. Vinicius (KVS)';
+    }
+    localStorage.setItem('bicho_tenant', JSON.stringify(tenantData));
+    if (res && res.token) {
+      localStorage.setItem('bicho_auth_token', res.token);
+    }
+    document.documentElement.classList.add('is-authenticated');
     if (typeof showToast === 'function') showToast('👑 Bem-vindo, Administrador Master K. Vinicius!', 'success');
     updateAuthUI();
     window.location.reload();
   } catch (err) {
-    alert('Senha incorreta ou acesso negado: ' + (err.message || 'Tente novamente.'));
+    alert('Senha incorreta ou erro ao autenticar: ' + (err.message || 'Tente novamente.'));
   }
 };
