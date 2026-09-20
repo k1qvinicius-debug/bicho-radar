@@ -4,7 +4,7 @@ Todas as rotas exigem autenticação do Administrador Master.
 """
 
 from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from ..engine.weights import get_active_weights, update_active_weights
 from ..engine.evaluator import reevaluate_all_snapshots
 from ..models import WeightsConfigModel, TenantModel, TenantCreateModel, TenantUpdateModel, SystemSettingsModel
@@ -95,6 +95,7 @@ def list_tenants():
                 id=r["id"],
                 name=r["name"],
                 email=r.get("email"),
+                phone=r.get("phone"),
                 auth_provider=r.get("auth_provider", "key"),
                 trial_started_at=str(r.get("trial_started_at") or ""),
                 trial_expires_at=str(r.get("trial_expires_at") or ""),
@@ -130,10 +131,14 @@ def create_tenant(data: TenantCreateModel):
             raise HTTPException(status_code=400, detail=f"A chave '{key}' já está em uso por outro testador.")
 
         cursor.execute("""
-            INSERT INTO tenants (name, tenant_key, role, status, notes, expires_at)
-            VALUES (?, ?, ?, 'active', ?, ?)
+            INSERT INTO tenants (name, email, phone, tenant_key, role, status, notes, expires_at)
+            VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
         """, (
-            name, key, data.role or "tester",
+            name,
+            data.email.strip().lower() if data.email else None,
+            data.phone.strip() if data.phone else None,
+            key,
+            data.role or "tester",
             data.notes.strip() if data.notes else None,
             data.expires_at
         ))
@@ -145,6 +150,8 @@ def create_tenant(data: TenantCreateModel):
         return TenantModel(
             id=row["id"],
             name=row["name"],
+            email=row.get("email"),
+            phone=row.get("phone"),
             tenant_key=row["tenant_key"],
             role=row["role"],
             status=row["status"],
@@ -158,7 +165,7 @@ def create_tenant(data: TenantCreateModel):
 
 @router.patch("/tenants/{tenant_id}", response_model=TenantModel)
 def update_tenant(tenant_id: int, data: TenantUpdateModel):
-    """Atualiza o status (ativo/inativo), nome ou notas de um testador."""
+    """Atualiza o status (ativo/inativo), nome, telefone ou notas de um testador."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,))
@@ -175,6 +182,9 @@ def update_tenant(tenant_id: int, data: TenantUpdateModel):
         if data.name is not None:
             updates.append("name = ?")
             params.append(data.name.strip())
+        if data.phone is not None:
+            updates.append("phone = ?")
+            params.append(data.phone.strip())
         if data.status is not None:
             if data.status not in ["active", "inactive", "suspended"]:
                 raise HTTPException(status_code=400, detail="Status deve ser 'active', 'inactive' ou 'suspended'.")
@@ -203,6 +213,8 @@ def update_tenant(tenant_id: int, data: TenantUpdateModel):
         return TenantModel(
             id=updated["id"],
             name=updated["name"],
+            email=updated.get("email"),
+            phone=updated.get("phone"),
             tenant_key=updated["tenant_key"],
             role=updated["role"],
             status=updated["status"],
@@ -295,20 +307,58 @@ def get_settings():
     """Retorna as configurações do sistema para o painel de administração."""
     return SystemSettingsModel(
         support_whatsapp=get_system_setting("support_whatsapp", ""),
-        trial_days=int(get_system_setting("trial_days", "7")),
-        app_name=get_system_setting("app_name", "Bicho Master Pro")
+        trial_days=int(get_system_setting("trial_days", "5")),
+        app_name=get_system_setting("app_name", "Bicho Master Pro"),
+        google_client_id=get_system_setting("google_client_id", ""),
+        plan_link_monthly=get_system_setting("plan_link_monthly", ""),
+        plan_link_quarterly=get_system_setting("plan_link_quarterly", ""),
+        plan_link_semiannual=get_system_setting("plan_link_semiannual", ""),
+        plan_link_yearly=get_system_setting("plan_link_yearly", ""),
+        plan_link_lifetime=get_system_setting("plan_link_lifetime", ""),
     )
 
 
 @router.post("/settings")
 def save_settings(data: SystemSettingsModel):
-    """Salva configurações do sistema (ex: WhatsApp de suporte, dias de teste)."""
+    """Salva configurações do sistema (WhatsApp, dias de teste, Google Client ID e links dos planos)."""
     if data.support_whatsapp is not None:
         set_system_setting("support_whatsapp", data.support_whatsapp.strip())
     if data.trial_days is not None:
         set_system_setting("trial_days", str(data.trial_days))
-    if data.app_name is not None:
-        set_system_setting("app_name", data.app_name.strip())
-
+    if data.google_client_id is not None:
+        set_system_setting("google_client_id", data.google_client_id.strip())
+    if data.plan_link_monthly is not None:
+        set_system_setting("plan_link_monthly", data.plan_link_monthly.strip())
+    if data.plan_link_quarterly is not None:
+        set_system_setting("plan_link_quarterly", data.plan_link_quarterly.strip())
+    if data.plan_link_semiannual is not None:
+        set_system_setting("plan_link_semiannual", data.plan_link_semiannual.strip())
+    if data.plan_link_yearly is not None:
+        set_system_setting("plan_link_yearly", data.plan_link_yearly.strip())
+    if data.plan_link_lifetime is not None:
+        set_system_setting("plan_link_lifetime", data.plan_link_lifetime.strip())
     return {"message": "Configurações salvas com sucesso."}
+
+
+@router.get("/scraper/status")
+def get_scraper_status():
+    """Retorna o estado operacional do robô em segundo plano e histórico de sincronizações."""
+    from ..engine.scheduler import scraper_worker
+    return scraper_worker.get_status()
+
+
+@router.post("/scraper/toggle")
+def toggle_scraper(enable: Optional[bool] = None):
+    """Ativa ou pausa as sincronizações automáticas em segundo plano."""
+    from ..engine.scheduler import scraper_worker
+    status = scraper_worker.toggle(enable)
+    return {"auto_sync_enabled": status, "status": "active" if status else "paused"}
+
+
+@router.post("/scraper/run-now")
+async def run_scraper_now(lottery: Optional[str] = None):
+    """Força um ciclo imediato de sincronização para todas as bancas ou uma específica."""
+    from ..engine.scheduler import scraper_worker
+    result = await scraper_worker.run_now(lottery)
+    return result
 
