@@ -135,7 +135,7 @@ import json
 def login_google(payload: LoginRequestModel, request: Request):
     """
     Autenticação via Google (Gmail).
-    Cria automaticamente a conta de testador com 5 dias de degustação caso seja o primeiro acesso.
+    Cria automaticamente a conta de testador com 5 dias de teste grátis caso seja o primeiro acesso.
     Bloqueia novos testes no mesmo IP ou dispositivo.
     """
     email = payload.email
@@ -203,7 +203,7 @@ def register(payload: RegisterRequestModel, request: Request):
     - Gmail / E-mail
     - Telefone / WhatsApp com DDD
     - Senha de Acesso
-    Gera automaticamente 5 dias de degustação gratuita e retorna o token de autenticação.
+    Gera automaticamente 5 dias de teste grátis e retorna o token de autenticação.
     Bloqueia novos testes no mesmo IP ou dispositivo.
     """
     email = (payload.email or "").strip().lower()
