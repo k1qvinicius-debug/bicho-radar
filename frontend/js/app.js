@@ -3539,7 +3539,7 @@ function formatDateBR(dateStr) {
 }
 
 /* ==========================================================================
-   AUTENTICAÇÃO & SESSÃO MULTI-TENANT (GOOGLE & DEGUSTAÇÃO DE 7 DIAS)
+   AUTENTICAÇÃO & SESSÃO MULTI-TENANT (GOOGLE & TESTE GRÁTIS DE 5 DIAS)
    ========================================================================== */
 async function initTenantAuth() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -3941,7 +3941,7 @@ window.handleGateTesterLogin = async function(event) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = 'Iniciar Degustação / Acessar';
+      btn.innerHTML = 'Iniciar Teste Grátis / Acessar';
     }
   }
 };
