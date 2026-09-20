@@ -92,7 +92,11 @@
           <a href="/admin" id="nav-admin-link" class="hidden px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-300 hover:text-white hover:bg-slate-800 transition-colors">⚙️ Admin</a>
         </nav>
 
-        <div id="user-badge-desktop" class="flex items-center gap-1.5"></div>
+        <div <button type="button" onclick="openPlansModal()"
+          class="px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 hover:border-amber-400 text-amber-300 text-xs font-black flex items-center gap-1.5 transition-transform hover:scale-105 cursor-pointer shadow-sm">
+          <span>💎</span> <span>Planos VIP</span>
+        </button>
+        id="user-badge-desktop" class="flex items-center gap-1.5"></div>
       </div>
     </div>
   </header>
@@ -325,90 +329,169 @@
   <!-- =========================================================================
        GATE DE ACESSO FECHADO - GOOGLE LOGIN & DEGUSTAÇÃO DE 7 DIAS
        ========================================================================= -->
-  <div id="app-auth-gate" class="min-h-screen flex items-center justify-center p-4 py-8">
-    <div class="card-glass max-w-md w-full p-6 sm:p-8 rounded-3xl border border-indigo-500/30 shadow-2xl space-y-5 bg-slate-900/95 backdrop-blur-xl">
-      <!-- Cabeçalho com Logo Bicho Master (Leão Soberano) -->
+    <!-- =========================================================================
+       TELA DE AUTENTICAÇÃO PROFISSIONAL: LOGIN & REGISTRO COM 5 DIAS GRÁTIS
+       ========================================================================= -->
+  <div id="app-auth-gate" class="min-h-screen flex items-center justify-center p-4 py-8 relative">
+    <!-- Glow de fundo futurista -->
+    <div class="absolute w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -top-12 -left-12"></div>
+    <div class="absolute w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -bottom-12 -right-12"></div>
+
+    <div class="card-glass max-w-md w-full p-6 sm:p-8 rounded-3xl border border-amber-500/30 shadow-2xl space-y-5 bg-slate-900/95 backdrop-blur-2xl relative z-10">
+      
+      <!-- Cabeçalho com Águia Dourada -->
       <div class="text-center space-y-2">
-        <div class="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 border-2 border-amber-500/60 shadow-2xl shadow-amber-500/30 flex items-center justify-center p-2 relative group overflow-hidden">
+        <div class="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 border-2 border-amber-500/60 shadow-2xl shadow-amber-500/30 flex items-center justify-center p-2 relative group overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-tr from-amber-500/20 via-indigo-600/15 to-cyan-500/20 pointer-events-none"></div>
-          <img src="/img/eagle_radar_badge.png?v=35.0" alt="Bicho Master Radar" class="w-full h-full object-contain relative z-10 filter drop-shadow-[0_0_16px_rgba(6,182,212,0.6)] group-hover:scale-105 transition-transform" />
+          <img src="/img/eagle_radar_badge.png?v=35.0" alt="Bicho Master Pro" class="w-full h-full object-contain relative z-10 filter drop-shadow-[0_0_16px_rgba(245,158,11,0.6)] group-hover:scale-105 transition-transform" />
         </div>
-        <h2 class="text-xl font-black text-white tracking-tight flex items-center justify-center gap-2">
-          BICHO MASTER
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">PRO</span>
-        </h2>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Inteligência Estatística, Cruz do Dia e Fechamentos Matemáticos de Alta Assertividade.
-        </p>
-      </div>
-
-      <!-- Banner de Destaque da Plataforma -->
-      <div class="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/70 via-slate-900 to-slate-900 border border-indigo-500/40 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-lg shadow-md shrink-0">
-          ⚡
-        </div>
-        <div class="text-left">
-          <div class="text-xs font-black text-white tracking-wide">Plataforma Inteligente de Alta Assertividade</div>
-          <div class="text-[11px] text-slate-300">Acesse palpites matemáticos, Cruz do Dia e fechamentos em tempo real.</div>
+        <div>
+          <h2 class="text-xl font-black text-white tracking-tight flex items-center justify-center gap-2">
+            BICHO MASTER <span class="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">PRO</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Inteligência Estatística, Centena Master e Fechamentos Assertivos</p>
         </div>
       </div>
 
-      <!-- Formulário de Login Tradicional (E-mail e Senha) -->
-      <form id="form-main-login" onsubmit="handleMainLogin(event)" class="space-y-3.5 pt-1 text-left">
-        <div>
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center justify-between">
-            <span>E-mail ou Usuário</span>
-          </label>
-          <div class="relative">
-            <input type="text" id="login-input-identity" required 
-              class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-slate-100 font-semibold focus:border-indigo-500 focus:outline-none transition-colors" />
-            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs">
-              👤
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center justify-between">
-            <span>Senha</span>
-          </label>
-          <div class="relative">
-            <input type="password" id="login-input-password" required 
-              class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-slate-100 font-mono focus:border-indigo-500 focus:outline-none transition-colors" />
-            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs">
-              🔒
-            </div>
-          </div>
-        </div>
-
-        <div id="login-error-msg" class="text-xs text-rose-400 font-semibold hidden"></div>
-
-        <button type="submit" id="btn-submit-main-login"
-          class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 transition-all active:scale-98 cursor-pointer">
-          Entrar na Plataforma
+      <!-- Abas de Alternância: Entrar vs Criar Conta (5 Dias Grátis) -->
+      <div class="grid grid-cols-2 p-1 bg-slate-950/80 border border-slate-800 rounded-2xl">
+        <button type="button" id="tab-auth-login" onclick="switchAuthGateTab('login')"
+          class="py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 cursor-pointer">
+          <span>🔑</span> <span>Já Tenho Conta</span>
         </button>
-      </form>
-
-      <!-- Divisor elegante -->
-      <div class="relative flex py-2 items-center my-1">
-        <div class="flex-grow border-t border-slate-800"></div>
-        <span class="flex-shrink mx-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-          Não tem conta? Cadastre-se
-        </span>
-        <div class="flex-grow border-t border-slate-800"></div>
+        <button type="button" id="tab-auth-register" onclick="switchAuthGateTab('register')"
+          class="py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-white cursor-pointer">
+          <span>✨</span> <span>5 Dias Grátis</span>
+        </button>
       </div>
 
-      <!-- Botão Oficial de Cadastro com Perfil Completo -->
-      <div class="space-y-2">
-        <button type="button" id="btn-trigger-register-profile" onclick="openRegisterModal()"
-          class="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-black text-xs sm:text-sm flex items-center justify-center gap-3 shadow-xl shadow-white/10 transition-all transform hover:scale-[1.01] active:scale-98 cursor-pointer">
-          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-          </svg>
-          <span>Login via Gmail</span>
+      <!-- PAINEL 1: LOGIN -->
+      <div id="panel-auth-login" class="space-y-4">
+        <form id="form-main-login" onsubmit="handleMainLogin(event)" class="space-y-3.5 text-left">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+              E-mail ou Usuário
+            </label>
+            <input type="text" id="login-input-identity" required placeholder="seu@email.com ou usuário"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-semibold focus:border-amber-500 focus:outline-none transition-colors" />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+              Senha de Acesso
+            </label>
+            <div class="relative">
+              <input type="password" id="login-input-password" required placeholder="Sua senha"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-slate-100 font-semibold focus:border-amber-500 focus:outline-none transition-colors" />
+              <button type="button" onclick="togglePasswordVisibility('login-input-password', this)"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-amber-300 transition-colors cursor-pointer" title="Ver/Ocultar senha">
+                👁️
+              </button>
+            </div>
+          </div>
+
+          <div id="login-error-msg" class="hidden p-2.5 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs text-center font-medium"></div>
+
+          <button type="submit" id="btn-submit-main-login"
+            class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 active:scale-98 transition-all cursor-pointer">
+            Entrar no Bicho Master Pro
+          </button>
+        </form>
+
+        <!-- Divisor Google -->
+        <div class="relative flex items-center justify-center pt-1">
+          <div class="border-t border-slate-800 w-full"></div>
+          <span class="bg-slate-900 px-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">ou</span>
+          <div class="border-t border-slate-800 w-full"></div>
+        </div>
+
+        <!-- Google Login -->
+        <div class="flex justify-center">
+          <div id="g_id_onload"
+               data-client_id="845233087222-1i36gghl13481vks53c8s37m6v19c118.apps.googleusercontent.com"
+               data-context="signin"
+               data-ux_mode="popup"
+               data-callback="handleGoogleCredentialResponse"
+               data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin"
+               data-type="standard"
+               data-shape="rectangular"
+               data-theme="filled_black"
+               data-text="continue_with"
+               data-size="large"
+               data-logo_alignment="left"
+               data-width="320">
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL 2: REGISTRO (5 DIAS GRÁTIS) -->
+      <div id="panel-auth-register" class="space-y-4 hidden">
+        <!-- Destaque 5 Dias -->
+        <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg shrink-0">
+            🎁
+          </div>
+          <div class="text-left">
+            <div class="text-xs font-black text-amber-300">5 Dias de Teste VIP Liberados</div>
+            <div class="text-[10px] text-slate-300">Acesse na hora palpites, centenas, Cruz do Dia e fechamentos.</div>
+          </div>
+        </div>
+
+        <form id="form-main-register" onsubmit="handleMainRegister(event)" class="space-y-3 text-left">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+              Nome Completo
+            </label>
+            <input type="text" id="reg-input-name" required placeholder="Seu nome"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-semibold focus:border-amber-500 focus:outline-none transition-colors" />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+              E-mail ou Gmail
+            </label>
+            <input type="email" id="reg-input-email" required placeholder="seu@email.com"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-semibold focus:border-amber-500 focus:outline-none transition-colors" />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+              WhatsApp com DDD (para suporte e avisos)
+            </label>
+            <input type="tel" id="reg-input-phone" placeholder="(11) 99999-9999"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-semibold focus:border-amber-500 focus:outline-none transition-colors" />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+              Crie uma Senha
+            </label>
+            <div class="relative">
+              <input type="password" id="reg-input-password" required placeholder="Mínimo 3 caracteres"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-slate-100 font-semibold focus:border-amber-500 focus:outline-none transition-colors" />
+              <button type="button" onclick="togglePasswordVisibility('reg-input-password', this)"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-amber-300 transition-colors cursor-pointer" title="Ver/Ocultar senha">
+                👁️
+              </button>
+            </div>
+          </div>
+
+          <div id="register-error-msg" class="hidden p-2.5 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs text-center font-medium"></div>
+
+          <button type="submit" id="btn-submit-main-register"
+            class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-98 transition-all cursor-pointer">
+            Começar Meus 5 Dias Grátis
+          </button>
+        </form>
+      </div>
+
+      <!-- Rodapé Discreto -->
+      <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
+        <span>Bicho Master Pro © 2026</span>
+        <button type="button" onclick="openAdminQuickPrompt()" class="hover:text-amber-400 transition-colors cursor-pointer">
+          Acesso Admin
         </button>
       </div>
     </div>
@@ -1746,33 +1829,143 @@
   <!-- =========================================================================
        MODAL DE TESTE EXPIRADO (DEGUSTAÇÃO ENCERRADA - WHATSAPP)
        ========================================================================= -->
-  <div id="modal-trial-expired" class="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden">
-    <div class="card-glass max-w-md w-full p-6 sm:p-8 rounded-3xl border border-amber-500/40 shadow-2xl space-y-6 bg-[#0B0F19] text-center">
-      <div class="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-amber-500/20 to-orange-500/20 border border-amber-500/40 flex items-center justify-center text-3xl shadow-lg">
-        🔒
-      </div>
-      <div>
-        <span class="inline-block text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 mb-2">
-          Área de Membros Pro
-        </span>
-        <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight">
-          Ativação de Acesso Pro
-        </h2>
-        <p class="text-xs text-slate-300 mt-2 leading-relaxed">
-          Para ativar ou renovar seu acesso VIP a todas as loterias e fechamentos matemáticos, fale diretamente pelo WhatsApp:
-        </p>
+    <!-- =========================================================================
+       MODAL: VITRINE DE PLANOS E ATIVAÇÃO VIP (5 PLANOS ESTRATÉGICOS)
+       ========================================================================= -->
+  <div id="modal-plans" class="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto">
+    <div class="card-glass max-w-4xl w-full p-5 sm:p-7 rounded-3xl border border-amber-500/40 shadow-2xl space-y-5 bg-[#0B0F19] text-center my-auto">
+      
+      <!-- Header do Modal -->
+      <div class="flex items-start justify-between gap-3">
+        <div class="text-left space-y-1">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-black uppercase tracking-wider">
+            <span>👑</span> <span>Área VIP Bicho Master Pro</span>
+          </div>
+          <h2 class="text-lg sm:text-2xl font-black text-white tracking-tight">
+            Escolha seu Plano e Ative seu Acesso
+          </h2>
+          <p class="text-xs text-slate-400">
+            Libere palpites estatísticos, Centena Master, Cruz do Dia e fechamentos para todas as loterias.
+          </p>
+        </div>
+        <button type="button" onclick="closePlansModal()"
+          class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition-colors cursor-pointer shrink-0">
+          ✕
+        </button>
       </div>
 
-      <!-- Botão WhatsApp Principal -->
-      <div class="space-y-3">
-        <a id="btn-whatsapp-renew" href="#" target="_blank"
-          class="w-full py-4 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 hover:from-emerald-400 hover:to-green-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2.5 transition-all transform hover:scale-[1.02] active:scale-98">
-          <span>📲 Falar no WhatsApp para Liberar Meu Acesso</span>
-        </a>
+      <!-- Grid dos 5 Planos -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-left">
+        
+        <!-- 1. Mensal -->
+        <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 flex flex-col justify-between space-y-3 transition-all relative">
+          <div>
+            <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Mensal</div>
+            <div class="mt-1">
+              <span class="text-2xl font-black text-white">R$ 14,90</span>
+              <span class="text-[11px] text-slate-400">/mês</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+              Ideal para testar por 30 dias com todas as ferramentas liberadas.
+            </p>
+          </div>
+          <button type="button" onclick="subscribePlan('monthly')"
+            class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all active:scale-95 cursor-pointer">
+            Assinar Mensal
+          </button>
+        </div>
 
-        <button type="button" onclick="handleUserLogout()"
-          class="text-xs text-slate-400 hover:text-slate-200 transition-colors py-1 cursor-pointer">
-          🚪 Sair e entrar com outra conta
+        <!-- 2. Trimestral -->
+        <div class="p-4 rounded-2xl bg-slate-900/90 border border-indigo-500/40 hover:border-indigo-500 flex flex-col justify-between space-y-3 transition-all relative shadow-lg shadow-indigo-500/5">
+          <div class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-black uppercase tracking-wider">
+            6,3% OFF
+          </div>
+          <div>
+            <div class="text-[10px] font-black uppercase tracking-wider text-indigo-400">Trimestral</div>
+            <div class="mt-1">
+              <span class="text-2xl font-black text-white">R$ 41,90</span>
+            </div>
+            <div class="text-[10px] text-indigo-300 font-bold">R$ 13,97 / mês</div>
+            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+              3 meses de acesso garantido com economia.
+            </p>
+          </div>
+          <button type="button" onclick="subscribePlan('quarterly')"
+            class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all active:scale-95 cursor-pointer">
+            Assinar Trimestral
+          </button>
+        </div>
+
+        <!-- 3. Semestral -->
+        <div class="p-4 rounded-2xl bg-slate-900/90 border border-cyan-500/40 hover:border-cyan-500 flex flex-col justify-between space-y-3 transition-all relative shadow-lg shadow-cyan-500/5">
+          <div class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-cyan-600 text-white text-[9px] font-black uppercase tracking-wider">
+            10,6% OFF
+          </div>
+          <div>
+            <div class="text-[10px] font-black uppercase tracking-wider text-cyan-400">Semestral</div>
+            <div class="mt-1">
+              <span class="text-2xl font-black text-white">R$ 79,90</span>
+            </div>
+            <div class="text-[10px] text-cyan-300 font-bold">R$ 13,31 / mês</div>
+            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+              6 meses de tranquilidade e alta assertividade diária.
+            </p>
+          </div>
+          <button type="button" onclick="subscribePlan('semiannual')"
+            class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-all active:scale-95 cursor-pointer">
+            Assinar Semestral
+          </button>
+        </div>
+
+        <!-- 4. Anual -->
+        <div class="p-4 rounded-2xl bg-slate-900/90 border border-emerald-500/40 hover:border-emerald-500 flex flex-col justify-between space-y-3 transition-all relative shadow-lg shadow-emerald-500/5">
+          <div class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider">
+            Mais Econômico
+          </div>
+          <div>
+            <div class="text-[10px] font-black uppercase tracking-wider text-emerald-400">Anual</div>
+            <div class="mt-1">
+              <span class="text-2xl font-black text-white">R$ 159,90</span>
+            </div>
+            <div class="text-[10px] text-emerald-300 font-bold">R$ 0,44 por dia!</div>
+            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+              1 ano inteiro de palpites sem se preocupar.
+            </p>
+          </div>
+          <button type="button" onclick="subscribePlan('yearly')"
+            class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all active:scale-95 cursor-pointer">
+            Assinar Anual
+          </button>
+        </div>
+
+        <!-- 5. Vitalício VIP -->
+        <div class="p-4 rounded-2xl bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-900 border-2 border-amber-500 shadow-xl shadow-amber-500/10 flex flex-col justify-between space-y-3 transition-all relative">
+          <div class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black uppercase tracking-wider">
+            VIP Vitalício
+          </div>
+          <div>
+            <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">Vitalício</div>
+            <div class="mt-1">
+              <span class="text-2xl font-black text-amber-300">R$ 297,00</span>
+            </div>
+            <div class="text-[10px] text-amber-400 font-bold">Pagamento Único • Para Sempre</div>
+            <p class="text-[11px] text-slate-300 mt-2 leading-relaxed">
+              Acesso permanente sem mensalidades nunca mais!
+            </p>
+          </div>
+          <button type="button" onclick="subscribePlan('lifetime')"
+            class="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all active:scale-95 cursor-pointer shadow-md shadow-amber-500/20">
+            Garantir Vitalício
+          </button>
+        </div>
+      </div>
+
+      <!-- Rodapé com Suporte WhatsApp -->
+      <div class="pt-3 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+        <span>Pagamento seguro via Pix com liberação imediata.</span>
+        <button type="button" onclick="subscribePlan('whatsapp')"
+          class="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1.5 transition-colors cursor-pointer">
+          <span>💬</span> <span>Falar no WhatsApp com o Suporte</span>
         </button>
       </div>
     </div>
