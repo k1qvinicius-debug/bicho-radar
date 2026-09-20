@@ -3653,8 +3653,23 @@ function updateAuthUI() {
           </div>
         `;
       }
-    }
-if (badgeContainer) badgeContainer.innerHTML = trialBadgeHtml;
+    } else {
+      if (navAdminLink) navAdminLink.classList.add('hidden');
+      if (mobAdminLink) mobAdminLink.classList.add('hidden');
+      if (drawerAdminLink) drawerAdminLink.classList.add('hidden');
+      if (drawerUserLabel) drawerUserLabel.textContent = tenant.name || 'Testador Convidado';
+      const btnHeaderPlans = document.getElementById('btn-header-plans');
+      if (btnHeaderPlans) btnHeaderPlans.classList.remove('hidden');
+      const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined) ? tenant.trial_info.days_remaining : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 5);
+      if (badgeContainer) {
+        badgeContainer.innerHTML = `
+          <div class="flex items-center gap-2 bg-slate-800/90 border border-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="font-medium">${days}d de teste</span>
+            <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair / Entrar como Admin">✕</button>
+          </div>
+        `;
+      }
     }
   } else {
     document.documentElement.classList.remove('is-authenticated');
