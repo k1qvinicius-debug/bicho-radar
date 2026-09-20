@@ -247,6 +247,9 @@ class TenantModel(BaseModel):
     created_at: Optional[str] = None
     snapshots_count: int = 0
     trial_days_remaining: Optional[int] = None
+    registration_ip: Optional[str] = None
+    last_ip: Optional[str] = None
+    device_id: Optional[str] = None
 
 
 class TenantCreateModel(BaseModel):
@@ -290,6 +293,7 @@ class LoginRequestModel(BaseModel):
     email: Optional[str] = None
     name: Optional[str] = None
     phone: Optional[str] = None
+    device_id: Optional[str] = None
 
 
 class RegisterRequestModel(BaseModel):
@@ -297,6 +301,7 @@ class RegisterRequestModel(BaseModel):
     email: str = Field(..., description="E-mail ou Gmail do usuário")
     phone: Optional[str] = Field(None, description="Número de WhatsApp com DDD")
     password: str = Field(..., description="Senha de acesso à plataforma")
+    device_id: Optional[str] = Field(None, description="Identificador único de dispositivo do cliente")
 
 
 class LoginResponseModel(BaseModel):
