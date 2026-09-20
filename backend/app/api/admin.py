@@ -251,7 +251,7 @@ def delete_tenant(tenant_id: int):
 
 @router.post("/tenants/{tenant_id}/add-trial")
 def add_trial_days(tenant_id: int, days: int = 7):
-    """Adiciona mais dias de degustação ao usuário selecionado."""
+    """Adiciona mais dias de teste ao usuário selecionado."""
     import time
     with get_db_connection() as conn:
         cursor = conn.cursor()
