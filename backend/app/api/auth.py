@@ -213,7 +213,7 @@ def register(payload: RegisterRequestModel, request: Request):
     ip = get_client_ip(request)
 
     if not email or "@" not in email:
-        raise HTTPException(status_code=400, detail="Informe um e-mail ou Gmail válido.")
+        raise HTTPException(status_code=400, detail="Informe um e-mail válido.")
 
     if not name:
         name = email.split("@")[0]
@@ -221,8 +221,8 @@ def register(payload: RegisterRequestModel, request: Request):
     if not password:
         raise HTTPException(status_code=400, detail="Defina uma senha de acesso.")
 
-    if len(password) < 3:
-        raise HTTPException(status_code=400, detail="A senha deve conter pelo menos 3 dígitos/caracteres.")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 6 caracteres.")
 
     tenant = register_new_tenant(name=name, email=email, phone=phone, password=password, ip=ip, device_id=payload.device_id)
     if not tenant:
