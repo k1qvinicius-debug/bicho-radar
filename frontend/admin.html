@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>BICHO MASTER - Painel Administrativo</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="icon" type="image/png" href="/img/favicon.png?v=35.0" />
+  <link rel="icon" type="image/png" href="/img/favicon.png?v=63.0" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-24 md:pb-12 antialiased">
@@ -15,7 +15,7 @@
     <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-2.5">
         <a href="/" class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-950 border border-amber-500/60 shadow-lg shadow-amber-500/30 flex items-center justify-center p-1 shrink-0 overflow-hidden group hover:border-amber-400 hover:shadow-amber-500/50 transition-all" title="Voltar ao Painel Principal">
-          <img src="/img/eagle_radar_icon.png?v=35.0" alt="Bicho Master" class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] group-hover:scale-105 transition-transform" />
+          <img src="/img/eagle_radar_icon.png?v=63.0" alt="Bicho Master" class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] group-hover:scale-105 transition-transform" />
         </a>
         <div>
           <h1 class="text-base font-black tracking-tight text-white flex items-center gap-1.5">
@@ -60,8 +60,14 @@
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Senha Master</label>
-          <input type="password" id="input-admin-password" required placeholder="Digite sua senha master..."
-            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 font-mono focus:border-indigo-500 focus:outline-none transition-colors" />
+          <div class="relative">
+            <input type="password" id="input-admin-password" required placeholder="Digite sua senha master..."
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-100 font-mono focus:border-indigo-500 focus:outline-none transition-colors" />
+            <button type="button" onclick="togglePasswordVisibility('input-admin-password', this)"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-amber-300 transition-colors cursor-pointer" title="Ver/Ocultar senha">
+              👁️
+            </button>
+          </div>
         </div>
         <div id="admin-login-error" class="text-xs text-rose-400 font-semibold hidden"></div>
 
@@ -554,7 +560,7 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=27.0"></script>
-  <script src="/js/admin.js?v=27.0"></script>
+  <script src="/js/api.js?v=63.0"></script>
+  <script src="/js/admin.js?v=63.0"></script>
 </body>
 </html>
