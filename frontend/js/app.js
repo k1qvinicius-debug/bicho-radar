@@ -41,7 +41,7 @@ window.handleGoogleCredentialResponse = async function(response) {
   if (!response || !response.credential) return;
   try {
     if (typeof showToast === 'function') {
-      showToast('Autenticando com Google / Gmail...', 'info');
+      showToast('Autenticando com o Google...', 'info');
     }
     const tenant = await api.loginGoogle({
       credential: response.credential,
@@ -55,10 +55,76 @@ window.handleGoogleCredentialResponse = async function(response) {
     try {
       await Promise.all([loadPrediction(), loadDrawResults()]);
     } catch (e) {}
+
+    // Se o usuário entrou com Google e ainda não definiu telefone ou senha, exibe o modal de conclusão
+    const needsPhone = !tenant.phone;
+    const hasDefaultKey = !tenant.tenant_key || tenant.tenant_key.startsWith('g_') || tenant.tenant_key.startsWith('usr_');
+    if (needsPhone || hasDefaultKey) {
+      setTimeout(() => {
+        openCompleteProfileModal();
+      }, 600);
+    }
   } catch (err) {
     console.error('Erro Google:', err);
     if (typeof showToast === 'function') {
       showToast('Erro ao entrar com Google: ' + (err.message || 'Tente novamente.'), 'error');
+    }
+  }
+};
+
+window.openCompleteProfileModal = function() {
+  const modal = document.getElementById('modal-complete-profile');
+  if (modal) {
+    modal.classList.remove('hidden');
+    const phoneInput = document.getElementById('complete-input-phone');
+    if (phoneInput) setTimeout(() => phoneInput.focus(), 100);
+  }
+};
+
+window.closeCompleteProfileModal = function() {
+  const modal = document.getElementById('modal-complete-profile');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.handleCompleteProfile = async function(event) {
+  event.preventDefault();
+  const phoneInput = document.getElementById('complete-input-phone');
+  const passInput = document.getElementById('complete-input-password');
+  const errEl = document.getElementById('complete-profile-error-msg');
+  const btn = document.getElementById('btn-submit-complete-profile');
+
+  const phone = (phoneInput?.value || '').trim();
+  const password = (passInput?.value || '').trim();
+
+  if (password && password.length < 6) {
+    if (errEl) {
+      errEl.textContent = 'A senha deve conter no mínimo 6 caracteres.';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (errEl) errEl.classList.add('hidden');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> Salvando dados...';
+  }
+
+  try {
+    await api.completeProfile({ phone, password });
+    closeCompleteProfileModal();
+    if (typeof showToast === 'function') {
+      showToast('🎉 Perfil concluído com sucesso! Aproveite seus 5 dias grátis.', 'success');
+    }
+  } catch (err) {
+    if (errEl) {
+      errEl.textContent = err.message || 'Erro ao salvar. Tente novamente.';
+      errEl.classList.remove('hidden');
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Salvar e Começar a Usar';
     }
   }
 };
