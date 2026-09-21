@@ -164,16 +164,24 @@ def get_slot_order_weight(slot: Optional[str], draw_date: Optional[str] = None) 
         return 0
     slot_upper = slot.upper().strip()
     if slot_upper in ["FED", "FEDERAL"]:
-        # Federal corre às quartas-feiras (19h) e aos domingos (11h)
+        # Federal corre às quartas-feiras (19h) e aos sábados (19h), ou domingos/feriados (11h/12h)
         if draw_date:
             try:
                 dt = datetime.strptime(str(draw_date)[:10], "%Y-%m-%d")
-                if dt.weekday() == 6:  # Domingo
+                if dt.weekday() == 6:  # Domingo: corre de manhã (11h)
                     return 11 * 60
             except Exception:
                 pass
-        elif datetime.now().weekday() == 6:
-            return 11 * 60
+        else:
+            try:
+                # Determina usando o fuso horário de Brasília (UTC-3)
+                from datetime import timezone
+                br_now = datetime.now(timezone(timedelta(hours=-3)))
+                if br_now.weekday() == 6:
+                    return 11 * 60
+            except Exception:
+                if datetime.now().weekday() == 6:
+                    return 11 * 60
         return 19 * 60
 
     fixed_weights = {
