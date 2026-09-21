@@ -244,31 +244,39 @@ def get_or_create_google_tenant(
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # Reconhece automaticamente o e-mail do Administrador Master Vinicius
-        if email_clean == "k1qvinicius@gmail.com":
-            cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com'")
+        # Reconhece automaticamente os e-mails do Administrador Master Kaique Vinicius
+        admin_emails = ("k1qvinicius@gmail.com", "k1qvinicius.cs@gmail.com")
+        if email_clean in admin_emails:
+            cursor.execute("SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ? LIMIT 1", (email_clean,))
             row = cursor.fetchone()
+            if not row:
+                cursor.execute("SELECT * FROM tenants WHERE role = 'admin' LIMIT 1")
+                row = cursor.fetchone()
+
             if row:
                 tenant = dict(row)
                 cursor.execute("""
                     UPDATE tenants 
-                    SET email = 'k1qvinicius@gmail.com', name = 'Vinicius (Master Admin)', role = 'admin',
-                        tenant_key = '0203040', status = 'active', subscription_status = 'active', plan_type = 'lifetime',
+                    SET email = ?, name = 'Kaique Vinicius (Master Admin)', role = 'admin',
+                        status = 'active', subscription_status = 'active', plan_type = 'lifetime',
                         last_active_at = ?, last_ip = COALESCE(?, last_ip), device_id = COALESCE(?, device_id)
                     WHERE id = ?
-                """, (now_str, ip, device_id, tenant["id"]))
+                """, (email_clean, now_str, ip, device_id, tenant["id"]))
+                conn.commit()
                 cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant["id"],))
                 return dict(cursor.fetchone())
             else:
+                t_key = '0203040' if email_clean == 'k1qvinicius@gmail.com' else 'Kaique10*'
                 cursor.execute("""
                     INSERT INTO tenants (
                         name, email, tenant_key, role, status,
                         auth_provider, subscription_status, plan_type, notes, created_at, last_active_at,
                         registration_ip, last_ip, device_id
-                    ) VALUES ('Vinicius (Master Admin)', 'k1qvinicius@gmail.com', '0203040', 'admin', 'active',
-                              'google', 'active', 'lifetime', 'Administrador Master Vinicius', ?, ?, ?, ?, ?)
-                """, (now_str, now_str, ip, ip, device_id))
-                cursor.execute("SELECT * FROM tenants WHERE LOWER(email) = 'k1qvinicius@gmail.com'")
+                    ) VALUES ('Kaique Vinicius (Master Admin)', ?, ?, 'admin', 'active',
+                              'google', 'active', 'lifetime', 'Administrador Master Kaique Vinicius', ?, ?, ?, ?, ?)
+                """, (email_clean, t_key, now_str, now_str, ip, ip, device_id))
+                conn.commit()
+                cursor.execute("SELECT * FROM tenants WHERE LOWER(email) = ?", (email_clean,))
                 return dict(cursor.fetchone())
 
         cursor.execute("SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ? OR tenant_key = ?", (email_clean, email_clean))
