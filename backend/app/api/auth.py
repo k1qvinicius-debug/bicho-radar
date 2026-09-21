@@ -1,3 +1,4 @@
+from pydantic import BaseModel
 """
 Endpoints de Autenticação para Testadores e Administrador Master.
 """
@@ -353,3 +354,43 @@ def check_session(tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_
         "trial_info": trial_info,
         "is_admin": tenant.get("role") == "admin"
     }
+
+class CompleteProfileModel(BaseModel):
+    phone: Optional[str] = None
+    password: Optional[str] = None
+
+
+@router.post("/complete-profile")
+def complete_profile(payload: CompleteProfileModel, tenant: Dict[str, Any] = Depends(require_tenant)):
+    """
+    Permite ao usuário que entrou com Google completar seu perfil:
+    - WhatsApp com DDD (para avisos e suporte)
+    - Senha de acesso própria (para login direto sem Google)
+    """
+    phone = (payload.phone or "").strip()
+    password = (payload.password or "").strip()
+
+    updates = []
+    params = []
+
+    if phone:
+        updates.append("phone = ?")
+        params.append(phone)
+    if password:
+        if len(password) < 6:
+            raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 6 caracteres.")
+        updates.append("tenant_key = ?")
+        params.append(password)
+
+    if updates:
+        params.append(tenant["id"])
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(f"UPDATE tenants SET {', '.join(updates)} WHERE id = ?", tuple(params))
+            conn.commit()
+            cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant["id"],))
+            updated = dict(cursor.fetchone())
+        return {"status": "ok", "tenant": updated}
+
+    return {"status": "ok", "tenant": tenant}
+
