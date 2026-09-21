@@ -351,9 +351,12 @@ window.toggleRawListsSection = function() {
 function updateHomeScreenData() {
   const tenant = api.getCurrentTenant();
   const userNameEl = document.getElementById('home-user-name');
+  const userEmail = (tenant && tenant.email ? tenant.email : '').toLowerCase();
+  const isMaster = (tenant && tenant.role === 'admin') || userEmail === 'k1qvinicius.cs@gmail.com' || userEmail === 'k1qvinicius@gmail.com';
+
   if (userNameEl) {
-    if (tenant && tenant.role === 'admin') {
-      userNameEl.innerHTML = `K. Vinicius (KVS) <span class="ml-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold font-sans align-middle shadow-sm">👑 Master</span>`;
+    if (isMaster) {
+      userNameEl.innerHTML = `Kaique Vinicius <span class="ml-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold font-sans align-middle shadow-sm">👑 Master</span>`;
     } else if (tenant && tenant.name) {
       userNameEl.textContent = tenant.name;
     } else {
@@ -3662,9 +3665,13 @@ async function initTenantAuth() {
   } else {
     // Atualiza a interface instantaneamente com os dados salvos no navegador (sem travar a tela na tela de login)
     updateAuthUI();
-    // Valida a sessão em segundo plano sem piscar login
+    // Valida e sincroniza a sessão com o servidor em tempo real
     try {
-      await api.checkSession();
+      const session = await api.checkSession();
+      if (session && session.authenticated) {
+        updateAuthUI();
+        updateHomeScreenData();
+      }
     } catch (e) {
       console.warn('Verificação de sessão em segundo plano:', e);
     }
