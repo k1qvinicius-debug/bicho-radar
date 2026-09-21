@@ -170,6 +170,22 @@ const api = {
     sessionStorage.removeItem('bicho_tenant');
   },
 
+  setToken(token) {
+    if (token) {
+      localStorage.setItem('bicho_auth_token', token);
+    } else {
+      localStorage.removeItem('bicho_auth_token');
+    }
+  },
+
+  setCurrentTenant(tenant) {
+    if (tenant) {
+      localStorage.setItem('bicho_tenant', typeof tenant === 'string' ? tenant : JSON.stringify(tenant));
+    } else {
+      localStorage.removeItem('bicho_tenant');
+    }
+  },
+
   getCurrentTenant() {
     try {
       const str = localStorage.getItem('bicho_tenant') || sessionStorage.getItem('bicho_tenant');
