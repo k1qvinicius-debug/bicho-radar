@@ -590,11 +590,21 @@ async function initSlotSelector(lottery = currentLottery) {
 let _lastKnownDrawId = null;
 let _resultsMonitorInterval = null;
 
+let _lastWebSyncTime = 0;
 function startInstantResultsMonitor() {
   if (_resultsMonitorInterval) return;
 
   _resultsMonitorInterval = setInterval(async () => {
     try {
+      // Dispara sincronização com web a cada 60s em segundo plano para manter dados frescos
+      const nowTs = Date.now();
+      if (nowTs - _lastWebSyncTime > 60000) {
+        _lastWebSyncTime = nowTs;
+        try {
+          fetch(`${API_BASE}/results/sync-web?lottery=${currentLottery}`, { method: 'POST' }).catch(() => {});
+        } catch (e) {}
+      }
+
       const res = await api.getRecentResults(currentLottery, 1);
       if (!res || res.length === 0) return;
 
@@ -640,7 +650,7 @@ function startInstantResultsMonitor() {
     } catch (e) {
       // Silencioso em caso de oscilação momentânea de rede
     }
-  }, 25000);
+  }, 12000);
 }
 
 window.toggleLotteryFilterCard = function() {
@@ -896,9 +906,21 @@ window.switchLottery = async function(lotteryCode) {
 function setupEventListeners() {
   const btnRefresh = document.getElementById('btn-refresh');
   if (btnRefresh) {
-    btnRefresh.addEventListener('click', () => {
-      loadPrediction();
-      loadDrawResults();
+    btnRefresh.addEventListener('click', async () => {
+      btnRefresh.classList.add('animate-spin');
+      try {
+        showToast('Atualizando resultados e recalculando palpites...', 'info');
+        try {
+          await fetch(`${API_BASE}/results/sync-web?lottery=${currentLottery}`, { method: 'POST' });
+        } catch (e) {}
+        await Promise.all([loadPrediction(), loadDrawResults()]);
+        updateHomeScreenData();
+        showToast('Palpites e resultados atualizados com sucesso!', 'success');
+      } catch (err) {
+        console.warn('Erro ao recalcular:', err);
+      } finally {
+        btnRefresh.classList.remove('animate-spin');
+      }
     });
   }
 
@@ -4504,7 +4526,6 @@ function renderTransitionMatrixSection(transitionData) {
         <div class="min-w-0">
           <h3 class="text-xs font-black text-cyan-300 uppercase tracking-wider flex items-center gap-1.5 flex-wrap">
             <span>Padrão Histórico de Transição</span>
-            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-500/30">Cadeias de Markov</span>
           </h3>
           <p class="text-[11px] text-slate-400 truncate">
             Dado o 1º prêmio anterior: <strong class="text-slate-200">${fromEmoji} ${fromAnimal} (Gr. ${fromGroup})</strong> no <span class="text-cyan-300 font-semibold">${fromSlot}</span>
