@@ -26,6 +26,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function checkAdminAuth() {
   const gate = document.getElementById('admin-auth-gate');
   const container = document.getElementById('admin-dashboard-container');
+
+  // Suporte a login automático via URL ?key= ou ?admin=
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlKey = urlParams.get('key') || urlParams.get('admin');
+  if (urlKey && urlKey.trim()) {
+    try {
+      const res = await api.login(urlKey.trim());
+      if (res && res.role === 'admin') {
+        const cleanUrl = new URL(window.location);
+        cleanUrl.searchParams.delete('key');
+        cleanUrl.searchParams.delete('admin');
+        window.history.replaceState({}, '', cleanUrl.toString());
+      }
+    } catch (e) {
+      console.warn('Erro ao autenticar admin via URL:', e);
+    }
+  }
+
   const isMaster = api.isAdmin();
 
   if (!isMaster) {
@@ -44,7 +62,8 @@ async function loadInitialData() {
     loadAdminSettings(),
     loadTenantsTable(),
     loadWeights(),
-    loadResultsTable()
+    loadResultsTable(),
+    loadScraperMonitor()
   ]);
   setupWeightsEvents();
 }
@@ -52,12 +71,37 @@ async function loadInitialData() {
 window.loadAdminSettings = async function() {
   try {
     const s = await api.getAdminSettings();
-    const input = document.getElementById('admin-whatsapp-input');
-    if (input && s.support_whatsapp) {
-      input.value = s.support_whatsapp;
+    const inputW = document.getElementById('admin-whatsapp-input');
+    if (inputW && s.support_whatsapp) {
+      inputW.value = s.support_whatsapp;
+    }
+    const inputG = document.getElementById('admin-google-client-id-input');
+    if (inputG && s.google_client_id) {
+      inputG.value = s.google_client_id;
     }
   } catch (err) {
     console.warn('Erro ao carregar settings:', err);
+  }
+};
+
+window.saveAdminGoogleSettings = async function() {
+  const input = document.getElementById('admin-google-client-id-input');
+  const badge = document.getElementById('google-saved-badge');
+  const btn = document.getElementById('btn-save-google-settings');
+  const val = input ? input.value.trim() : '';
+
+  if (btn) btn.disabled = true;
+  try {
+    await api.saveAdminSettings({ google_client_id: val });
+    showToast('Google Client ID salvo com sucesso!', 'success');
+    if (badge) {
+      badge.classList.remove('hidden');
+      setTimeout(() => badge.classList.add('hidden'), 3000);
+    }
+  } catch (err) {
+    showToast('Erro ao salvar Client ID: ' + err.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
   }
 };
 
@@ -90,30 +134,52 @@ window.handleAdminLogin = async function(event) {
   const btn = document.getElementById('btn-submit-admin-login');
   if (!passInput) return;
 
-  const username = userInput ? userInput.value.trim() : 'admin';
+  const rawUser = userInput ? userInput.value.trim() : '';
+  const username = rawUser || 'k1qvinicius@gmail.com';
   const password = passInput.value.trim();
 
-  errEl.classList.add('hidden');
-  btn.disabled = true;
-  btn.textContent = 'Verificando...';
+  if (!password) {
+    if (errEl) {
+      errEl.textContent = 'Digite a senha master do administrador.';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (errEl) errEl.classList.add('hidden');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+  }
 
   try {
-    const res = await api.login({ username, password, key: password });
+    const res = await api.login({ username, email: username, password, key: password });
     const role = res.role || (res.tenant && res.tenant.role);
     if (role !== 'admin') {
       api.logout();
-      throw new Error('Esta conta pertence a um testador. O painel é restrito ao Administrador Master.');
+      throw new Error('Esta conta não possui privilégios de Administrador Master.');
     }
     showToast('Administrador autenticado com sucesso!', 'success');
-    document.getElementById('admin-auth-gate').classList.add('hidden');
-    document.getElementById('admin-dashboard-container').classList.remove('hidden');
-    await loadInitialData();
+    const gate = document.getElementById('admin-auth-gate');
+    const container = document.getElementById('admin-dashboard-container');
+    if (gate) gate.classList.add('hidden');
+    if (container) container.classList.remove('hidden');
+
+    try {
+      await loadInitialData();
+    } catch (loadErr) {
+      console.warn('Aviso no carregamento inicial:', loadErr);
+    }
   } catch (err) {
-    errEl.textContent = err.message || 'Senha master incorreta.';
-    errEl.classList.remove('hidden');
+    if (errEl) {
+      errEl.textContent = err.message || 'Senha master incorreta.';
+      errEl.classList.remove('hidden');
+    }
   } finally {
-    btn.disabled = false;
-    btn.textContent = 'Entrar no Painel Master';
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Entrar no Painel Master';
+    }
   }
 };
 
@@ -227,6 +293,7 @@ function setupResultForm() {
         if (badge) badge.classList.add('hidden');
       }
       await loadResultsTable();
+      await loadScraperMonitor();
     } catch (err) {
       showToast('Erro: ' + err.message, 'error');
     }
@@ -250,6 +317,7 @@ function setupImportForm() {
       showToast(res.message, 'success');
       form.reset();
       await loadResultsTable();
+      await loadScraperMonitor();
     } catch (err) {
       showToast('Erro na importação: ' + err.message, 'error');
     }
@@ -394,6 +462,7 @@ window.deleteDraw = async function (id) {
     await api.deleteResult(id);
     showToast('Resultado excluído com sucesso.', 'success');
     await loadResultsTable();
+    await loadScraperMonitor();
   } catch (err) {
     showToast('Erro ao excluir: ' + err.message, 'error');
   }
@@ -446,16 +515,17 @@ window.loadTenantsTable = async function() {
           <div class="flex items-center gap-1.5 flex-wrap">
             <button type="button" onclick="extendTenantTrial(${t.id})"
               class="px-2.5 py-1.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-800/80 font-bold text-xs transition-all cursor-pointer shadow-sm"
-              title="Adicionar +7 dias de teste grátis para este usuário">
-              <span>+7 Dias</span>
+              title="Renovar acesso para este usuário (+30 dias)">
+              <span>+30 Dias</span>
             </button>
             <button type="button" onclick="activateTenantSubscription(${t.id})"
               class="px-2.5 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800/80 font-bold text-xs transition-all cursor-pointer shadow-sm"
               title="Ativar assinatura por 30 dias">
               <span>⭐ Ativar</span>
             </button>
-            <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${t.name.replace(/'/g, "\\'")}', this)"
-              class="px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer">
+            <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${t.name.replace(/'/g, "\\'")}', this, '${t.phone || ''}')"
+              class="px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+              title="${t.phone ? 'Abrir conversa direta no WhatsApp do usuário' : 'Copiar link e senha para envio no WhatsApp'}">
               <span>📲</span> <span>WhatsApp</span>
             </button>
             <button type="button" onclick="toggleTenantStatus(${t.id}, '${t.status}')"
@@ -475,6 +545,7 @@ window.loadTenantsTable = async function() {
             <div class="flex items-center gap-2 flex-wrap">
               <h4 class="font-black text-sm text-white">${t.name}</h4>
               ${t.email ? `<span class="text-xs text-indigo-300 font-mono bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-900/50">${t.email}</span>` : ''}
+              ${t.phone ? `<a href="https://wa.me/55${t.phone.replace(/\D/g, '')}" target="_blank" class="text-xs text-emerald-400 font-mono bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/80 hover:bg-emerald-900/60 transition-colors inline-flex items-center gap-1 font-bold" title="Conversar no WhatsApp">📱 ${t.phone}</a>` : '<span class="text-[10px] text-slate-500 font-mono italic">Sem telefone</span>'}
               ${providerBadge}
               ${roleBadge}
               ${statusBadge}
@@ -501,7 +572,7 @@ window.loadTenantsTable = async function() {
 window.extendTenantTrial = async function(id) {
   try {
     const res = await api.addTenantTrial(id);
-    showToast(res.message || '+7 dias adicionados com sucesso!', 'success');
+    showToast(res.message || 'Acesso estendido com sucesso!', 'success');
     await loadTenantsTable();
   } catch (err) {
     showToast('Erro: ' + err.message, 'error');
@@ -521,6 +592,7 @@ window.activateTenantSubscription = async function(id) {
 window.handleCreateTenant = async function(event) {
   event.preventDefault();
   const name = document.getElementById('tenant-name')?.value;
+  const phone = document.getElementById('tenant-phone')?.value;
   const key = document.getElementById('tenant-key')?.value;
   const notes = document.getElementById('tenant-notes')?.value;
   const btn = document.getElementById('btn-create-tenant');
@@ -531,6 +603,7 @@ window.handleCreateTenant = async function(event) {
 
   try {
     const payload = { name };
+    if (phone && phone.trim()) payload.phone = phone.trim();
     if (key && key.trim()) payload.tenant_key = key.trim();
     if (notes && notes.trim()) payload.notes = notes.trim();
 
@@ -546,9 +619,20 @@ window.handleCreateTenant = async function(event) {
   }
 };
 
-window.copyTenantWhatsApp = async function(key, name, btn) {
+window.copyTenantWhatsApp = async function(key, name, btn, phone = '') {
   const link = `${window.location.origin}/?key=${encodeURIComponent(key)}`;
-  const text = `Olá, ${name}!\n\nSegue seu link de acesso exclusivo para testar o BICHO RADAR:\n${link}\n\nBasta clicar no link para entrar automaticamente na sua conta de teste. Bom teste!`;
+  const text = `Olá, ${name}!\n\nSegue seu link e dados de acesso exclusivo ao BICHO MASTER PRO:\n${link}\n\nSua Senha / Chave de Acesso: ${key}\n\nBasta clicar no link para entrar automaticamente no sistema. Bons palpites!`;
+
+  if (phone) {
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length >= 8) {
+      const waUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank');
+      showToast(`Abrindo WhatsApp de ${name}...`, 'success');
+      return;
+    }
+  }
+
   const ok = await copyToClipboard(text, btn, 'Copiado!');
   if (ok) {
     showToast('Mensagem pronta para WhatsApp copiada!', 'success');
@@ -647,3 +731,129 @@ function showToast(msg, type = 'info') {
     setTimeout(() => toast.remove(), 300);
   }, 3500);
 }
+
+// =========================================================================
+// ROBÔ DE SINCRONIZAÇÃO EM SEGUNDO PLANO (AUTO-SYNC)
+// =========================================================================
+window.loadScraperMonitor = async function() {
+  try {
+    const data = await api.getScraperStatus();
+    
+    // Status Badge
+    const badge = document.getElementById('scraper-badge-status');
+    const toggleBtn = document.getElementById('btn-toggle-scraper');
+    const toggleLabel = document.getElementById('label-toggle-scraper');
+
+    if (badge) {
+      if (data.status === 'running') {
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span><span class="text-emerald-400 font-bold">Ativo & Monitorando</span>';
+        if (toggleLabel) toggleLabel.textContent = 'Pausar Robô';
+      } else if (data.status === 'paused') {
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-amber-400 font-bold">Pausado</span>';
+        if (toggleLabel) toggleLabel.textContent = 'Ativar Robô';
+      } else {
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-500"></span><span class="text-slate-400 font-bold">Parado</span>';
+        if (toggleLabel) toggleLabel.textContent = 'Iniciar Robô';
+      }
+    }
+
+    // Próximo sorteio
+    const upcomingEl = document.getElementById('scraper-upcoming-slot');
+    if (upcomingEl) {
+      const up = data.schedule && data.schedule.upcoming_draw;
+      if (up) {
+        upcomingEl.textContent = `${up.lottery} • ${up.slot_code} (${up.time}) em ${up.minutes_until}m`;
+      } else {
+        upcomingEl.textContent = 'Nenhum sorteio iminente';
+      }
+    }
+
+    // Última execução
+    const lastRunEl = document.getElementById('scraper-last-run');
+    if (lastRunEl) {
+      lastRunEl.textContent = data.last_run_at ? data.last_run_at.split(' ')[1] : 'Aguardando 1º ciclo';
+    }
+
+    // Ciclos
+    const cyclesEl = document.getElementById('scraper-total-cycles');
+    if (cyclesEl) {
+      cyclesEl.textContent = `${data.metrics ? data.metrics.total_cycles : 0} ciclos`;
+    }
+
+    // Tabela de Histórico
+    const tbody = document.getElementById('scraper-history-tbody');
+    if (tbody && data.sync_history) {
+      if (data.sync_history.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">Nenhum ciclo registrado no histórico recente.</td></tr>';
+      } else {
+        tbody.innerHTML = data.sync_history.map(item => {
+          const typeBadge = item.type === 'auto'
+            ? '<span class="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">Auto</span>'
+            : '<span class="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 text-[10px] font-bold">Manual</span>';
+          
+          const statusBadge = item.success
+            ? '<span class="text-emerald-400 font-bold">✓ OK</span>'
+            : '<span class="text-rose-400 font-bold">✗ Erro</span>';
+
+          return `
+            <tr class="hover:bg-slate-900/50 transition-colors">
+              <td class="px-3 py-2 text-slate-400 font-mono">${(item.timestamp || '').split(' ')[1] || item.timestamp}</td>
+              <td class="px-3 py-2">${typeBadge}</td>
+              <td class="px-3 py-2 font-bold text-slate-200">${item.lottery}</td>
+              <td class="px-3 py-2 text-center font-bold text-indigo-300">${item.draws_synced || 0}</td>
+              <td class="px-3 py-2 text-center font-bold text-amber-300">${item.evaluations || 0}</td>
+              <td class="px-3 py-2">${statusBadge}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+  } catch (err) {
+    console.warn('Erro ao carregar monitor de scraping:', err);
+  }
+};
+
+window.handleToggleScraper = async function() {
+  try {
+    const res = await api.toggleScraper();
+    showToast(res.auto_sync_enabled ? 'Robô de sincronização ativado!' : 'Robô de sincronização pausado.', 'info');
+    await loadScraperMonitor();
+  } catch (err) {
+    showToast('Erro ao alternar robô: ' + err.message, 'error');
+  }
+};
+
+window.handleRunScraperNow = async function() {
+  const btn = document.getElementById('btn-run-scraper-now');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> <span>Sincronizando...</span>';
+  }
+  try {
+    const res = await api.runScraperNow();
+    showToast(`Sincronização concluída! ${res.draws_synced || 0} sorteios atualizados.`, 'success');
+    await loadScraperMonitor();
+    if (typeof loadResultsTable === 'function') await loadResultsTable();
+    await loadScraperMonitor();
+  } catch (err) {
+    showToast('Erro ao sincronizar: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>⚡</span> <span>Sincronizar Agora</span>';
+    }
+  }
+};
+
+
+window.togglePasswordVisibility = function(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
+  }
+};
