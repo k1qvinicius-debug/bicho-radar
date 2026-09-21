@@ -188,11 +188,27 @@ const api = {
         headers: { ...getAuthHeaders() },
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: 'Erro' }));
-        notifyTrialExpiredIfForbidden(res.status, err);
         return { authenticated: false };
       }
-      return await res.json();
+      const data = await res.json();
+      if (data && data.authenticated) {
+        if (data.token) {
+          this.setToken(data.token);
+        }
+        const tenantData = {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          role: data.role,
+          subscription_status: data.subscription_status,
+          trial_days_remaining: (data.trial_info && data.trial_info.days_remaining !== undefined) ? data.trial_info.days_remaining : null,
+          is_admin: data.is_admin
+        };
+        this.setCurrentTenant(tenantData);
+        return { authenticated: true, tenant: tenantData, token: data.token };
+      }
+      return { authenticated: false };
     } catch {
       return { authenticated: false };
     }
