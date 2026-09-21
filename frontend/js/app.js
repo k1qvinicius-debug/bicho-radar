@@ -3731,11 +3731,14 @@ function updateAuthUI() {
     if (mainContainer) mainContainer.classList.remove('hidden');
     if (mobBottomNav) mobBottomNav.classList.remove('hidden');
 
-    if (tenant.role === 'admin') {
+    const userEmail = (tenant.email || '').toLowerCase();
+    const isMasterAdmin = tenant.role === 'admin' || userEmail === 'k1qvinicius.cs@gmail.com' || userEmail === 'k1qvinicius@gmail.com';
+
+    if (isMasterAdmin) {
       if (navAdminLink) navAdminLink.classList.remove('hidden');
       if (mobAdminLink) mobAdminLink.classList.remove('hidden');
       if (drawerAdminLink) drawerAdminLink.classList.remove('hidden');
-      if (drawerUserLabel) drawerUserLabel.textContent = 'K. Vinicius (Master Vitalício)';
+      if (drawerUserLabel) drawerUserLabel.textContent = 'Kaique Vinicius (Master Vitalício)';
       if (btnHeaderPlans) btnHeaderPlans.classList.add('hidden');
       if (badgeContainer) {
         badgeContainer.innerHTML = `
