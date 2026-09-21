@@ -23,7 +23,7 @@ window.handleQuickMasterSwitch = async function() {
 };
 
 window.API_BASE = window.API_BASE || '/api';
-const API_BASE = window.API_BASE;
+var API_BASE = window.API_BASE;
 
 window.setupGoogleIdentity = async function() {
   try {
