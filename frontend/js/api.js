@@ -1,5 +1,5 @@
-window.API_BASE = '/api';
-const API_BASE = window.API_BASE;
+window.API_BASE = window.API_BASE || '/api';
+var API_BASE = window.API_BASE;
 /**
  * Cliente HTTP da API REST - Bicho Analytics
  * Gerencia requisições autenticadas, multi-tenancy e controle de sessão.
