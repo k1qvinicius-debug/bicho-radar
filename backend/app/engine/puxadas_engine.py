@@ -214,7 +214,7 @@ def get_puxadas_analysis(
         last_draw = None
 
         if target_slot and target_date:
-            target_weight = get_slot_order_weight(target_slot)
+            target_weight = get_slot_order_weight(target_slot, target_date)
             query = f"SELECT * FROM draw_results WHERE {lot_filter} AND draw_date <= ? ORDER BY draw_date DESC, id DESC LIMIT 60"
             cursor.execute(query, lot_params + [target_date])
             candidates = [dict(r) for r in cursor.fetchall()]
@@ -230,7 +230,7 @@ def get_puxadas_analysis(
                 ]
 
                 if valid_candidates:
-                    valid_candidates.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot")), d.get("id", 0)), reverse=True)
+                    valid_candidates.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot"), d.get("draw_date")), d.get("id", 0)), reverse=True)
                     last_draw = valid_candidates[0]
 
         if not last_draw:
@@ -242,7 +242,7 @@ def get_puxadas_analysis(
                     filtered = [d for d in recent_rows if d["draw_date"] <= target_date]
                     if filtered:
                         recent_rows = filtered
-                recent_rows.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot")), d.get("id", 0)), reverse=True)
+                recent_rows.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot"), d.get("draw_date")), d.get("id", 0)), reverse=True)
                 last_draw = recent_rows[0]
 
     if not last_draw:
