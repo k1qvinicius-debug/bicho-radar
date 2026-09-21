@@ -330,6 +330,8 @@ def register_new_tenant(
 
     if not password_clean:
         password_clean = generate_clean_key("usr")
+    elif len(password_clean) < 6:
+        raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 6 caracteres.")
 
     now = datetime.now()
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
