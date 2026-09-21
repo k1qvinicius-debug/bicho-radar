@@ -48,7 +48,7 @@ def _build_transition_matrix_for_lottery(lottery: str = "RJ") -> Dict[str, Any]:
 
     # Ordena rigorosamente por data e ordem de horário
     sorted_draws = [dict(r) for r in rows]
-    sorted_draws.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot"))))
+    sorted_draws.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot"), d.get("draw_date")), d.get("id", 0)))
 
     # Matrizes de contagem
     # chave: f"{slot_origem}_{grp_origem}_{slot_destino}"
