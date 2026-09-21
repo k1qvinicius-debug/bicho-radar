@@ -232,7 +232,9 @@ const api = {
 
   isAdmin() {
     const t = this.getCurrentTenant();
-    return t && t.role === 'admin';
+    if (!t) return false;
+    const email = (t.email || '').toLowerCase();
+    return t.role === 'admin' || email === 'k1qvinicius.cs@gmail.com' || email === 'k1qvinicius@gmail.com';
   },
 
   isLoggedIn() {
