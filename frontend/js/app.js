@@ -1839,7 +1839,7 @@ function renderDashboard(data) {
   // 0. Fechamento Híbrido Anti-Aleatoriedade
   renderHybridSection(data.hybrid_combo);
 
-  // Transição Histórica (Cadeias de Markov)
+  // Transição Histórica
   renderTransitionMatrixSection(data.transition_data);
 
   // 1. Palpites Agrupados por Animal
@@ -4463,7 +4463,7 @@ window.copyTrackedMilhar = function(btn) {
 };
 
 /* ==========================================================================
-   RADAR DE TRANSIÇÃO HISTÓRICA (CADEIAS DE MARKOV - ALTA PRECISÃO)
+   RADAR DE TRANSIÇÃO HISTÓRICA
    ========================================================================== */
 function renderTransitionMatrixSection(transitionData) {
   const container = document.getElementById('transition-matrix-card');
