@@ -1,8 +1,10 @@
+window.API_BASE = '/api';
+const API_BASE = window.API_BASE;
 /**
  * Cliente HTTP da API REST - Bicho Analytics
  * Gerencia requisições autenticadas, multi-tenancy e controle de sessão.
  */
-const API_BASE = '/api';
+
 
 function getAuthHeaders() {
   const token = localStorage.getItem('bicho_auth_token') || sessionStorage.getItem('bicho_auth_token');
@@ -111,12 +113,20 @@ const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Falha ao cadastrar perfil.' }));
-      notifyTrialExpiredIfForbidden(res.status, err);
-      throw new Error(err.detail || 'Falha ao cadastrar perfil.');
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (e) {
+      data = null;
     }
-    const data = await res.json();
+    if (!res.ok) {
+      const detail = (data && data.detail) ? data.detail : 'Falha ao cadastrar perfil.';
+      notifyTrialExpiredIfForbidden(res.status, data || {});
+      throw new Error(detail);
+    }
+    if (!data || !data.token) {
+      throw new Error('Servidor retornou resposta inesperada ao criar conta.');
+    }
     localStorage.setItem('bicho_auth_token', data.token);
     localStorage.setItem('bicho_tenant', JSON.stringify(data.tenant));
 
