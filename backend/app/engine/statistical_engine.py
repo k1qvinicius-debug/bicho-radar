@@ -61,13 +61,13 @@ class StatisticalEngine:
             rows = cursor.fetchall()
             from ..domain import get_slot_order_weight
             results = [dict(r) for r in rows]
-            results.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot"))))
+            results.sort(key=lambda d: (d["draw_date"], get_slot_order_weight(d.get("slot"), d.get("draw_date")), d.get("id", 0)))
 
             if cutoff_date and cutoff_slot:
-                cutoff_weight = get_slot_order_weight(cutoff_slot)
+                cutoff_weight = get_slot_order_weight(cutoff_slot, cutoff_date)
                 results = [
                     d for d in results
-                    if d["draw_date"] < cutoff_date or (d["draw_date"] == cutoff_date and get_slot_order_weight(d.get("slot")) < cutoff_weight)
+                    if d["draw_date"] < cutoff_date or (d["draw_date"] == cutoff_date and get_slot_order_weight(d.get("slot"), d.get("draw_date")) < cutoff_weight)
                 ]
 
             return results
