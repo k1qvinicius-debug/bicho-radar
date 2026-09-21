@@ -540,8 +540,8 @@ def init_db() -> None:
             if "device_id" not in tenant_cols:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN device_id TEXT")
 
-        # Garante que a conta Master Admin exista com e-mail k1qvinicius@gmail.com, chave 0203040 e status ativo
-        cursor.execute("SELECT id FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com'")
+        # Garante que a conta Master Admin k1qvinicius@gmail.com exista com chave 0203040
+        cursor.execute("SELECT id FROM tenants WHERE LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com' LIMIT 1")
         admin_row = cursor.fetchone()
         if not admin_row:
             cursor.execute("""
@@ -552,13 +552,27 @@ def init_db() -> None:
             cursor.execute("""
             UPDATE tenants 
             SET tenant_key = '0203040', 
-                email = 'k1qvinicius@gmail.com', 
                 name = 'Vinicius (Master Admin)', 
                 role = 'admin',
                 subscription_status = 'active', 
-                status = 'active' 
+                status = 'active',
+                plan_type = 'lifetime'
             WHERE id = ?
             """, (admin_row[0],))
+
+        # Garante que a conta k1qvinicius.cs@gmail.com também seja Master Admin
+        cursor.execute("SELECT id FROM tenants WHERE LOWER(COALESCE(email, '')) = 'k1qvinicius.cs@gmail.com' LIMIT 1")
+        cs_row = cursor.fetchone()
+        if cs_row:
+            cursor.execute("""
+            UPDATE tenants 
+            SET name = 'Kaique Vinicius (Master Admin)', 
+                role = 'admin',
+                subscription_status = 'active', 
+                status = 'active',
+                plan_type = 'lifetime'
+            WHERE id = ?
+            """, (cs_row[0],))
 
         # Insere configuração de peso padrão se a tabela estiver vazia
         cursor.execute("SELECT COUNT(*) FROM engine_weights")
