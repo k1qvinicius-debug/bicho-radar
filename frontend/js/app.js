@@ -4926,16 +4926,22 @@ window.handleMainRegister = async function(event) {
     }
 
     // Salva sessão localmente
-    api.setToken(data.token);
-    if (data.tenant) {
-      api.setCurrentTenant(data.tenant);
+    if (data.token) {
+      localStorage.setItem('bicho_auth_token', data.token);
     }
+    if (data.tenant) {
+      localStorage.setItem('bicho_tenant', JSON.stringify(data.tenant));
+    }
+    if (typeof api.setToken === 'function') api.setToken(data.token);
+    if (typeof api.setCurrentTenant === 'function') api.setCurrentTenant(data.tenant);
 
     document.documentElement.classList.add('is-authenticated');
     updateAuthUI();
 
-    // Notificação de boas-vindas
-    alert(`🎉 Parabéns, ${data.tenant?.name || 'Usuário'}! Seus 5 dias de teste grátis foram ativados com sucesso.`);
+    showToast(`🎉 Parabéns, ${data.tenant?.name || 'Usuário'}! Seus 5 dias de teste grátis foram ativados com sucesso.`, 'success');
+    try {
+      await Promise.all([loadPrediction(), loadDrawResults()]);
+    } catch (e) {}
   } catch (err) {
     console.error('Erro de cadastro:', err);
     if (errEl) {
