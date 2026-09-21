@@ -1,3 +1,12 @@
+window.loginAndGoToDashboard = async function() {
+  try {
+    await api.login('0203040');
+    window.location.href = '/?admin';
+  } catch (err) {
+    window.location.href = '/?admin';
+  }
+};
+
 window.quickAdminMasterLogin = async function() {
   try {
     const res = await api.login('0203040');
