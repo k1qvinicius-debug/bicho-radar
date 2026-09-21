@@ -38,7 +38,7 @@ function getOrCreateDeviceId() {
     if (!id) {
       id = 'dev_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now().toString(36);
       localStorage.setItem('bm_device_id', id);
-      document.cookie = m_device_id=; max-age=31536000; path=/; SameSite=Lax;
+      document.cookie = `bm_device_id=${id}; max-age=31536000; path=/; SameSite=Lax`;
     }
   } catch (e) {
     id = 'dev_fallback_' + Date.now();
@@ -62,7 +62,7 @@ const api = {
     }
     payload.device_id = getOrCreateDeviceId();
 
-    const res = await fetch(${API_BASE}/auth/login, {
+    const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -84,7 +84,7 @@ const api = {
   async loginGoogle(payload) {
     payload = payload || {};
     payload.device_id = getOrCreateDeviceId();
-    const res = await fetch(${API_BASE}/auth/google, {
+    const res = await fetch(`${API_BASE}/auth/google`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -106,7 +106,7 @@ const api = {
   async register(payload) {
     payload = payload || {};
     payload.device_id = getOrCreateDeviceId();
-    const res = await fetch(${API_BASE}/auth/register, {
+    const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
