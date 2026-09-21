@@ -3888,7 +3888,7 @@ window.handleProfileRegister = async function(event) {
 
   if (!email || !email.includes('@')) {
     if (errEl) {
-      errEl.textContent = 'Por favor, informe um e-mail válido (ex: seu.nome@gmail.com).';
+      errEl.textContent = 'Por favor, informe um e-mail válido (ex: seu@email.com).';
       errEl.classList.remove('hidden');
     }
     return;
@@ -3902,9 +3902,9 @@ window.handleProfileRegister = async function(event) {
     return;
   }
 
-  if (!password || password.length < 3) {
+  if (!password || password.length < 6) {
     if (errEl) {
-      errEl.textContent = 'A senha de acesso deve conter pelo menos 3 caracteres.';
+      errEl.textContent = 'A senha de acesso deve conter pelo menos 6 caracteres.';
       errEl.classList.remove('hidden');
     }
     return;
@@ -4899,6 +4899,14 @@ window.handleMainRegister = async function(event) {
     return;
   }
 
+  if (password.length < 6) {
+    if (errEl) {
+      errEl.textContent = 'A senha de acesso deve ter no mínimo 6 caracteres.';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
   if (errEl) errEl.classList.add('hidden');
   if (btn) {
     btn.disabled = true;
@@ -4931,7 +4939,21 @@ window.handleMainRegister = async function(event) {
   } catch (err) {
     console.error('Erro de cadastro:', err);
     if (errEl) {
-      errEl.textContent = err.message || 'Erro ao realizar cadastro. Tente novamente.';
+      const msg = err.message || 'Erro ao realizar cadastro. Tente novamente.';
+      const isAlreadyUser = msg.toLowerCase().includes('já') || msg.toLowerCase().includes('existe') || msg.toLowerCase().includes('cadastrado');
+      if (isAlreadyUser) {
+        errEl.innerHTML = `
+          <div>${msg}</div>
+          <div class="mt-2 pt-1.5 border-t border-red-500/30">
+            <button type="button" onclick="switchAuthGateTab('login'); document.getElementById('login-input-identity').value='${email}'; document.getElementById('login-input-password').focus();"
+              class="text-amber-300 hover:text-amber-200 font-bold underline cursor-pointer text-xs">
+              Entrar agora com este e-mail ➔
+            </button>
+          </div>
+        `;
+      } else {
+        errEl.textContent = msg;
+      }
       errEl.classList.remove('hidden');
     }
   } finally {
