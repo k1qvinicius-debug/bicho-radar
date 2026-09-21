@@ -3542,18 +3542,23 @@ function formatDateBR(dateStr) {
    ========================================================================== */
 async function initTenantAuth() {
   const urlParams = new URLSearchParams(window.location.search);
-  const urlKey = urlParams.get('key');
+  const urlKey = urlParams.get('key') || urlParams.get('admin');
   if (urlKey && urlKey.trim()) {
     try {
       const tenant = await api.login(urlKey.trim());
       if (tenant) {
-        showToast(`Olá, ${tenant.name || 'Testador'}! Acesso ativado.`, 'success');
+        document.documentElement.classList.add('is-authenticated');
+        updateAuthUI();
+        const displayName = (tenant.role === 'admin') ? 'Vinicius (Master Admin)' : (tenant.name || 'Testador');
+        showToast(`Olá, ${displayName}! Acesso ativado com sucesso.`, 'success');
         const cleanUrl = new URL(window.location);
         cleanUrl.searchParams.delete('key');
+        cleanUrl.searchParams.delete('admin');
         window.history.replaceState({}, '', cleanUrl.toString());
       }
     } catch (err) {
-      showToast('Chave de acesso inválida ou suspensa.', 'error');
+      console.warn('Erro ao autenticar via chave de URL:', err);
+      showToast('Chave de acesso inválida ou suspensa: ' + (err.message || ''), 'error');
     }
   } else {
     // Atualiza a interface instantaneamente com os dados salvos no navegador (sem travar a tela na tela de login)
@@ -4068,9 +4073,16 @@ window.handleUserLogin = async function(event) {
 window.handleUserLogout = function() {
   const expiredModal = document.getElementById('modal-trial-expired');
   if (expiredModal) expiredModal.classList.add('hidden');
+  const plansModal = document.getElementById('modal-plans');
+  if (plansModal) plansModal.classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
   api.logout();
+  document.documentElement.classList.remove('is-authenticated');
   updateAuthUI();
   showToast('Desconectado com sucesso.', 'info');
+  setTimeout(() => {
+    window.location.href = '/';
+  }, 350);
 };
 
 // =========================================================================
@@ -4924,6 +4936,22 @@ window.openAdminQuickPrompt = function() {
 // ===================================================================
 // ASSINATURA E PLANOS VIP
 // ===================================================================
+window.openPlansModal = function() {
+  const modal = document.getElementById('modal-plans');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  }
+};
+
+window.closePlansModal = function() {
+  const modal = document.getElementById('modal-plans');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+};
+
 window.subscribePlan = async function(planKey) {
   const planNames = {
     'monthly': 'Plano Mensal (R$ 14,90)',
