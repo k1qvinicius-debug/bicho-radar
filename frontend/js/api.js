@@ -135,6 +135,31 @@ const api = {
     return result;
   },
 
+  async completeProfile({ phone, password }) {
+    const res = await fetch(`${API_BASE}/auth/complete-profile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ phone, password })
+    });
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (e) {
+      data = null;
+    }
+    if (!res.ok) {
+      const detail = (data && data.detail) ? data.detail : 'Falha ao atualizar dados.';
+      throw new Error(detail);
+    }
+    if (data && data.tenant) {
+      localStorage.setItem('bicho_tenant', JSON.stringify(data.tenant));
+    }
+    return data;
+  },
+
   async getPublicSettings() {
     try {
       const res = await fetch(`${API_BASE}/auth/settings`);
