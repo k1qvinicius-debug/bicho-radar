@@ -341,13 +341,15 @@ def get_current_user(tenant: Dict[str, Any] = Depends(require_tenant)):
 
 @router.get("/check")
 def check_session(tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional)):
-    """Verifica se há sessão válida ativa sem disparar erro 401."""
+    """Verifica se há sessão válida ativa sem disparar erro 401 e retorna token atualizado."""
     if not tenant:
         return {"authenticated": False}
-    from ..auth import calculate_trial_info
+    from ..auth import calculate_trial_info, create_token_for_tenant
     trial_info = tenant.get("trial_info") or calculate_trial_info(tenant)
+    fresh_token = create_token_for_tenant(tenant)
     return {
         "authenticated": True,
+        "token": fresh_token,
         "id": tenant["id"],
         "name": tenant["name"],
         "email": tenant.get("email"),
