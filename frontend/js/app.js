@@ -40,17 +40,26 @@ window.setupGoogleIdentity = async function() {
 window.handleGoogleCredentialResponse = async function(response) {
   if (!response || !response.credential) return;
   try {
-    showToast('Autenticando conta Google salva...', 'info');
+    if (typeof showToast === 'function') {
+      showToast('Autenticando com Google / Gmail...', 'info');
+    }
     const tenant = await api.loginGoogle({
       credential: response.credential,
       provider: 'google'
     });
-    showToast(`Bem-vindo, ${tenant.name || 'Usuário'}!`, 'success');
-    closeGoogleSignupModal();
-    updateAuthUI();
-    await Promise.all([loadPrediction(), loadDrawResults()]);
+    document.documentElement.classList.add('is-authenticated');
+    if (typeof updateAuthUI === 'function') updateAuthUI();
+    if (typeof showToast === 'function') {
+      showToast(`🎉 Bem-vindo, ${tenant.name || 'Usuário'}! Seus 5 dias de teste grátis foram ativados com sucesso!`, 'success');
+    }
+    try {
+      await Promise.all([loadPrediction(), loadDrawResults()]);
+    } catch (e) {}
   } catch (err) {
-    showToast('Erro ao logar com conta Google: ' + err.message, 'error');
+    console.error('Erro Google:', err);
+    if (typeof showToast === 'function') {
+      showToast('Erro ao entrar com Google: ' + (err.message || 'Tente novamente.'), 'error');
+    }
   }
 };
 
@@ -4893,11 +4902,30 @@ window.handleMainRegister = async function(event) {
   const phone = (phoneInput?.value || '').trim();
   const password = (passInput?.value || '').trim();
 
-  if (!email || !password) {
+  if (!name) {
     if (errEl) {
-      errEl.textContent = 'Preencha seu e-mail e crie uma senha.';
+      errEl.textContent = 'Por favor, informe seu nome completo.';
       errEl.classList.remove('hidden');
     }
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  if (!email || !email.includes('@')) {
+    if (errEl) {
+      errEl.textContent = 'Por favor, informe um e-mail válido (ex: seu@gmail.com).';
+      errEl.classList.remove('hidden');
+    }
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
+  if (!password) {
+    if (errEl) {
+      errEl.textContent = 'Por favor, crie uma senha de acesso.';
+      errEl.classList.remove('hidden');
+    }
+    if (passInput) passInput.focus();
     return;
   }
 
@@ -4906,6 +4934,7 @@ window.handleMainRegister = async function(event) {
       errEl.textContent = 'A senha de acesso deve ter no mínimo 6 caracteres.';
       errEl.classList.remove('hidden');
     }
+    if (passInput) passInput.focus();
     return;
   }
 
