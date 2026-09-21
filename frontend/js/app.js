@@ -1,3 +1,5 @@
+window.API_BASE = window.API_BASE || '/api';
+const API_BASE = window.API_BASE;
 
 window.setupGoogleIdentity = async function() {
   try {
@@ -4914,38 +4916,22 @@ window.handleMainRegister = async function(event) {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone, password })
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.detail || 'Erro ao realizar cadastro.');
-    }
-
-    // Salva sessão localmente
-    if (data.token) {
-      localStorage.setItem('bicho_auth_token', data.token);
-    }
-    if (data.tenant) {
-      localStorage.setItem('bicho_tenant', JSON.stringify(data.tenant));
-    }
-    if (typeof api.setToken === 'function') api.setToken(data.token);
-    if (typeof api.setCurrentTenant === 'function') api.setCurrentTenant(data.tenant);
+    const data = await api.register({ name, email, phone, password });
 
     document.documentElement.classList.add('is-authenticated');
     updateAuthUI();
 
-    showToast(`🎉 Parabéns, ${data.tenant?.name || 'Usuário'}! Seus 5 dias de teste grátis foram ativados com sucesso.`, 'success');
+    showToast(`🎉 Parabéns, ${data.name || 'Usuário'}! Seus 5 dias de teste grátis foram ativados com sucesso.`, 'success');
     try {
       await Promise.all([loadPrediction(), loadDrawResults()]);
     } catch (e) {}
   } catch (err) {
     console.error('Erro de cadastro:', err);
     if (errEl) {
-      const msg = err.message || 'Erro ao realizar cadastro. Tente novamente.';
+      let msg = err.message || 'Erro ao realizar cadastro. Tente novamente.';
+      if (msg.includes('pattern') || msg.includes('Unexpected') || msg.includes('JSON') || msg.includes('fetch') || msg.includes('SyntaxError')) {
+        msg = 'Erro de comunicação com o servidor. Verifique sua conexão e tente novamente.';
+      }
       const isAlreadyUser = msg.toLowerCase().includes('já') || msg.toLowerCase().includes('existe') || msg.toLowerCase().includes('cadastrado');
       if (isAlreadyUser) {
         errEl.innerHTML = `
