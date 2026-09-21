@@ -47,10 +47,13 @@ def login(payload: LoginRequestModel, request: Request):
     pass_val = (payload.password or "").strip()
     key_val = (payload.key or "").strip()
 
-    if user_val in ("admin", "k1qvinicius@gmail.com", "k1qvinicius") and pass_val in ("0203040", "admin123", "admin", "adminmaster"):
+    admin_identities = ("admin", "k1qvinicius@gmail.com", "k1qvinicius.cs@gmail.com", "k1qvinicius", "kaique")
+    admin_passwords = ("0203040", "admin123", "admin", "adminmaster", "Kaique10*")
+
+    if user_val in admin_identities and pass_val in admin_passwords:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com' LIMIT 1")
+            cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) IN ('k1qvinicius@gmail.com', 'k1qvinicius.cs@gmail.com') LIMIT 1")
             row = cursor.fetchone()
             if row:
                 tenant = dict(row)
@@ -58,10 +61,10 @@ def login(payload: LoginRequestModel, request: Request):
     # Caso 2: Login por Chave de Acesso direta ou Senha Master
     if not tenant and (key_val or pass_val):
         check_val = key_val or pass_val
-        if check_val in ("0203040", "admin123", "admin", "adminmaster"):
+        if check_val in admin_passwords:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com' LIMIT 1")
+                cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) IN ('k1qvinicius@gmail.com', 'k1qvinicius.cs@gmail.com') LIMIT 1")
                 row = cursor.fetchone()
                 if row:
                     tenant = dict(row)
