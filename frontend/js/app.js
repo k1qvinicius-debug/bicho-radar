@@ -589,35 +589,56 @@ async function initSlotSelector(lottery = currentLottery) {
       return;
     }
 
-    // Determina horário automático: prioriza o primeiro horário que AINDA NÃO FOI APURADO hoje
+    // Determina horário alvo automático com precisão em tempo real
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const isToday = !targetDate || targetDate === todayStr;
 
-    // Coleta slots já apurados hoje no cache de resultados recentes
+    // Coleta slots já apurados hoje no backend
     const drawnCodes = new Set();
-    if (isToday && typeof recentResults !== 'undefined' && recentResults && recentResults.length > 0) {
-      recentResults.forEach(r => {
-        if (r.draw_date === todayStr && (r.lottery === lottery || (!r.lottery && lottery === 'RJ') || (lottery === 'FEDERAL' && r.slot === 'FED'))) {
-          if (r.slot) drawnCodes.add(r.slot.toUpperCase());
-        }
-      });
+    if (isToday) {
+      try {
+        const resData = await api.getResults(30, 0, lottery);
+        const items = resData?.items || [];
+        items.forEach(r => {
+          if (r.draw_date === todayStr) {
+            const rLot = (r.lottery || 'RJ').toUpperCase();
+            if (rLot === lottery.toUpperCase() || (lottery === 'FEDERAL' && r.slot === 'FED')) {
+              if (r.slot) drawnCodes.add(r.slot.toUpperCase());
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Não foi possível verificar apurações de hoje:', e);
+      }
     }
 
     let defaultSlot = slots[0].code;
-    const pendingSlot = slots.find(s => !drawnCodes.has(s.code.toUpperCase()));
-    if (pendingSlot) {
-      defaultSlot = pendingSlot.code;
-    } else {
-      const minutes = now.getHours() * 60 + now.getMinutes();
-      for (const s of slots) {
-        if (s.time) {
-          const parts = s.time.split(':');
-          const sMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-          if (minutes <= sMin) {
-            defaultSlot = s.code;
-            break;
-          }
+
+    if (isToday) {
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      // Encontra o próximo horário alvo que:
+      // 1. Ainda NÃO foi apurado hoje (não está em drawnCodes)
+      // 2. E cujo horário no relógio ainda não passou (tolerância máx 5 min)
+      const upcomingSlot = slots.find(s => {
+        const isDrawn = drawnCodes.has(s.code.toUpperCase());
+        if (isDrawn) return false;
+        const sMin = getSlotMinutes(s, todayStr);
+        return sMin >= (currentMinutes - 5);
+      });
+
+      if (upcomingSlot) {
+        defaultSlot = upcomingSlot.code;
+      } else {
+        // Se todos os horários futuros já passaram ou foram apurados,
+        // procura qualquer slot de hoje que ainda esteja pendente de apuração
+        const anyPending = slots.find(s => !drawnCodes.has(s.code.toUpperCase()));
+        if (anyPending) {
+          defaultSlot = anyPending.code;
+        } else {
+          // Se todos os slots de hoje já foram apurados, seleciona o último do dia
+          defaultSlot = slots[slots.length - 1].code;
         }
       }
     }
@@ -635,7 +656,6 @@ async function initSlotSelector(lottery = currentLottery) {
     console.error('Erro ao inicializar horários:', err);
   }
 }
-
 
 /* ==========================================================================
    MONITOR EM TEMPO REAL: DETECÇÃO INSTANTÂNEA DE NOVAS APURAÇÕES
@@ -699,6 +719,29 @@ function startInstantResultsMonitor() {
         const p1 = latest.prize_1 || '----';
         const animalInfo = latest.animal ? `(${latest.animal.toUpperCase()})` : '';
         showToast(`⚡ Novo resultado apurado: ${latest.slot} - ${p1} ${animalInfo}! Palpites e Puxadas atualizados instantaneamente.`, 'success');
+      } else {
+        // Verifica periodicamente se o horário do slot atualmente selecionado já expirou no relógio de hoje
+        const targetDate = document.getElementById('target-date')?.value || null;
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        if (!targetDate || targetDate === todayStr) {
+          const slotSelect = document.getElementById('target-slot');
+          if (slotSelect && slotSelect.value && Array.isArray(standardSlotsList) && standardSlotsList.length > 0) {
+            const currentSlotCode = slotSelect.value;
+            const currentSlotMeta = standardSlotsList.find(s => s.code === currentSlotCode);
+            if (currentSlotMeta) {
+              const currentSlotMin = getSlotMinutes(currentSlotMeta, todayStr);
+              const nowMinutes = now.getHours() * 60 + now.getMinutes();
+              if (nowMinutes > (currentSlotMin + 5)) {
+                await initSlotSelector(currentLottery);
+                if (api.isLoggedIn()) {
+                  await loadPrediction();
+                }
+                updateHomeScreenData();
+              }
+            }
+          }
+        }
       }
     } catch (e) {
       // Silencioso em caso de oscilação momentânea de rede
