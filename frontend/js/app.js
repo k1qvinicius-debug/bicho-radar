@@ -1967,6 +1967,9 @@ function renderDashboard(data) {
   // 0. Fechamento Híbrido Anti-Aleatoriedade
   renderHybridSection(data.hybrid_combo);
 
+  // 0.1 Radar de Quebra de Padrão & Proteção Contra-Banca
+  renderPatternBreakSection(data.pattern_break);
+
   // Transição Histórica
   renderTransitionMatrixSection(data.transition_data);
 
@@ -2237,6 +2240,145 @@ function renderAnimalCards(data) {
       </div>
     `;
   }).join('');
+}
+
+
+/* ==========================================================================
+   RADAR DE QUEBRA DE PADRÃO & PROTEÇÃO CONTRA-BANCA
+   ========================================================================== */
+function renderPatternBreakSection(pb) {
+  const card = document.getElementById('pattern-break-card');
+  if (!card) return;
+
+  if (!pb || !pb.primary_break_animal) {
+    card.classList.add('hidden');
+    card.innerHTML = '';
+    return;
+  }
+
+  card.classList.remove('hidden');
+
+  let borderStyle = 'border-rose-500/40 bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-900 shadow-rose-950/20';
+  let badgeStyle = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+
+  if (pb.risk_level === 'MODERADO') {
+    borderStyle = 'border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-900 to-slate-900 shadow-amber-950/20';
+    badgeStyle = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+  } else if (pb.risk_level === 'BAIXO') {
+    borderStyle = 'border-emerald-500/30 bg-gradient-to-br from-emerald-950/20 via-slate-900 to-slate-900 shadow-emerald-950/20';
+    badgeStyle = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+  }
+
+  const b1 = pb.primary_break_animal;
+  const b2 = pb.secondary_break_animal;
+  const hedges = pb.hedge_combos || [];
+  const protTens = pb.protection_tens || [];
+  const protHundreds = pb.protection_hundreds || [];
+
+  const hedgesHtml = hedges.map(h => `
+    <div class="p-2 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-mono font-black text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">${h.tens_formatted}</span>
+        <div class="flex flex-col">
+          <span class="text-[11px] font-bold text-slate-200 leading-tight">${h.label}</span>
+          <span class="text-[9px] text-slate-400 leading-none">${h.strategy}</span>
+        </div>
+      </div>
+      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">${h.badge}</span>
+    </div>
+  `).join('');
+
+  card.innerHTML = `
+    <div class="card-glass p-3.5 sm:p-4 rounded-2xl border ${borderStyle} shadow-xl space-y-3">
+      <!-- Topo: Título + Badge de Risco -->
+      <div class="flex items-center justify-between flex-wrap gap-2 pb-2.5 border-b border-slate-800/80">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-sm shadow-sm">
+            🛡️
+          </div>
+          <div>
+            <h3 class="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
+              <span>Radar de Quebra de Padrão</span>
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 uppercase tracking-widest">Contra-Banca</span>
+            </h3>
+            <p class="text-[10px] text-slate-400">Proteção estatística contra inversões e zebras calculadas</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full border ${badgeStyle} shadow-sm flex items-center gap-1 animate-pulse">
+            ${pb.risk_badge} (${pb.risk_percentage}%)
+          </span>
+        </div>
+      </div>
+
+      <!-- Explicação Contextual -->
+      <p class="text-[11px] text-slate-300 leading-relaxed bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60">
+        ${pb.reason}
+      </p>
+
+      <!-- Grade dos Bichos de Quebra -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <!-- Bicho 1: Simetria Polar -->
+        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 uppercase tracking-wider">🎯 Quebra Primária (Simetria)</span>
+            <span class="text-lg leading-none">${b1.emoji || '🐾'}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <h4 class="text-sm font-black text-white uppercase">${b1.name}</h4>
+            <span class="text-xs font-bold text-slate-400 font-mono">Gr. ${String(b1.group).padStart(2, '0')}</span>
+          </div>
+          <div class="flex items-center gap-1 text-[10px] text-slate-400 pt-1 border-t border-slate-800/60">
+            <span>Dezenas:</span>
+            <span class="font-mono font-bold text-slate-200">${b1.tens.join(' • ')}</span>
+          </div>
+        </div>
+
+        <!-- Bicho 2: Zebra de Pressão -->
+        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 uppercase tracking-wider">⚡ Zebra de Pressão</span>
+            <span class="text-lg leading-none">${b2.emoji || '🐾'}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <h4 class="text-sm font-black text-white uppercase">${b2.name}</h4>
+            <span class="text-xs font-bold text-slate-400 font-mono">Gr. ${String(b2.group).padStart(2, '0')}</span>
+          </div>
+          <div class="flex items-center gap-1 text-[10px] text-slate-400 pt-1 border-t border-slate-800/60">
+            <span>Dezenas:</span>
+            <span class="font-mono font-bold text-slate-200">${b2.tens.join(' • ')}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dezenas e Centenas de Cobertura -->
+      <div class="grid grid-cols-2 gap-2 text-center">
+        <div class="p-2 rounded-xl bg-slate-950/70 border border-slate-800/80">
+          <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Dezenas de Cobertura</span>
+          <div class="flex items-center justify-center gap-1.5">
+            ${protTens.map(t => `<span class="text-xs font-mono font-black text-rose-300 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">${t}</span>`).join('')}
+          </div>
+        </div>
+        <div class="p-2 rounded-xl bg-slate-950/70 border border-slate-800/80">
+          <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Centenas de Quebra</span>
+          <div class="flex items-center justify-center gap-1.5">
+            ${protHundreds.map(c => `<span class="text-xs font-mono font-black text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">${c}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Duques de Cobertura (Hedge Bets) -->
+      <div class="space-y-1.5 pt-1">
+        <div class="flex items-center justify-between text-[10px] font-bold text-slate-400 px-0.5">
+          <span class="uppercase tracking-wider">Duques de Segurança (Favorito + Quebra)</span>
+          <span class="text-indigo-400">1º ao 5º Prêmio</span>
+        </div>
+        <div class="space-y-1.5">
+          ${hedgesHtml}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderHybridSection(hybridCombo) {
