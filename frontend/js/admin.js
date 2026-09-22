@@ -1,24 +1,3 @@
-window.loginAndGoToDashboard = async function() {
-  try {
-    await api.login('0203040');
-    window.location.href = '/?admin';
-  } catch (err) {
-    window.location.href = '/?admin';
-  }
-};
-
-window.quickAdminMasterLogin = async function() {
-  try {
-    const res = await api.login('0203040');
-    if (res && res.role === 'admin') {
-      showToast('Bem-vindo, Administrador Master!', 'success');
-      window.location.reload();
-    }
-  } catch (err) {
-    showToast('Erro ao entrar como Master: ' + err.message, 'error');
-  }
-};
-
 /**
  * Lógica do Painel Administrativo - Bicho Analytics
  * Gerencia autenticação master, multi-tenants, resultados e calibração de pesos.
