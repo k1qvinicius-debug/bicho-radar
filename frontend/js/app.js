@@ -209,25 +209,27 @@ window.switchScreen = function(screenName, updateHash = true) {
   if (navBtnCruz) navBtnCruz.className = (screenName === 'cruz') ? activeDesktopClass : inactiveDesktopClass;
   if (navBtnResultados) navBtnResultados.className = (screenName === 'resultados') ? activeDesktopClass : inactiveDesktopClass;
 
-  // Atualiza botões do Mobile Bottom Nav
+  // Atualiza botões do Mobile Bottom Nav (Dock Glassmorphism)
   const mobBtnHome = document.getElementById('mob-btn-home');
   const mobBtnPalpites = document.getElementById('mob-btn-palpites');
   const mobBtnCruz = document.getElementById('mob-btn-cruz');
   const mobBtnResultados = document.getElementById('mob-btn-resultados');
+  const mobBtnMenu = document.getElementById('mob-btn-menu');
 
-  const setMobBtnActive = (btn, isActive, activeColor = 'text-indigo-400') => {
+  const setMobBtnActive = (btn, isActive) => {
     if (!btn) return;
     if (isActive) {
-      btn.className = `flex flex-col items-center gap-1 ${activeColor} font-bold transition-colors`;
+      btn.classList.add('mob-nav-active');
     } else {
-      btn.className = 'flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition-colors';
+      btn.classList.remove('mob-nav-active');
     }
   };
 
-  setMobBtnActive(mobBtnHome, screenName === 'home', 'text-indigo-400');
-  setMobBtnActive(mobBtnPalpites, screenName === 'palpites', 'text-indigo-400');
-  setMobBtnActive(mobBtnCruz, screenName === 'cruz', 'text-cyan-400');
-  setMobBtnActive(mobBtnResultados, screenName === 'resultados', 'text-emerald-400');
+  setMobBtnActive(mobBtnHome, screenName === 'home');
+  setMobBtnActive(mobBtnPalpites, screenName === 'palpites');
+  setMobBtnActive(mobBtnCruz, screenName === 'cruz');
+  setMobBtnActive(mobBtnResultados, screenName === 'resultados');
+  setMobBtnActive(mobBtnMenu, false);
 
   // Fecha o menu lateral caso esteja aberto
   if (typeof closeDrawer === 'function') {
@@ -4246,6 +4248,8 @@ window.handleUserLogout = function() {
 window.openDrawer = function () {
   const drawer = document.getElementById('drawer-menu');
   const overlay = document.getElementById('drawer-overlay');
+  const mobBtnMenu = document.getElementById('mob-btn-menu');
+  if (mobBtnMenu) mobBtnMenu.classList.add('mob-nav-active');
   if (drawer && overlay) {
     overlay.classList.remove('hidden');
     void overlay.offsetWidth; // Força recálculo do DOM para transição CSS suave
@@ -4260,6 +4264,8 @@ window.openDrawer = function () {
 window.closeDrawer = function () {
   const drawer = document.getElementById('drawer-menu');
   const overlay = document.getElementById('drawer-overlay');
+  const mobBtnMenu = document.getElementById('mob-btn-menu');
+  if (mobBtnMenu) mobBtnMenu.classList.remove('mob-nav-active');
   if (drawer && overlay) {
     drawer.classList.remove('translate-x-0');
     drawer.classList.add('-translate-x-full');
