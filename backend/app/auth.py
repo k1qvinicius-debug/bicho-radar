@@ -395,7 +395,7 @@ def register_new_tenant(
             # Atualiza nome, telefone, senha e atividade se fornecidos
             cursor.execute("""
                 UPDATE tenants 
-                SET name = ?, phone = ?, tenant_key = ?, last_active_at = ?,
+                SET name = ?, phone = ?, password = ?, last_active_at = ?,
                     last_ip = COALESCE(?, last_ip),
                     device_id = COALESCE(?, device_id)
                 WHERE id = ?
@@ -408,20 +408,22 @@ def register_new_tenant(
         if abuse_err:
             raise HTTPException(status_code=403, detail=abuse_err)
 
+        unique_key = f"vip-{phone_digits[-4:]}-{secrets.token_hex(3)}"
+
         cursor.execute("""
             INSERT INTO tenants (
-                name, email, phone, tenant_key, role, status,
+                name, email, phone, password, tenant_key, role, status,
                 auth_provider, trial_started_at, trial_expires_at,
                 subscription_status, plan_type, notes, created_at, last_active_at,
                 registration_ip, last_ip, device_id
-            ) VALUES (?, ?, ?, ?, 'tester', 'active', 'whatsapp', ?, ?, 'trial', 'free', 'Cadastro VIP WhatsApp (5 dias grátis)', ?, ?, ?, ?, ?)
-        """, (name_clean, email_clean, phone_clean, password_clean, now_str, trial_expire_str, now_str, now_str, ip, ip, device_id))
+            ) VALUES (?, ?, ?, ?, ?, 'tester', 'active', 'whatsapp', ?, ?, 'trial', 'free', 'Cadastro VIP WhatsApp (5 dias grátis)', ?, ?, ?, ?, ?)
+        """, (name_clean, email_clean, phone_clean, password_clean, unique_key, now_str, trial_expire_str, now_str, now_str, ip, ip, device_id))
 
-        cursor.execute("""
-            SELECT * FROM tenants 
-            WHERE REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?
-            LIMIT 1
-        """, (phone_digits,))
+        new_id = cursor.lastrowid
+        if new_id:
+            cursor.execute("SELECT * FROM tenants WHERE id = ?", (new_id,))
+        else:
+            cursor.execute("SELECT * FROM tenants WHERE tenant_key = ?", (unique_key,))
         new_row = cursor.fetchone()
         return dict(new_row) if new_row else {}
 
