@@ -26,74 +26,30 @@ window.API_BASE = window.API_BASE || '/api';
 var API_BASE = window.API_BASE;
 
 window.setupGoogleIdentity = async function() {
-  try {
-    const settings = await api.getPublicSettings();
-    if (settings && settings.google_client_id) {
-      window._googleClientId = settings.google_client_id;
-      if (window.google && window.google.accounts && window.google.accounts.id) {
-        window.google.accounts.id.initialize({
-          client_id: settings.google_client_id,
-          callback: window.handleGoogleCredentialResponse,
-          auto_select: true
-        });
+  // Autenticação Google desativada - substituída pelo fluxo VIP WhatsApp
+};
 
-        // Exibe botão oficial nativo do Google se configurado
-        const slot = document.getElementById('g_id_signin_slot');
-        if (slot) {
-          slot.classList.remove('hidden');
-          window.google.accounts.id.renderButton(slot, {
-            theme: 'outline',
-            size: 'large',
-            type: 'standard',
-            shape: 'rectangular',
-            text: 'signup_with',
-            logo_alignment: 'left',
-            width: 320
-          });
-        }
+window.handleGoogleCredentialResponse = async function() {};
 
-        // Tenta acionar Google One-Tap nativo no topo da tela
-        window.google.accounts.id.prompt();
-      }
-    }
-  } catch (err) {
-    console.warn('Aviso ao inicializar Google Identity:', err);
+window.formatPhoneInput = function(input) {
+  if (!input) return;
+  let val = input.value.replace(/\D/g, '');
+  if (val.length > 11) val = val.substring(0, 11);
+  if (val.length > 6) {
+    input.value = `(${val.substring(0, 2)}) ${val.substring(2, 7)}-${val.substring(7)}`;
+  } else if (val.length > 2) {
+    input.value = `(${val.substring(0, 2)}) ${val.substring(2)}`;
+  } else if (val.length > 0) {
+    input.value = `(${val}`;
+  } else {
+    input.value = '';
   }
 };
 
-window.handleGoogleCredentialResponse = async function(response) {
-  if (!response || !response.credential) return;
-  try {
-    if (typeof showToast === 'function') {
-      showToast('Autenticando com o Google...', 'info');
-    }
-    const tenant = await api.loginGoogle({
-      credential: response.credential,
-      provider: 'google'
-    });
-    document.documentElement.classList.add('is-authenticated');
-    if (typeof updateAuthUI === 'function') updateAuthUI();
-    if (typeof showToast === 'function') {
-      showToast(`🎉 Bem-vindo, ${tenant.name || 'Usuário'}! Seus 5 dias de teste grátis foram ativados com sucesso!`, 'success');
-    }
-    try {
-      await Promise.all([loadPrediction(), loadDrawResults()]);
-    } catch (e) {}
-
-    // Se o usuário entrou com Google e ainda não definiu telefone ou senha, exibe o modal de conclusão
-    const needsPhone = !tenant.phone;
-    const hasDefaultKey = !tenant.tenant_key || tenant.tenant_key.startsWith('g_') || tenant.tenant_key.startsWith('usr_');
-    if (needsPhone || hasDefaultKey) {
-      setTimeout(() => {
-        openCompleteProfileModal();
-      }, 600);
-    }
-  } catch (err) {
-    console.error('Erro Google:', err);
-    if (typeof showToast === 'function') {
-      showToast('Erro ao entrar com Google: ' + (err.message || 'Tente novamente.'), 'error');
-    }
-  }
+window.openWhatsAppSupport = function(msg) {
+  const phone = '5511987826371';
+  const text = encodeURIComponent(msg || 'Olá! Gostaria de ajuda com meu acesso no Bicho Master Pro.');
+  window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
 };
 
 window.openCompleteProfileModal = function() {
@@ -3862,17 +3818,17 @@ window.switchGateTab = function(tab) {
 
 window.handleMainLogin = async function(event) {
   event.preventDefault();
-  const idInput = document.getElementById('login-input-identity');
+  const userInput = document.getElementById('login-input-user') || document.getElementById('login-input-identity');
   const passInput = document.getElementById('login-input-password');
   const errEl = document.getElementById('login-error-msg');
   const btn = document.getElementById('btn-submit-main-login');
 
-  const identity = (idInput?.value || '').trim();
+  const user = (userInput?.value || '').trim();
   const password = (passInput?.value || '').trim();
 
-  if (!identity || !password) {
+  if (!user || !password) {
     if (errEl) {
-      errEl.textContent = 'Por favor, preencha o usuário e a senha.';
+      errEl.textContent = 'Por favor, digite seu WhatsApp/usuário e senha.';
       errEl.classList.remove('hidden');
     }
     return;
@@ -3881,47 +3837,34 @@ window.handleMainLogin = async function(event) {
   if (errEl) errEl.classList.add('hidden');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'Autenticando...';
+    btn.innerHTML = '<span>⏳</span> <span>Verificando...</span>';
   }
 
   try {
     const res = await api.login({
-      username: identity,
-      email: identity,
+      username: user,
+      phone: user,
       password: password,
       key: password
     });
 
-    const role = res.role || (res.tenant && res.tenant.role);
-    if (role === 'admin') {
-      showToast('Bem-vindo, Administrador Master Vinicius!', 'success');
-    } else {
-      showToast(`Bem-vindo, ${res.name || 'Usuário'}!`, 'success');
+    if (typeof showToast === 'function') {
+      const isMaster = res && (res.role === 'admin' || (res.name && res.name.includes('Vinicius')));
+      const msg = isMaster ? '👑 Bem-vindo, Administrador Master!' : 'Bem-vindo de volta ao Bicho Master Pro!';
+      showToast(msg, 'success');
     }
-
     updateAuthUI();
-    await Promise.all([loadPrediction(), loadDrawResults()]);
+    updateHomeScreenData();
+    window.location.reload();
   } catch (err) {
     if (errEl) {
-      if (identity.includes('@')) {
-        errEl.innerHTML = `
-          <div>${err.message || 'Conta não encontrada ou senha incorreta.'}</div>
-          <div class="mt-2 pt-1.5 border-t border-rose-500/30 flex items-center justify-between gap-2">
-            <span class="text-[11px] text-slate-300">Não tem conta ainda?</span>
-            <button type="button" onclick="openRegisterModal('${identity}')" class="text-[11px] text-amber-300 underline hover:text-amber-200 font-bold cursor-pointer">
-              Criar perfil com este Gmail ➔
-            </button>
-          </div>
-        `;
-      } else {
-        errEl.textContent = err.message || 'Credenciais inválidas.';
-      }
+      errEl.textContent = err.message || 'WhatsApp ou senha incorretos.';
       errEl.classList.remove('hidden');
     }
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = 'Entrar na Plataforma';
+      btn.innerHTML = '<span>🔓</span> <span>Entrar no Bicho Master Pro</span>';
     }
   }
 };
@@ -4970,23 +4913,19 @@ window.switchAuthGateTab = function(tab) {
   const panelLogin = document.getElementById('panel-auth-login');
   const panelReg = document.getElementById('panel-auth-register');
 
-  const activeClass = 'py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 cursor-pointer';
-  const inactiveClass = 'py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-white cursor-pointer';
+  const activeClass = 'py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 cursor-pointer select-none';
+  const inactiveClass = 'py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-white cursor-pointer select-none';
 
-  if (tab === 'register') {
-    if (tabReg) tabReg.className = activeClass;
-    if (tabLogin) tabLogin.className = inactiveClass;
-    if (panelReg) panelReg.classList.remove('hidden');
-    if (panelLogin) panelLogin.classList.add('hidden');
-    const nameInput = document.getElementById('reg-input-name');
-    if (nameInput) setTimeout(() => nameInput.focus(), 50);
-  } else {
+  if (tab === 'login') {
     if (tabLogin) tabLogin.className = activeClass;
     if (tabReg) tabReg.className = inactiveClass;
     if (panelLogin) panelLogin.classList.remove('hidden');
     if (panelReg) panelReg.classList.add('hidden');
-    const idInput = document.getElementById('login-input-identity');
-    if (idInput) setTimeout(() => idInput.focus(), 50);
+  } else {
+    if (tabReg) tabReg.className = activeClass;
+    if (tabLogin) tabLogin.className = inactiveClass;
+    if (panelReg) panelReg.classList.remove('hidden');
+    if (panelLogin) panelLogin.classList.add('hidden');
   }
 };
 
@@ -5005,96 +4944,60 @@ window.togglePasswordVisibility = function(inputId, btn) {
 window.handleMainRegister = async function(event) {
   event.preventDefault();
   const nameInput = document.getElementById('reg-input-name');
-  const emailInput = document.getElementById('reg-input-email');
   const phoneInput = document.getElementById('reg-input-phone');
   const passInput = document.getElementById('reg-input-password');
   const errEl = document.getElementById('register-error-msg');
   const btn = document.getElementById('btn-submit-main-register');
 
   const name = (nameInput?.value || '').trim();
-  const email = (emailInput?.value || '').trim().toLowerCase();
   const phone = (phoneInput?.value || '').trim();
   const password = (passInput?.value || '').trim();
 
-  if (!name) {
+  const phoneDigits = phone.replace(/\D/g, '');
+  if (!phoneDigits || phoneDigits.length < 10) {
     if (errEl) {
-      errEl.textContent = 'Por favor, informe seu nome completo.';
+      errEl.textContent = 'Por favor, digite seu WhatsApp completo com DDD (ex: 11 99999-9999).';
       errEl.classList.remove('hidden');
     }
-    if (nameInput) nameInput.focus();
     return;
   }
 
-  if (!email || !email.includes('@')) {
+  if (!password || password.length < 4) {
     if (errEl) {
-      errEl.textContent = 'Por favor, informe um e-mail válido (ex: seu@gmail.com).';
+      errEl.textContent = 'A senha deve conter no mínimo 4 dígitos ou caracteres.';
       errEl.classList.remove('hidden');
     }
-    if (emailInput) emailInput.focus();
-    return;
-  }
-
-  if (!password) {
-    if (errEl) {
-      errEl.textContent = 'Por favor, crie uma senha de acesso.';
-      errEl.classList.remove('hidden');
-    }
-    if (passInput) passInput.focus();
-    return;
-  }
-
-  if (password.length < 6) {
-    if (errEl) {
-      errEl.textContent = 'A senha de acesso deve ter no mínimo 6 caracteres.';
-      errEl.classList.remove('hidden');
-    }
-    if (passInput) passInput.focus();
     return;
   }
 
   if (errEl) errEl.classList.add('hidden');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> Criando sua conta e liberando 5 dias...';
+    btn.innerHTML = '<span>⏳</span> <span>Ativando 5 Dias Grátis...</span>';
   }
 
   try {
-    const data = await api.register({ name, email, phone, password });
+    const res = await api.register({
+      name: name || `Membro ${phoneDigits.slice(-4)}`,
+      phone: phone,
+      password: password
+    });
 
-    document.documentElement.classList.add('is-authenticated');
+    if (typeof showToast === 'function') {
+      showToast('🎉 Bem-vindo! Seus 5 dias de Teste VIP foram ativados com sucesso.', 'success');
+    }
     updateAuthUI();
-
-    showToast(`🎉 Parabéns, ${data.name || 'Usuário'}! Seus 5 dias de teste grátis foram ativados com sucesso.`, 'success');
-    try {
-      await Promise.all([loadPrediction(), loadDrawResults()]);
-    } catch (e) {}
+    updateHomeScreenData();
+    window.location.reload();
   } catch (err) {
-    console.error('Erro de cadastro:', err);
     if (errEl) {
-      let msg = err.message || 'Erro ao realizar cadastro. Tente novamente.';
-      if (msg.includes('pattern') || msg.includes('Unexpected') || msg.includes('JSON') || msg.includes('fetch') || msg.includes('SyntaxError')) {
-        msg = 'Erro de comunicação com o servidor. Verifique sua conexão e tente novamente.';
-      }
-      const isAlreadyUser = msg.toLowerCase().includes('já') || msg.toLowerCase().includes('existe') || msg.toLowerCase().includes('cadastrado');
-      if (isAlreadyUser) {
-        errEl.innerHTML = `
-          <div>${msg}</div>
-          <div class="mt-2 pt-1.5 border-t border-red-500/30">
-            <button type="button" onclick="switchAuthGateTab('login'); document.getElementById('login-input-identity').value='${email}'; document.getElementById('login-input-password').focus();"
-              class="text-amber-300 hover:text-amber-200 font-bold underline cursor-pointer text-xs">
-              Entrar agora com este e-mail ➔
-            </button>
-          </div>
-        `;
-      } else {
-        errEl.textContent = msg;
-      }
+      errEl.textContent = err.message || 'Erro ao realizar cadastro. Verifique os dados.';
       errEl.classList.remove('hidden');
     }
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = 'Começar Meus 5 Dias Grátis';
+      btn.innerHTML = '<span>🚀</span> <span>Ativar Meus 5 Dias Grátis Agora</span>';
     }
   }
 };
