@@ -3,6 +3,7 @@ from pydantic import BaseModel
 Endpoints de Autenticação para Testadores e Administrador Master.
 """
 
+import re
 from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Dict, Any, Optional
 from ..database import get_db_connection
@@ -43,7 +44,8 @@ def login(payload: LoginRequestModel, request: Request):
     ip = get_client_ip(request)
 
     # Caso 1: Login por Usuário/E-mail e Senha (Admin)
-    user_val = (payload.username or payload.email or "").strip().lower()
+    user_val = (payload.username or payload.email or payload.phone or "").strip().lower()
+    phone_digits = re.sub(r"\D", "", user_val)
     pass_val = (payload.password or "").strip()
     key_val = (payload.key or "").strip()
 
@@ -71,23 +73,36 @@ def login(payload: LoginRequestModel, request: Request):
         else:
             tenant = get_tenant_by_key(check_val)
 
-    # Caso 3: Login por E-mail cadastrado + Senha / Chave do tenant
+    # Caso 3: Login por WhatsApp ou E-mail cadastrado + Senha / Chave do tenant
     if not tenant and user_val and (pass_val or key_val):
         check_pass = pass_val or key_val
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ? AND (tenant_key = ? OR LOWER(tenant_key) = ?) LIMIT 1",
-                (user_val, check_pass, check_pass.lower())
-            )
-            row = cursor.fetchone()
-            if row:
-                tenant = dict(row)
+            if phone_digits and len(phone_digits) >= 10:
+                cursor.execute("""
+                    SELECT * FROM tenants 
+                    WHERE REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?
+                      AND (tenant_key = ? OR LOWER(tenant_key) = ?)
+                    LIMIT 1
+                """, (phone_digits, check_pass, check_pass.lower()))
+                row = cursor.fetchone()
+                if row:
+                    tenant = dict(row)
+
+            if not tenant:
+                cursor.execute("""
+                    SELECT * FROM tenants 
+                    WHERE LOWER(COALESCE(email, '')) = ? AND (tenant_key = ? OR LOWER(tenant_key) = ?)
+                    LIMIT 1
+                """, (user_val, check_pass, check_pass.lower()))
+                row = cursor.fetchone()
+                if row:
+                    tenant = dict(row)
 
     if not tenant:
         raise HTTPException(
             status_code=401,
-            detail="Credenciais ou chave de acesso inválidas."
+            detail="WhatsApp, usuário ou senha incorretos."
         )
 
     if tenant.get("status") != "active":
@@ -202,33 +217,34 @@ def login_google(payload: LoginRequestModel, request: Request):
 @router.post("/register", response_model=LoginResponseModel)
 def register(payload: RegisterRequestModel, request: Request):
     """
-    Cadastra um novo perfil completo de usuário:
-    - Nome Completo
-    - Gmail / E-mail
+    Cadastra um novo perfil VIP de usuário via WhatsApp:
+    - Nome / Apelido
     - Telefone / WhatsApp com DDD
     - Senha de Acesso
+    - E-mail (opcional)
     Gera automaticamente 5 dias de teste grátis e retorna o token de autenticação.
-    Bloqueia novos testes no mesmo IP ou dispositivo.
+    Bloqueia novos testes no mesmo IP, dispositivo ou telefone.
     """
-    email = (payload.email or "").strip().lower()
     name = (payload.name or "").strip()
     phone = (payload.phone or "").strip()
     password = (payload.password or "").strip()
+    email = (payload.email or "").strip().lower()
     ip = get_client_ip(request)
 
-    if not email or "@" not in email:
-        raise HTTPException(status_code=400, detail="Informe um e-mail válido.")
+    phone_digits = re.sub(r"\D", "", phone)
+    if not phone_digits or len(phone_digits) < 10:
+        raise HTTPException(status_code=400, detail="Informe seu número de WhatsApp com DDD (10 ou 11 dígitos).")
 
     if not name:
-        name = email.split("@")[0]
+        name = f"Membro {phone_digits[-4:]}"
 
     if not password:
         raise HTTPException(status_code=400, detail="Defina uma senha de acesso.")
 
-    if len(password) < 6:
-        raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 6 caracteres.")
+    if len(password) < 4:
+        raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 4 caracteres.")
 
-    tenant = register_new_tenant(name=name, email=email, phone=phone, password=password, ip=ip, device_id=payload.device_id)
+    tenant = register_new_tenant(name=name, phone=phone, password=password, email=email, ip=ip, device_id=payload.device_id)
     if not tenant:
         raise HTTPException(status_code=500, detail="Falha ao cadastrar conta. Tente novamente.")
 
