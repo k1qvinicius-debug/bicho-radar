@@ -545,6 +545,11 @@ const api = {
     return await res.json();
   },
 
+    async getRecentResults(lottery = 'RJ', limit = 1) {
+    const data = await this.getResults(limit, 0, lottery);
+    return data?.items || [];
+  },
+
   async getResults(limit = 20, offset = 0, slotOrLottery = null, startDate = null, endDate = null, lottery = null) {
     let slot = null;
     let lot = lottery;
