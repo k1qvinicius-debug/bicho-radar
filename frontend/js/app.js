@@ -1,27 +1,3 @@
-window.handleQuickMasterSwitch = async function() {
-  try {
-    if (typeof showToast === 'function') {
-      showToast('Ativando Acesso Master Vinicius...', 'info');
-    }
-    const tenant = await api.login('0203040');
-    if (tenant) {
-      document.documentElement.classList.add('is-authenticated');
-      updateAuthUI();
-      updateHomeScreenData();
-      if (typeof showToast === 'function') {
-        showToast('👑 Bem-vindo, Administrador Master Vinicius! Acesso Vitalício ativado.', 'success');
-      }
-      try {
-        await Promise.all([loadPrediction(true), loadDrawResults()]);
-      } catch (e) {}
-    }
-  } catch (err) {
-    if (typeof showToast === 'function') {
-      showToast('Erro ao ativar Acesso Master: ' + (err.message || ''), 'error');
-    }
-  }
-};
-
 window.API_BASE = window.API_BASE || '/api';
 var API_BASE = window.API_BASE;
 
@@ -342,15 +318,6 @@ function updateHomeScreenData() {
       userNameEl.textContent = tenant.name;
     } else {
       userNameEl.textContent = 'Testador';
-    }
-  }
-
-  const adminSwitchBanner = document.getElementById('home-admin-switch-banner');
-  if (adminSwitchBanner) {
-    if (isMaster) {
-      adminSwitchBanner.classList.add('hidden');
-    } else {
-      adminSwitchBanner.classList.remove('hidden');
     }
   }
 
@@ -3634,9 +3601,10 @@ function formatDateBR(dateStr) {
    ========================================================================== */
 async function initTenantAuth() {
   const urlParams = new URLSearchParams(window.location.search);
-  let urlKey = urlParams.get('key') || urlParams.get('admin');
-  if (urlParams.has('admin') && (!urlKey || !urlKey.trim())) {
-    urlKey = '0203040';
+  let urlKey = urlParams.get('key');
+  if (urlParams.has('admin')) {
+    // Apenas direciona ou abre modal de login admin, nunca loga automaticamente
+    urlKey = null;
   }
   if (urlKey && urlKey.trim()) {
     try {
