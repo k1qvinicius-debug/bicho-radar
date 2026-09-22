@@ -3682,13 +3682,13 @@ window.showTrialExpiredModal = async function() {
 
 function updateAuthUI() {
   const badgeContainer = document.getElementById('user-badge-desktop');
-  const navAdminLink = document.getElementById('nav-admin-link');
-  const mobAdminLink = document.getElementById('mob-admin-link');
+  // navAdminLink removed
+  // mobAdminLink removed
   const appGate = document.getElementById('app-auth-gate');
   const mainContainer = document.getElementById('main-content-container');
   const mobBottomNav = document.getElementById('mob-bottom-nav');
   const drawerUserLabel = document.getElementById('drawer-user-label');
-  const drawerAdminLink = document.getElementById('drawer-admin-link');
+  // drawerAdminLink removed
   const mainHeader = document.getElementById('app-main-header');
   const btnHeaderPlans = document.getElementById('btn-header-plans');
   const tenant = api.getCurrentTenant();
@@ -3704,9 +3704,9 @@ function updateAuthUI() {
     const isMasterAdmin = tenant.role === 'admin' || userEmail === 'k1qvinicius.cs@gmail.com' || userEmail === 'k1qvinicius@gmail.com';
 
     if (isMasterAdmin) {
-      if (navAdminLink) navAdminLink.classList.remove('hidden');
-      if (mobAdminLink) mobAdminLink.classList.remove('hidden');
-      if (drawerAdminLink) drawerAdminLink.classList.remove('hidden');
+      
+      
+      
       if (drawerUserLabel) drawerUserLabel.textContent = 'Kaique Vinicius (Master Vitalício)';
       if (btnHeaderPlans) btnHeaderPlans.classList.add('hidden');
       if (badgeContainer) {
@@ -3721,9 +3721,9 @@ function updateAuthUI() {
       }
     } else {
       // Modo Testador / Visitante
-      if (navAdminLink) navAdminLink.classList.add('hidden');
-      if (mobAdminLink) mobAdminLink.classList.add('hidden');
-      if (drawerAdminLink) drawerAdminLink.classList.add('hidden');
+      
+      
+      
       if (btnHeaderPlans) {
         btnHeaderPlans.classList.remove('hidden');
         btnHeaderPlans.classList.add('hidden', 'sm:inline-flex');
@@ -3754,9 +3754,9 @@ function updateAuthUI() {
     if (appGate) appGate.classList.remove('hidden');
     if (mainContainer) mainContainer.classList.add('hidden');
     if (mobBottomNav) mobBottomNav.classList.add('hidden');
-    if (navAdminLink) navAdminLink.classList.add('hidden');
-    if (mobAdminLink) mobAdminLink.classList.add('hidden');
-    if (drawerAdminLink) drawerAdminLink.classList.add('hidden');
+    
+    
+    
     if (drawerUserLabel) drawerUserLabel.textContent = 'Não Conectado';
     if (badgeContainer) badgeContainer.innerHTML = '';
   }
