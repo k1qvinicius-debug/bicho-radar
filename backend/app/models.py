@@ -173,6 +173,7 @@ class PredictionOutput(BaseModel):
     hybrid_combo: Optional[Dict[str, Any]] = None
     quadrant_summary: Optional[Dict[str, Any]] = None
     transition_data: Optional[Dict[str, Any]] = None
+    pattern_break: Optional[Dict[str, Any]] = None
     disclaimer: str = "Análise baseada em padrões estatísticos, frequência e atrasos. Não há garantia de resultados futuros."
 
 
