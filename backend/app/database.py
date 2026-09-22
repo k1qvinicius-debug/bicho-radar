@@ -220,8 +220,13 @@ def get_db_connection() -> Generator[Any, None, None]:
     """
     if PSYCOPG2_AVAILABLE and is_postgres_configured():
         pg_url = get_database_url()
+        conn = None
         try:
             conn = psycopg2.connect(pg_url, connect_timeout=10)
+        except Exception as pg_err:
+            logger.warning(f"Aviso: Não foi possível conectar ao Supabase ({pg_err}). Usando SQLite local.")
+
+        if conn is not None:
             wrapped = PgConnectionWrapper(conn)
             try:
                 yield wrapped
@@ -232,8 +237,6 @@ def get_db_connection() -> Generator[Any, None, None]:
             finally:
                 wrapped.close()
             return
-        except Exception as pg_err:
-            logger.warning(f"Aviso: Não foi possível conectar ao Supabase ({pg_err}). Usando SQLite local.")
 
     # Conexão padrão SQLite
     conn = sqlite3.connect(DB_PATH, timeout=30.0)
