@@ -378,6 +378,7 @@ def init_db() -> None:
 
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email TEXT;")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS phone TEXT;")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS password TEXT;")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS auth_provider TEXT DEFAULT 'key';")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMP;")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_expires_at TIMESTAMP;")
@@ -523,6 +524,8 @@ def init_db() -> None:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN email TEXT")
             if "phone" not in tenant_cols:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN phone TEXT")
+            if "password" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN password TEXT")
             if "auth_provider" not in tenant_cols:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN auth_provider TEXT DEFAULT 'key'")
             if "trial_started_at" not in tenant_cols:
