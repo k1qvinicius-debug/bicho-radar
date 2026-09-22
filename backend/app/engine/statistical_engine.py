@@ -244,7 +244,7 @@ class StatisticalEngine:
         Detector de Quebra de Padrão & Proteção Contra-Banca (Anti-Trend & Pattern Break).
         Identifica hiper-concentração de favoritismo e calcula zebras cirúrgicas:
         1. Simetria Polar de Grupo (fórmula 25-N / 26-N em relação ao último 1º prêmio)
-        2. Inversão Oposta de Quadrante (contra-ataque Baixa vs Alta)
+        2. Segunda Cobertura (contra-ataque Baixa vs Alta)
         3. Dezenas e centenas de cobertura
         4. Duques de segurança (Hedge Bets: Favorito + Quebra)
         """
@@ -281,27 +281,17 @@ class StatisticalEngine:
         last_g1 = get_group_for_number(last_p1) if last_p1 else fav_group.group_number
         last_anim = get_animal_info(last_g1)["name"] if last_g1 else fav_group.animal_name
 
-        # 3. Cálculo do 1º Bicho de Quebra: Simetria Polar (Espelho Matemático 25-N)
-        if last_g1 <= 12:
-            polar_g = 25 - last_g1
-        elif last_g1 <= 24:
-            polar_g = 26 - last_g1
-        else:
-            polar_g = 1
-
-        # Evita que o bicho de quebra seja o mesmo que o favorito
-        if polar_g == fav_group.group_number:
+        # 3. Cálculo do 1º Bicho de Quebra: Oposto Polar no Círculo de 25 Bichos
+        polar_g = ((last_g1 + 12 - 1) % 25) + 1
+        while polar_g == last_g1 or polar_g == fav_group.group_number:
             polar_g = (polar_g % 25) + 1
 
         bicho_1_info = get_animal_info(polar_g)
 
-        # 4. Cálculo do 2º Bicho de Quebra: Inversão Oposta de Quadrante / Zebra de Pressão
-        quad_candidates = [22, 21, 23, 16] if fav_group.group_number <= 12 else [4, 2, 6, 11]
-        second_break_g = quad_candidates[0]
-        for c in quad_candidates:
-            if c != polar_g and c != fav_group.group_number:
-                second_break_g = c
-                break
+        # 4. Cálculo do 2º Bicho de Quebra: Zebra Oposta de Cobertura
+        second_break_g = ((last_g1 + 7 - 1) % 25) + 1
+        while second_break_g == last_g1 or second_break_g == fav_group.group_number or second_break_g == polar_g:
+            second_break_g = (second_break_g % 25) + 1
 
         bicho_2_info = get_animal_info(second_break_g)
 
@@ -326,7 +316,7 @@ class StatisticalEngine:
                 "tens": [fav_ten, tens_b1[1]],
                 "tens_formatted": f"{fav_ten} - {tens_b1[1]}",
                 "label": f"{fav_group.animal_name} (Fav) + {bicho_1_info['name']} (Quebra)",
-                "strategy": "Hedge de Ouro: Favorito + Simetria Polar",
+                "strategy": "Cerco de Segurança: Favorito + Bicho da Contra",
                 "badge": "🛡️ Cerco Blindado"
             },
             {
@@ -334,7 +324,7 @@ class StatisticalEngine:
                 "tens": [fav_ten, tens_b2[1]],
                 "tens_formatted": f"{fav_ten} - {tens_b2[1]}",
                 "label": f"{fav_group.animal_name} (Fav) + {bicho_2_info['name']} (Zebra)",
-                "strategy": "Hedge de Pressão: Favorito + Quadrante Oposto",
+                "strategy": "Cerco Alternativo: Favorito + Segunda Zebra",
                 "badge": "🛡️ Proteção Total"
             },
             {
@@ -342,17 +332,17 @@ class StatisticalEngine:
                 "tens": [tens_b1[1], tens_b2[1]],
                 "tens_formatted": f"{tens_b1[1]} - {tens_b2[1]}",
                 "label": f"{bicho_1_info['name']} + {bicho_2_info['name']} (Dupla Quebra)",
-                "strategy": "Dupla Zebra: Cobertura Extrema de Quebra",
+                "strategy": "Duque de Zebras: Cerco nas 2 Contras",
                 "badge": "⚡ Tiro na Zebra"
             }
         ]
 
-        # 8. Explicação Contextual
+        # 8. Explicação Contextual em Linguagem Simples e Clara
         reason = (
-            f"O animal {fav_group.animal_name} (Grupo {fav_group.group_number:02d}) está com favoritismo elevado "
-            f"(Score {fav_group.score:.1f}). Quando a atração primária falha, a Simetria Polar do último 1º prêmio "
-            f"({last_anim} Gr. {last_g1:02d}) aponta diretamente para o {bicho_1_info['name']} (Grupo {bicho_1_info['group']:02d}) "
-            f"como principal animal de quebra."
+            f"O favorito do sistema é o {fav_group.animal_name} (Grupo {fav_group.group_number:02d}) com Score {fav_group.score:.1f}. "
+            f"Porém, se a banca tentar 'quebrar o padrão' e desviar do favorito, a contra-puxada do último 1º prêmio "
+            f"({last_anim} Gr. {last_g1:02d}) aponta para o {bicho_1_info['name']} (Grupo {bicho_1_info['group']:02d}) "
+            f"como o principal Bicho da Contra para cobertura."
         )
 
         return {
@@ -371,14 +361,14 @@ class StatisticalEngine:
                 "name": bicho_1_info["name"],
                 "emoji": bicho_1_info["emoji"],
                 "tens": bicho_1_info["tens"],
-                "rule": "Simetria Polar de Grupo (25-N)"
+                "rule": "Bicho da Contra (Oposto do Sorteio Anterior)"
             },
             "secondary_break_animal": {
                 "group": bicho_2_info["group"],
                 "name": bicho_2_info["name"],
                 "emoji": bicho_2_info["emoji"],
                 "tens": bicho_2_info["tens"],
-                "rule": "Inversão Oposta de Quadrante"
+                "rule": "Segunda Cobertura"
             },
             "protection_tens": prot_tens,
             "protection_hundreds": prot_hundreds,
