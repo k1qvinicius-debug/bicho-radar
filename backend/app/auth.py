@@ -34,27 +34,22 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
     parts = token.split(":")
     if len(parts) == 4:
         t_id, role, key, sig = parts
-        try:
-            tid_int = int(t_id)
-            tenant = get_tenant_by_id(tid_int)
-            if tenant:
-                email = (tenant.get("email") or "").lower()
-                # Se for o Master Admin (1 ou 175 ou por e-mail), aceita imediatamente e atualiza role
-                if tenant.get("role") == "admin" or email in ("k1qvinicius.cs@gmail.com", "k1qvinicius@gmail.com") or tid_int in (1, 175):
-                    tenant["role"] = "admin"
-                    tenant["plan_type"] = "lifetime"
-                    tenant["subscription_status"] = "active"
-                    return tenant
-        except Exception:
-            pass
-
         raw = f"{t_id}:{role}:{key}"
         expected_sig = hmac.new(SECRET_KEY.encode(), raw.encode(), hashlib.sha256).hexdigest()[:24]
         if hmac.compare_digest(sig, expected_sig):
             try:
-                return get_tenant_by_id(int(t_id))
+                tid_int = int(t_id)
+                tenant = get_tenant_by_id(tid_int)
+                if tenant:
+                    email = (tenant.get("email") or "").lower()
+                    if tenant.get("role") == "admin" or email in ("k1qvinicius.cs@gmail.com", "k1qvinicius@gmail.com"):
+                        tenant["role"] = "admin"
+                        tenant["plan_type"] = "lifetime"
+                        tenant["subscription_status"] = "active"
+                    return tenant
             except Exception:
                 return None
+        return None
 
     # Fallback: o token pode ser a própria chave do tenant (para links diretos e testes)
     return get_tenant_by_key(token)
@@ -381,6 +376,10 @@ def register_new_tenant(
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
+        # Proteção estrita do Administrador Master
+        if email_clean in ("k1qvinicius@gmail.com", "k1qvinicius.cs@gmail.com"):
+            raise HTTPException(status_code=400, detail="Este e-mail pertence ao Administrador Master. Acesse pelo painel /admin.")
+
         # Verifica se já existe por telefone limpo ou por email
         cursor.execute("""
             SELECT * FROM tenants 
@@ -392,16 +391,22 @@ def register_new_tenant(
 
         if row:
             tenant = dict(row)
-            # Atualiza nome, telefone, senha e atividade se fornecidos
-            cursor.execute("""
-                UPDATE tenants 
-                SET name = ?, phone = ?, password = ?, last_active_at = ?,
-                    last_ip = COALESCE(?, last_ip),
-                    device_id = COALESCE(?, device_id)
-                WHERE id = ?
-            """, (name_clean, phone_clean, password_clean, now_str, ip, device_id, tenant["id"]))
-            cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant["id"],))
-            return dict(cursor.fetchone())
+            # Se for admin, bloqueia qualquer alteração
+            if tenant.get("role") == "admin":
+                raise HTTPException(status_code=400, detail="Acesso restrito ao Administrador. Acesse pelo painel /admin.")
+            # Se a senha informada for a mesma já cadastrada, permite login direto
+            if tenant.get("password") == password_clean:
+                cursor.execute("""
+                    UPDATE tenants 
+                    SET last_active_at = ?, last_ip = COALESCE(?, last_ip), device_id = COALESCE(?, device_id)
+                    WHERE id = ?
+                """, (now_str, ip, device_id, tenant["id"]))
+                return tenant
+            # Caso contrário, avisa que já existe cadastro para que faça login
+            raise HTTPException(
+                status_code=400,
+                detail="Este WhatsApp ou e-mail já possui cadastro. Por favor, clique na aba 'Entrar' e acesse com sua senha."
+            )
 
         # NOVO CADASTRO: Verifica se WhatsApp, IP ou Dispositivo já usaram teste grátis
         abuse_err = check_trial_abuse(ip, device_id, email_clean, phone=phone_clean)
