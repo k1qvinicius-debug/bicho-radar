@@ -3743,10 +3743,10 @@ function updateAuthUI() {
       if (btnHeaderPlans) btnHeaderPlans.classList.add('hidden');
       if (badgeContainer) {
         badgeContainer.innerHTML = `
-          <div class="flex items-center gap-2 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/40 text-amber-300 text-xs px-3 py-1 rounded-full font-bold shadow-md shadow-amber-500/10">
+          <div class="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/40 text-amber-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full font-bold shadow-md shadow-amber-500/10">
             <span>👑</span>
-            <span class="font-black tracking-wide">K. Vinicius</span>
-            <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 shadow-sm">Acesso Vitalício</span>
+            <span class="font-black tracking-wide">Admin</span>
+            <span class="hidden sm:inline text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950">Vitalício</span>
             <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair">✕</button>
           </div>
         `;
@@ -3756,7 +3756,10 @@ function updateAuthUI() {
       if (navAdminLink) navAdminLink.classList.add('hidden');
       if (mobAdminLink) mobAdminLink.classList.add('hidden');
       if (drawerAdminLink) drawerAdminLink.classList.add('hidden');
-      if (btnHeaderPlans) btnHeaderPlans.classList.remove('hidden');
+      if (btnHeaderPlans) {
+        btnHeaderPlans.classList.remove('hidden');
+        btnHeaderPlans.classList.add('hidden', 'sm:inline-flex');
+      }
 
       const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
         ? tenant.trial_info.days_remaining
@@ -3768,10 +3771,10 @@ function updateAuthUI() {
 
       if (badgeContainer) {
         badgeContainer.innerHTML = `
-          <div class="flex items-center gap-2 bg-slate-800/90 border border-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded-full shadow-sm">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="font-medium">${days}d teste</span>
-            <button type="button" onclick="handleUserLogout()" class="ml-1 px-1.5 py-0.5 rounded bg-slate-700/60 hover:bg-red-500/20 text-slate-400 hover:text-red-300 text-[11px] font-bold transition-colors cursor-pointer" title="Sair desta conta">Sair 🚪</button>
+          <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 text-slate-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse"></span>
+            <span class="font-bold text-amber-300 cursor-pointer hover:underline" onclick="openPlansModal()" title="Toque para ver Planos VIP">${days}d teste</span>
+            <button type="button" onclick="handleUserLogout()" class="ml-1 px-1.5 py-0.5 rounded bg-slate-700/60 hover:bg-red-500/20 text-slate-400 hover:text-red-300 text-[10px] sm:text-[11px] font-bold transition-colors cursor-pointer" title="Sair desta conta">Sair 🚪</button>
           </div>
         `;
       }
