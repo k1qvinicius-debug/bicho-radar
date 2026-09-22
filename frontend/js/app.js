@@ -4944,14 +4944,24 @@ window.togglePasswordVisibility = function(inputId, btn) {
 window.handleMainRegister = async function(event) {
   event.preventDefault();
   const nameInput = document.getElementById('reg-input-name');
+  const emailInput = document.getElementById('reg-input-email');
   const phoneInput = document.getElementById('reg-input-phone');
   const passInput = document.getElementById('reg-input-password');
   const errEl = document.getElementById('register-error-msg');
   const btn = document.getElementById('btn-submit-main-register');
 
   const name = (nameInput?.value || '').trim();
+  const email = (emailInput?.value || '').trim().toLowerCase();
   const phone = (phoneInput?.value || '').trim();
   const password = (passInput?.value || '').trim();
+
+  if (email && !email.includes('@')) {
+    if (errEl) {
+      errEl.textContent = 'Por favor, digite um e-mail válido (ex: seu@email.com).';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
 
   const phoneDigits = phone.replace(/\D/g, '');
   if (!phoneDigits || phoneDigits.length < 10) {
@@ -4979,6 +4989,7 @@ window.handleMainRegister = async function(event) {
   try {
     const res = await api.register({
       name: name || `Membro ${phoneDigits.slice(-4)}`,
+      email: email,
       phone: phone,
       password: password
     });
