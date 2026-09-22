@@ -2271,6 +2271,7 @@ function renderPatternBreakSection(pb) {
 
   const b1 = pb.primary_break_animal;
   const b2 = pb.secondary_break_animal;
+  const fav_name = (window.currentPrediction?.top_groups?.[0]?.animal_name) || 'Favorito';
   const hedges = pb.hedge_combos || [];
   const protTens = pb.protection_tens || [];
   const protHundreds = pb.protection_hundreds || [];
@@ -2321,7 +2322,7 @@ function renderPatternBreakSection(pb) {
         <!-- Bicho 1: Simetria Polar -->
         <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
           <div class="flex items-center justify-between">
-            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 uppercase tracking-wider">🎯 Quebra Primária (Simetria)</span>
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 uppercase tracking-wider">🎯 Bicho da Contra (Zebra Principal)</span>
             <span class="text-lg leading-none">${b1.emoji || '🐾'}</span>
           </div>
           <div class="flex items-center gap-2">
@@ -2337,7 +2338,7 @@ function renderPatternBreakSection(pb) {
         <!-- Bicho 2: Zebra de Pressão -->
         <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
           <div class="flex items-center justify-between">
-            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 uppercase tracking-wider">⚡ Zebra de Pressão</span>
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 uppercase tracking-wider">⚡ Segunda Cobertura</span>
             <span class="text-lg leading-none">${b2.emoji || '🐾'}</span>
           </div>
           <div class="flex items-center gap-2">
@@ -2354,13 +2355,13 @@ function renderPatternBreakSection(pb) {
       <!-- Dezenas e Centenas de Cobertura -->
       <div class="grid grid-cols-2 gap-2 text-center">
         <div class="p-2 rounded-xl bg-slate-950/70 border border-slate-800/80">
-          <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Dezenas de Cobertura</span>
+          <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Dezenas para Cercar</span>
           <div class="flex items-center justify-center gap-1.5">
             ${protTens.map(t => `<span class="text-xs font-mono font-black text-rose-300 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">${t}</span>`).join('')}
           </div>
         </div>
         <div class="p-2 rounded-xl bg-slate-950/70 border border-slate-800/80">
-          <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Centenas de Quebra</span>
+          <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Centenas da Zebra</span>
           <div class="flex items-center justify-center gap-1.5">
             ${protHundreds.map(c => `<span class="text-xs font-mono font-black text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">${c}</span>`).join('')}
           </div>
@@ -2370,11 +2371,20 @@ function renderPatternBreakSection(pb) {
       <!-- Duques de Cobertura (Hedge Bets) -->
       <div class="space-y-1.5 pt-1">
         <div class="flex items-center justify-between text-[10px] font-bold text-slate-400 px-0.5">
-          <span class="uppercase tracking-wider">Duques de Segurança (Favorito + Quebra)</span>
+          <span class="uppercase tracking-wider">Duques de Proteção (Favorito + Bicho da Contra)</span>
           <span class="text-indigo-400">1º ao 5º Prêmio</span>
         </div>
         <div class="space-y-1.5">
           ${hedgesHtml}
+        </div>
+      </div>
+
+      <!-- Dica Rápida de Aposta -->
+      <div class="p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-start gap-2 text-[10px] text-indigo-200 leading-relaxed">
+        <span class="text-sm shrink-0">💡</span>
+        <div>
+          <strong class="text-white">Como lucrar com esta proteção:</strong>
+          Jogue normalmente no seu favorito (${fav_name}), mas cubra também com uma moeda no <strong>Bicho da Contra (${b1.name})</strong> ou faça o <strong>Duque de Proteção</strong> do 1º ao 5º. Se a banca soltar o favorito, você fatura; se ela tentar quebrar a puxada, você ganha na zebra!
         </div>
       </div>
     </div>
