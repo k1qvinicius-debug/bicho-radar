@@ -193,6 +193,16 @@ class StatisticalEngine:
             "balance_status": "Equilibrado (Baixa + Alta)" if (low_count >= 3 and high_count >= 3) else ("Predomínio Faixa Baixa (00-49)" if low_count > high_count else "Predomínio Faixa Alta (50-99)")
         }
 
+        # Análise de Quebra de Padrão & Proteção Contra-Banca
+        pattern_break = self._analyze_pattern_break(
+            top_groups=top_groups,
+            top_tens=top_tens,
+            draws=draws,
+            target_slot=target_slot,
+            target_date=target_date,
+            lottery=effective_lottery,
+        )
+
         return PredictionOutput(
             target_date=target_date,
             target_slot=target_slot,
@@ -217,7 +227,164 @@ class StatisticalEngine:
             hybrid_combo=hybrid_combo,
             quadrant_summary=quadrant_summary,
             transition_data=transition_data,
+            pattern_break=pattern_break,
         )
+
+
+    def _analyze_pattern_break(
+        self,
+        top_groups: List[RankedItem],
+        top_tens: List[RankedItem],
+        draws: List[Dict[str, Any]],
+        target_slot: str,
+        target_date: str,
+        lottery: str = "RJ",
+    ) -> Dict[str, Any]:
+        """
+        Detector de Quebra de Padrão & Proteção Contra-Banca (Anti-Trend & Pattern Break).
+        Identifica hiper-concentração de favoritismo e calcula zebras cirúrgicas:
+        1. Simetria Polar de Grupo (fórmula 25-N / 26-N em relação ao último 1º prêmio)
+        2. Inversão Oposta de Quadrante (contra-ataque Baixa vs Alta)
+        3. Dezenas e centenas de cobertura
+        4. Duques de segurança (Hedge Bets: Favorito + Quebra)
+        """
+        if not top_groups:
+            return {}
+
+        fav_group = top_groups[0]
+        second_group = top_groups[1] if len(top_groups) > 1 else None
+
+        # 1. Medição do Índice de Risco de Quebra (Over-Concentration Risk)
+        diff_score = 0.0
+        if second_group:
+            diff_score = max(0.0, fav_group.score - second_group.score)
+
+        if diff_score >= 18.0 or fav_group.score >= 75.0:
+            risk_level = "ALTO"
+            risk_badge = "🔴 RISCO ALTO DE QUEBRA"
+            risk_color = "rose"
+            risk_percentage = min(92, int(68 + (diff_score - 18.0) * 1.2))
+        elif diff_score >= 8.0 or fav_group.score >= 60.0:
+            risk_level = "MODERADO"
+            risk_badge = "🟡 RISCO MODERADO"
+            risk_color = "amber"
+            risk_percentage = min(67, int(45 + (diff_score - 8.0) * 2.2))
+        else:
+            risk_level = "BAIXO"
+            risk_badge = "🟢 PADRÃO ESTÁVEL"
+            risk_color = "emerald"
+            risk_percentage = max(18, int(20 + diff_score * 2.5))
+
+        # 2. Identificação do Último 1º Prêmio
+        last_draw = draws[-1] if draws else {}
+        last_p1 = last_draw.get("prize_1", "") if last_draw else ""
+        last_g1 = get_group_for_number(last_p1) if last_p1 else fav_group.group_number
+        last_anim = get_animal_info(last_g1)["name"] if last_g1 else fav_group.animal_name
+
+        # 3. Cálculo do 1º Bicho de Quebra: Simetria Polar (Espelho Matemático 25-N)
+        if last_g1 <= 12:
+            polar_g = 25 - last_g1
+        elif last_g1 <= 24:
+            polar_g = 26 - last_g1
+        else:
+            polar_g = 1
+
+        # Evita que o bicho de quebra seja o mesmo que o favorito
+        if polar_g == fav_group.group_number:
+            polar_g = (polar_g % 25) + 1
+
+        bicho_1_info = get_animal_info(polar_g)
+
+        # 4. Cálculo do 2º Bicho de Quebra: Inversão Oposta de Quadrante / Zebra de Pressão
+        quad_candidates = [22, 21, 23, 16] if fav_group.group_number <= 12 else [4, 2, 6, 11]
+        second_break_g = quad_candidates[0]
+        for c in quad_candidates:
+            if c != polar_g and c != fav_group.group_number:
+                second_break_g = c
+                break
+
+        bicho_2_info = get_animal_info(second_break_g)
+
+        # 5. Dezenas de Proteção
+        tens_b1 = bicho_1_info["tens"]
+        tens_b2 = bicho_2_info["tens"]
+        prot_tens = [tens_b1[1], tens_b1[3] if len(tens_b1) > 3 else tens_b1[0], tens_b2[1]]
+
+        # 6. Centenas de Quebra
+        prot_hundreds = [
+            f"8{tens_b1[1]}",
+            f"3{tens_b1[3] if len(tens_b1) > 3 else tens_b1[0]}",
+            f"9{tens_b2[1]}"
+        ]
+
+        # 7. Duques de Cobertura (Hedge Bets: Favorito + Quebra)
+        fav_ten = fav_group.tens[1] if len(fav_group.tens) > 1 else fav_group.tens[0]
+
+        hedge_combos = [
+            {
+                "order": 1,
+                "tens": [fav_ten, tens_b1[1]],
+                "tens_formatted": f"{fav_ten} - {tens_b1[1]}",
+                "label": f"{fav_group.animal_name} (Fav) + {bicho_1_info['name']} (Quebra)",
+                "strategy": "Hedge de Ouro: Favorito + Simetria Polar",
+                "badge": "🛡️ Cerco Blindado"
+            },
+            {
+                "order": 2,
+                "tens": [fav_ten, tens_b2[1]],
+                "tens_formatted": f"{fav_ten} - {tens_b2[1]}",
+                "label": f"{fav_group.animal_name} (Fav) + {bicho_2_info['name']} (Zebra)",
+                "strategy": "Hedge de Pressão: Favorito + Quadrante Oposto",
+                "badge": "🛡️ Proteção Total"
+            },
+            {
+                "order": 3,
+                "tens": [tens_b1[1], tens_b2[1]],
+                "tens_formatted": f"{tens_b1[1]} - {tens_b2[1]}",
+                "label": f"{bicho_1_info['name']} + {bicho_2_info['name']} (Dupla Quebra)",
+                "strategy": "Dupla Zebra: Cobertura Extrema de Quebra",
+                "badge": "⚡ Tiro na Zebra"
+            }
+        ]
+
+        # 8. Explicação Contextual
+        reason = (
+            f"O animal {fav_group.animal_name} (Grupo {fav_group.group_number:02d}) está com favoritismo elevado "
+            f"(Score {fav_group.score:.1f}). Quando a atração primária falha, a Simetria Polar do último 1º prêmio "
+            f"({last_anim} Gr. {last_g1:02d}) aponta diretamente para o {bicho_1_info['name']} (Grupo {bicho_1_info['group']:02d}) "
+            f"como principal animal de quebra."
+        )
+
+        return {
+            "risk_level": risk_level,
+            "risk_badge": risk_badge,
+            "risk_color": risk_color,
+            "risk_percentage": risk_percentage,
+            "reason": reason,
+            "last_draw_reference": {
+                "group": last_g1,
+                "animal": last_anim,
+                "prize_1": last_p1
+            },
+            "primary_break_animal": {
+                "group": bicho_1_info["group"],
+                "name": bicho_1_info["name"],
+                "emoji": bicho_1_info["emoji"],
+                "tens": bicho_1_info["tens"],
+                "rule": "Simetria Polar de Grupo (25-N)"
+            },
+            "secondary_break_animal": {
+                "group": bicho_2_info["group"],
+                "name": bicho_2_info["name"],
+                "emoji": bicho_2_info["emoji"],
+                "tens": bicho_2_info["tens"],
+                "rule": "Inversão Oposta de Quadrante"
+            },
+            "protection_tens": prot_tens,
+            "protection_hundreds": prot_hundreds,
+            "hedge_combos": hedge_combos,
+            "recommended_action": f"Jogar no favorito {fav_group.animal_name} cobrindo o Grupo {bicho_1_info['group']:02d} ({bicho_1_info['name']}) e o Duque {fav_ten}-{tens_b1[1]}."
+        }
 
     def _generate_ddz_combinations(self, top_tens: List[RankedItem]) -> List[Dict[str, Any]]:
         """
