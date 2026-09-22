@@ -23,9 +23,10 @@ window.formatPhoneInput = function(input) {
 };
 
 window.openWhatsAppSupport = function(msg) {
-  const phone = '5511987826371';
+  let num = (window._publicSettings?.support_whatsapp || '11941083720').replace(/\D/g, '');
+  if (!num.startsWith('55') && num.length >= 10) num = '55' + num;
   const text = encodeURIComponent(msg || 'Olá! Gostaria de ajuda com meu acesso no Bicho Master Pro.');
-  window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+  window.open(`https://wa.me/${num}?text=${text}`, '_blank');
 };
 
 window.openCompleteProfileModal = function() {
@@ -5128,7 +5129,7 @@ window.subscribePlan = async function(planKey) {
   }
 
   // 2. Fallback WhatsApp com mensagem pré-formatada para Pix direto
-  let whatsappNum = (settings?.support_whatsapp || '5511999999999').replace(/\D/g, '');
+  let whatsappNum = (settings?.support_whatsapp || '11941083720').replace(/\D/g, '');
   if (!whatsappNum.startsWith('55') && whatsappNum.length >= 10) {
     whatsappNum = '55' + whatsappNum;
   }
