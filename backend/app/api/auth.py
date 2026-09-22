@@ -82,9 +82,9 @@ def login(payload: LoginRequestModel, request: Request):
                 cursor.execute("""
                     SELECT * FROM tenants 
                     WHERE REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?
-                      AND (tenant_key = ? OR LOWER(tenant_key) = ?)
+                      AND (password = ? OR tenant_key = ? OR LOWER(password) = ? OR LOWER(tenant_key) = ?)
                     LIMIT 1
-                """, (phone_digits, check_pass, check_pass.lower()))
+                """, (phone_digits, check_pass, check_pass, check_pass.lower(), check_pass.lower()))
                 row = cursor.fetchone()
                 if row:
                     tenant = dict(row)
@@ -92,9 +92,10 @@ def login(payload: LoginRequestModel, request: Request):
             if not tenant:
                 cursor.execute("""
                     SELECT * FROM tenants 
-                    WHERE LOWER(COALESCE(email, '')) = ? AND (tenant_key = ? OR LOWER(tenant_key) = ?)
+                    WHERE LOWER(COALESCE(email, '')) = ?
+                      AND (password = ? OR tenant_key = ? OR LOWER(password) = ? OR LOWER(tenant_key) = ?)
                     LIMIT 1
-                """, (user_val, check_pass, check_pass.lower()))
+                """, (user_val, check_pass, check_pass, check_pass.lower(), check_pass.lower()))
                 row = cursor.fetchone()
                 if row:
                     tenant = dict(row)
@@ -225,53 +226,60 @@ def register(payload: RegisterRequestModel, request: Request):
     Gera automaticamente 5 dias de teste grátis e retorna o token de autenticação.
     Bloqueia novos testes no mesmo IP, dispositivo ou telefone.
     """
-    name = (payload.name or "").strip()
-    phone = (payload.phone or "").strip()
-    password = (payload.password or "").strip()
-    email = (payload.email or "").strip().lower()
-    ip = get_client_ip(request)
+    try:
+        name = (payload.name or "").strip()
+        phone = (payload.phone or "").strip()
+        password = (payload.password or "").strip()
+        email = (payload.email or "").strip().lower()
+        ip = get_client_ip(request)
 
-    phone_digits = re.sub(r"\D", "", phone)
-    if not phone_digits or len(phone_digits) < 10:
-        raise HTTPException(status_code=400, detail="Informe seu número de WhatsApp com DDD (10 ou 11 dígitos).")
+        phone_digits = re.sub(r"\D", "", phone)
+        if not phone_digits or len(phone_digits) < 10:
+            raise HTTPException(status_code=400, detail="Informe seu número de WhatsApp com DDD (10 ou 11 dígitos).")
 
-    if not name:
-        name = f"Membro {phone_digits[-4:]}"
+        if not name:
+            name = f"Membro {phone_digits[-4:]}"
 
-    if not password:
-        raise HTTPException(status_code=400, detail="Defina uma senha de acesso.")
+        if not password:
+            raise HTTPException(status_code=400, detail="Defina uma senha de acesso.")
 
-    if len(password) < 4:
-        raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 4 caracteres.")
+        if len(password) < 4:
+            raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 4 caracteres.")
 
-    tenant = register_new_tenant(name=name, phone=phone, password=password, email=email, ip=ip, device_id=payload.device_id)
-    if not tenant:
-        raise HTTPException(status_code=500, detail="Falha ao cadastrar conta. Tente novamente.")
+        tenant = register_new_tenant(name=name, phone=phone, password=password, email=email, ip=ip, device_id=payload.device_id)
+        if not tenant:
+            raise HTTPException(status_code=500, detail="Falha ao cadastrar conta. Tente novamente.")
 
-    if tenant.get("status") != "active":
-        raise HTTPException(status_code=403, detail="Esta conta está suspensa ou desativada.")
+        if tenant.get("status") != "active":
+            raise HTTPException(status_code=403, detail="Esta conta está suspensa ou desativada.")
 
-    update_tenant_activity(tenant["id"])
-    token = create_token_for_tenant(tenant)
-    trial_info = calculate_trial_info(tenant)
+        update_tenant_activity(tenant["id"])
+        token = create_token_for_tenant(tenant)
+        trial_info = calculate_trial_info(tenant)
 
-    return LoginResponseModel(
-        token=token,
-        tenant={
-            "id": tenant["id"],
-            "name": tenant["name"],
-            "email": tenant.get("email"),
-            "phone": tenant.get("phone"),
-            "tenant_key": tenant["tenant_key"],
-            "role": tenant["role"],
-            "status": tenant["status"],
-            "subscription_status": tenant.get("subscription_status", "trial"),
-            "trial_expires_at": tenant.get("trial_expires_at"),
-            "trial_info": trial_info,
-            "created_at": str(tenant.get("created_at", "")),
-            "last_active_at": str(tenant.get("last_active_at", ""))
-        }
-    )
+        return LoginResponseModel(
+            token=token,
+            tenant={
+                "id": tenant["id"],
+                "name": tenant["name"],
+                "email": tenant.get("email"),
+                "phone": tenant.get("phone"),
+                "tenant_key": tenant["tenant_key"],
+                "role": tenant["role"],
+                "status": tenant["status"],
+                "subscription_status": tenant.get("subscription_status", "trial"),
+                "trial_expires_at": tenant.get("trial_expires_at"),
+                "trial_info": trial_info,
+                "created_at": str(tenant.get("created_at", "")),
+                "last_active_at": str(tenant.get("last_active_at", ""))
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro interno no cadastro: {type(e).__name__}: {str(e)}")
 
 
 @router.get("/settings")
