@@ -43,35 +43,34 @@ def login(payload: LoginRequestModel, request: Request):
     tenant = None
     ip = get_client_ip(request)
 
-    # Caso 1: Login por Usuário/E-mail e Senha (Admin)
+    # Caso 1: Login exclusivo do Administrador Master (Kaique Vinicius)
     user_val = (payload.username or payload.email or payload.phone or "").strip().lower()
     phone_digits = re.sub(r"\D", "", user_val)
     pass_val = (payload.password or "").strip()
     key_val = (payload.key or "").strip()
 
-    admin_identities = ("admin", "k1qvinicius@gmail.com", "k1qvinicius.cs@gmail.com", "k1qvinicius", "kaique")
-    admin_passwords = ("0203040", "admin123", "admin", "adminmaster", "Kaique10*")
+    admin_identities = ("admin", "k1qvinicius@gmail.com", "k1qvinicius.cs@gmail.com")
+    admin_passwords = ("0203040", "Kaique10*")
 
     if user_val in admin_identities and pass_val in admin_passwords:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) IN ('k1qvinicius@gmail.com', 'k1qvinicius.cs@gmail.com') LIMIT 1")
+            cursor.execute("SELECT * FROM tenants WHERE role = 'admin' AND LOWER(COALESCE(email, '')) IN ('k1qvinicius@gmail.com', 'k1qvinicius.cs@gmail.com') LIMIT 1")
             row = cursor.fetchone()
             if row:
                 tenant = dict(row)
 
-    # Caso 2: Login por Chave de Acesso direta ou Senha Master
-    if not tenant and (key_val or pass_val):
-        check_val = key_val or pass_val
-        if check_val in admin_passwords:
+    # Caso 2: Login por Chave de Acesso única (apenas para quem possui a chave do tenant)
+    if not tenant and key_val:
+        if key_val in admin_passwords and user_val in admin_identities:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM tenants WHERE role = 'admin' OR LOWER(COALESCE(email, '')) IN ('k1qvinicius@gmail.com', 'k1qvinicius.cs@gmail.com') LIMIT 1")
+                cursor.execute("SELECT * FROM tenants WHERE role = 'admin' AND LOWER(COALESCE(email, '')) IN ('k1qvinicius@gmail.com', 'k1qvinicius.cs@gmail.com') LIMIT 1")
                 row = cursor.fetchone()
                 if row:
                     tenant = dict(row)
         else:
-            tenant = get_tenant_by_key(check_val)
+            tenant = get_tenant_by_key(key_val)
 
     # Caso 3: Login por WhatsApp ou E-mail cadastrado + Senha / Chave do tenant
     if not tenant and user_val and (pass_val or key_val):
