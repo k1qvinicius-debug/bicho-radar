@@ -115,25 +115,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Inicia monitor em tempo real para detecção instantânea de novos resultados (a cada 25 segundos)
   startInstantResultsMonitor();
 
-  // Verifica se há tela solicitada via hash (#palpites, #cruz, #puxadas, #atrasados, #resultados) ou query param
+  // Restaura a tela ativa do usuário (via hash, query param ou localStorage)
+  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master'];
   const hash = window.location.hash.replace('#', '');
   const urlParams = new URLSearchParams(window.location.search);
-  const requestedScreen = hash || urlParams.get('tab');
-  
-  if (['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas'].includes(requestedScreen)) {
-    switchScreen(requestedScreen, false);
-  } else {
-    switchScreen('home', false);
+  let savedScreen = null;
+  try { savedScreen = localStorage.getItem('bicho_active_screen'); } catch(e) {}
+
+  let targetScreen = 'home';
+  if (hash && validScreens.includes(hash)) {
+    targetScreen = hash;
+  } else if (urlParams.get('tab') && validScreens.includes(urlParams.get('tab'))) {
+    targetScreen = urlParams.get('tab');
+  } else if (savedScreen && validScreens.includes(savedScreen)) {
+    targetScreen = savedScreen;
   }
+
+  switchScreen(targetScreen, true);
 });
 
 // Suporte ao botão voltar/avançar do navegador entre as telas
 window.addEventListener('hashchange', () => {
+  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master'];
   const hash = window.location.hash.replace('#', '');
-  if (['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas'].includes(hash)) {
+  if (validScreens.includes(hash)) {
     switchScreen(hash, false);
-  } else {
-    switchScreen('home', false);
   }
 });
 
@@ -144,6 +150,12 @@ window.addEventListener('hashchange', () => {
 window.switchScreen = function(screenName, updateHash = true) {
   const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master'];
   if (!screens.includes(screenName)) screenName = 'home';
+
+  // Persiste a tela ativa no localStorage para manter a mesma tela ao recarregar a página
+  try {
+    localStorage.setItem('bicho_active_screen', screenName);
+  } catch(e) {}
+  document.documentElement.removeAttribute('data-initial-screen');
 
   // Oculta todas as telas e exibe a selecionada
   screens.forEach(s => {
@@ -245,7 +257,11 @@ window.switchScreen = function(screenName, updateHash = true) {
 
   // Atualiza hash da URL
   if (updateHash && window.location.hash !== `#${screenName}`) {
-    history.replaceState(null, '', `#${screenName}`);
+    try {
+      history.replaceState(null, '', `#${screenName}`);
+    } catch (e) {
+      window.location.hash = screenName;
+    }
   }
 };
 
