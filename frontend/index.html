@@ -27,7 +27,7 @@
     }
   </script>
   <link rel="icon" type="image/png" href="/img/favicon.png?v=87.0" />
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/style.css?v=88.0" />
   <!-- Prevenção imediata de flash da tela de login para usuários autenticados -->
   <script>
     (function() {
@@ -50,8 +50,16 @@
     html.is-authenticated #main-content-container {
       display: block !important;
     }
-    html.is-authenticated #mob-bottom-nav {
-      display: flex !important;
+    @media (max-width: 767px) {
+      html.is-authenticated #mob-bottom-nav {
+        display: block !important;
+      }
+    }
+    @media (min-width: 768px) {
+      #mob-bottom-nav,
+      html.is-authenticated #mob-bottom-nav {
+        display: none !important;
+      }
     }
   </style>
   <script>
@@ -1778,33 +1786,62 @@
     </div>
   </div>
 
-  <!-- Bottom Navigation Mobile (Fixo no celular) -->
-  <div id="mob-bottom-nav" class="hidden md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-1.5 bottom-nav shadow-2xl">
-    <div class="grid grid-cols-5 items-center text-center">
-      <button type="button" onclick="switchScreen('home')" id="mob-btn-home" class="flex flex-col items-center justify-center py-1 gap-0.5 text-indigo-400 font-bold transition-colors">
-        <span class="text-base leading-none">🏠</span>
-        <span class="text-[10px] leading-tight">Início</span>
+  <!-- Bottom Navigation Mobile (Dock Flutuante Glassmorphism) -->
+  <nav id="mob-bottom-nav" class="hidden fixed bottom-3 inset-x-3 max-w-md mx-auto z-40 bg-slate-950/90 backdrop-blur-2xl border border-slate-700/60 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.85)] p-1.5 bottom-nav">
+    <div class="mob-nav-grid">
+      <button type="button" onclick="switchScreen('home')" id="mob-btn-home" class="mob-nav-item mob-nav-active" title="Início">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>Início</span>
+        <div class="nav-glow-dot"></div>
       </button>
-      <button type="button" onclick="switchScreen('palpites')" id="mob-btn-palpites" class="flex flex-col items-center justify-center py-1 gap-0.5 text-slate-400 hover:text-slate-200 transition-colors">
-        <span class="text-base leading-none">🎯</span>
-        <span class="text-[10px] leading-tight">Palpites</span>
+
+      <button type="button" onclick="switchScreen('palpites')" id="mob-btn-palpites" class="mob-nav-item" title="Palpites">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="6"/>
+          <circle cx="12" cy="12" r="2"/>
+        </svg>
+        <span>Palpites</span>
+        <div class="nav-glow-dot"></div>
       </button>
-      <button type="button" onclick="switchScreen('cruz')" id="mob-btn-cruz" class="flex flex-col items-center justify-center py-1 gap-0.5 text-slate-400 hover:text-cyan-300 transition-colors">
-        <span class="text-base leading-none">✖️</span>
-        <span class="text-[10px] leading-tight">Cruz</span>
+
+      <button type="button" onclick="switchScreen('cruz')" id="mob-btn-cruz" class="mob-nav-item" title="Cruz do Dia">
+        <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v18M3 12h18"/>
+        </svg>
+        <span>Cruz</span>
+        <div class="nav-glow-dot"></div>
       </button>
-      <button type="button" onclick="switchScreen('resultados')" id="mob-btn-resultados" class="flex flex-col items-center justify-center py-1 gap-0.5 text-slate-400 hover:text-emerald-300 transition-colors">
-        <span class="text-base leading-none">📋</span>
-        <span class="text-[10px] leading-tight">Resultados</span>
+
+      <button type="button" onclick="switchScreen('resultados')" id="mob-btn-resultados" class="mob-nav-item" title="Resultados">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+          <path d="M4 22h16"/>
+          <path d="M10 14.66V17c0 .55-.45 1-1 1H7.5a1.5 1.5 0 0 1-1.5-1.5v-1.84"/>
+          <path d="M14 14.66V17c0 .55.45 1 1 1h1.5a1.5 1.5 0 0 0 1.5-1.5v-1.84"/>
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+        </svg>
+        <span>Resultados</span>
+        <div class="nav-glow-dot"></div>
       </button>
-      <button type="button" onclick="toggleDrawer()" id="mob-btn-menu" class="flex flex-col items-center justify-center py-1 gap-0.5 text-slate-400 hover:text-amber-300 transition-colors">
-        <span class="text-base leading-none">☰</span>
-        <span class="text-[10px] leading-tight">Menu</span>
+
+      <button type="button" onclick="toggleDrawer()" id="mob-btn-menu" class="mob-nav-item" title="Mais Opções">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" x2="20" y1="12" y2="12"/>
+          <line x1="4" x2="20" y1="6" y2="6"/>
+          <line x1="4" x2="20" y1="18" y2="18"/>
+        </svg>
+        <span>Menu</span>
+        <div class="nav-glow-dot"></div>
       </button>
     </div>
-  </div>
+  </nav>
 
-    <!-- =========================================================================
+  <!-- =========================================================================
        MODAL DE CADASTRO / LOGIN VIA GMAIL (PERFIL COMPLETO)
        ========================================================================= -->
   <div id="modal-google-signup" class="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden animate-fade-in">
@@ -2035,8 +2072,8 @@
     </div>
   </div>
 
-<script src="/js/api.js?v=87.0"></script>
-  <script src="/js/app.js?v=87.0"></script>
+<script src="/js/api.js?v=88.0"></script>
+  <script src="/js/app.js?v=88.0"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
