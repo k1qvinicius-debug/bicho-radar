@@ -4,6 +4,7 @@ Gerencia tokens de sessão, identificação de testadores e restrição de acess
 """
 
 import os
+import re
 import hmac
 import hashlib
 import time
@@ -187,9 +188,9 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
-def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email: str) -> Optional[str]:
+def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email: str, phone: Optional[str] = None) -> Optional[str]:
     """
-    Verifica se o IP ou dispositivo (device_id) já criou ou utilizou uma conta de teste no sistema.
+    Verifica se o IP, dispositivo (device_id) ou telefone já criou uma conta de teste no sistema.
     Retorna uma mensagem de erro caso o abuso seja detectado, ou None se estiver liberado.
     Administrador Master nunca é bloqueado.
     """
@@ -201,14 +202,25 @@ def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email
 
     ip_clean = (ip or "").strip()
     device_clean = (device_id or "").strip()
-
-    if not ip_clean and not device_clean:
-        return None
+    phone_digits = re.sub(r"\D", "", phone or "")
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # 1. Verifica por Device ID (impressão digital do dispositivo/navegador)
+        # 1. Verifica por WhatsApp duplicado
+        if phone_digits and len(phone_digits) >= 10:
+            cursor.execute("""
+                SELECT email, name, subscription_status, created_at
+                FROM tenants
+                WHERE REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?
+                  AND role != 'admin'
+                LIMIT 1
+            """, (phone_digits,))
+            row = cursor.fetchone()
+            if row:
+                return "Este número de WhatsApp já possui cadastro de teste. Acesse a aba 'Já Sou Membro' para entrar ou chame o suporte."
+
+        # 2. Verifica por Device ID (impressão digital do dispositivo/navegador)
         if device_clean:
             cursor.execute("""
                 SELECT email, name, subscription_status, created_at
@@ -222,7 +234,7 @@ def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email
             if row:
                 return "O período de teste grátis de 5 dias já foi utilizado neste dispositivo. Para continuar utilizando as ferramentas e palpites, escolha um dos nossos Planos VIP."
 
-        # 2. Verifica por IP de Registro ou Último IP (da mesma rede)
+        # 3. Verifica por IP de Registro ou Último IP (da mesma rede)
         if ip_clean and ip_clean not in ("127.0.0.1", "::1", "localhost"):
             cursor.execute("""
                 SELECT email, name, subscription_status, created_at
@@ -334,26 +346,33 @@ def get_or_create_google_tenant(
 
 def register_new_tenant(
     name: str,
-    email: str,
-    phone: Optional[str],
+    phone: str,
     password: str,
+    email: Optional[str] = None,
     ip: Optional[str] = None,
     device_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Cria ou atualiza um novo perfil de usuário completo (Nome, E-mail, Telefone, Senha).
+    Cria ou atualiza um perfil de usuário via WhatsApp + Senha (e Nome).
     Garante 5 dias de teste grátis, status ativo e role 'tester'.
-    Bloqueia criação caso o IP ou dispositivo já tenham utilizado teste anterior.
+    Bloqueia criação caso o WhatsApp, IP ou dispositivo já tenham utilizado teste anterior.
     """
-    email_clean = (email or "").strip().lower()
-    name_clean = (name or "").strip() or (email_clean.split("@")[0] if "@" in email_clean else "Usuário")
     phone_clean = (phone or "").strip()
+    phone_digits = re.sub(r"\D", "", phone_clean)
+    if len(phone_digits) < 10:
+        raise HTTPException(status_code=400, detail="Número de WhatsApp inválido. Digite DDD + Número (ex: 11 99999-9999).")
+
+    name_clean = (name or "").strip() or f"Membro {phone_digits[-4:]}"
     password_clean = (password or "").strip()
 
     if not password_clean:
         password_clean = generate_clean_key("usr")
-    elif len(password_clean) < 6:
-        raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 6 caracteres.")
+    elif len(password_clean) < 4:
+        raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 4 caracteres.")
+
+    email_clean = (email or "").strip().lower()
+    if not email_clean or "@" not in email_clean:
+        email_clean = f"{phone_digits}@bichomaster.app"
 
     now = datetime.now()
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -362,8 +381,13 @@ def register_new_tenant(
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        # Verifica se já existe por email
-        cursor.execute("SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ?", (email_clean,))
+        # Verifica se já existe por telefone limpo ou por email
+        cursor.execute("""
+            SELECT * FROM tenants 
+            WHERE REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?
+               OR LOWER(COALESCE(email, '')) = ?
+            LIMIT 1
+        """, (phone_digits, email_clean))
         row = cursor.fetchone()
 
         if row:
@@ -375,22 +399,14 @@ def register_new_tenant(
                     last_ip = COALESCE(?, last_ip),
                     device_id = COALESCE(?, device_id)
                 WHERE id = ?
-            """, (name_clean, phone_clean or tenant.get("phone"), password_clean, now_str, ip, device_id, tenant["id"]))
+            """, (name_clean, phone_clean, password_clean, now_str, ip, device_id, tenant["id"]))
             cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant["id"],))
             return dict(cursor.fetchone())
 
-        # NOVO CADASTRO: Verifica se IP ou Dispositivo já usaram teste grátis
-        abuse_err = check_trial_abuse(ip, device_id, email_clean)
+        # NOVO CADASTRO: Verifica se WhatsApp, IP ou Dispositivo já usaram teste grátis
+        abuse_err = check_trial_abuse(ip, device_id, email_clean, phone=phone_clean)
         if abuse_err:
             raise HTTPException(status_code=403, detail=abuse_err)
-
-        # Novo cadastro: cria tenant
-        # Verifica se a senha já está sendo usada como chave única por outra conta
-        cursor.execute("SELECT id FROM tenants WHERE tenant_key = ?", (password_clean,))
-        if cursor.fetchone():
-            key = f"{password_clean}-{generate_clean_key()[:4]}"
-        else:
-            key = password_clean
 
         cursor.execute("""
             INSERT INTO tenants (
@@ -398,10 +414,14 @@ def register_new_tenant(
                 auth_provider, trial_started_at, trial_expires_at,
                 subscription_status, plan_type, notes, created_at, last_active_at,
                 registration_ip, last_ip, device_id
-            ) VALUES (?, ?, ?, ?, 'tester', 'active', 'cadastro', ?, ?, 'trial', 'free', 'Cadastro de Perfil Completo (5 dias grátis)', ?, ?, ?, ?, ?)
-        """, (name_clean, email_clean, phone_clean, key, now_str, trial_expire_str, now_str, now_str, ip, ip, device_id))
+            ) VALUES (?, ?, ?, ?, 'tester', 'active', 'whatsapp', ?, ?, 'trial', 'free', 'Cadastro VIP WhatsApp (5 dias grátis)', ?, ?, ?, ?, ?)
+        """, (name_clean, email_clean, phone_clean, password_clean, now_str, trial_expire_str, now_str, now_str, ip, ip, device_id))
 
-        cursor.execute("SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ?", (email_clean,))
+        cursor.execute("""
+            SELECT * FROM tenants 
+            WHERE REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?
+            LIMIT 1
+        """, (phone_digits,))
         new_row = cursor.fetchone()
         return dict(new_row) if new_row else {}
 
