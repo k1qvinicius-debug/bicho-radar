@@ -3445,49 +3445,54 @@ function renderDrawSlotCard(draw, slotInfo) {
   const rowsHtml = allPrizes.map((p) => {
     let prizeCol = '';
     let rowBg = 'hover:bg-slate-800/40 transition-colors';
-    let milharCol = `<span class="font-mono font-bold text-slate-100 text-sm tracking-wider">${p.number || '-'}</span>`;
+    let milharCol = `<span class="font-mono font-bold text-slate-100 text-xs sm:text-sm tracking-wide">${p.number || '-'}</span>`;
 
     if (p.order === 1) {
-      prizeCol = `<div class="flex items-center gap-1.5 font-black text-amber-300 text-xs"><span>🥇</span> <span>1º Prêmio</span></div>`;
+      prizeCol = `
+        <div class="flex items-center gap-1 font-black text-amber-300 text-xs">
+          <span>👑</span>
+          <span>1º<span class="hidden sm:inline"> Pr.</span></span>
+        </div>
+      `;
       rowBg = 'bg-amber-500/10 hover:bg-amber-500/15 transition-colors border-l-2 border-amber-400';
-      milharCol = `<span class="font-mono font-black text-amber-300 text-base tracking-widest drop-shadow">${p.number || '-'}</span>`;
+      milharCol = `<span class="font-mono font-black text-amber-300 text-xs sm:text-base tracking-wider drop-shadow">${p.number || '-'}</span>`;
     } else if (p.order === 6) {
       prizeCol = `
-        <div>
-          <span class="font-bold text-slate-200 text-xs">6º Prêmio</span>
-          <span class="block text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none mt-0.5">SOMA</span>
+        <div class="flex items-center gap-1">
+          <span class="font-bold text-slate-200 text-xs">6º</span>
+          <span class="text-[8px] font-black px-1 py-0.5 rounded bg-indigo-500/25 text-indigo-300 uppercase leading-none">SOMA</span>
         </div>
       `;
       rowBg = 'bg-indigo-950/20 hover:bg-indigo-950/35 transition-colors';
-      milharCol = `<span class="font-mono font-bold text-indigo-200 text-sm tracking-wider">${p.number || '-'}</span>`;
+      milharCol = `<span class="font-mono font-bold text-indigo-200 text-xs sm:text-sm tracking-wide">${p.number || '-'}</span>`;
     } else if (p.order === 7) {
       prizeCol = `
-        <div>
-          <span class="font-bold text-slate-200 text-xs">7º Prêmio</span>
-          <span class="block text-[8px] font-black text-amber-400 uppercase tracking-widest leading-none mt-0.5">MULTIPLICAÇÃO</span>
+        <div class="flex items-center gap-1">
+          <span class="font-bold text-slate-200 text-xs">7º</span>
+          <span class="text-[8px] font-black px-1 py-0.5 rounded bg-amber-500/25 text-amber-300 uppercase leading-none">MULT</span>
         </div>
       `;
       rowBg = 'bg-amber-950/20 hover:bg-amber-950/35 transition-colors';
-      milharCol = `<span class="font-mono font-bold text-amber-200 text-sm tracking-wider">${p.number || '-'}</span>`;
+      milharCol = `<span class="font-mono font-bold text-amber-200 text-xs sm:text-sm tracking-wide">${p.number || '-'}</span>`;
     } else {
-      prizeCol = `<span class="font-bold text-slate-300 text-xs">${p.order}º Prêmio</span>`;
+      prizeCol = `<span class="font-bold text-slate-300 text-xs">${p.order}º<span class="hidden sm:inline"> Pr.</span></span>`;
     }
 
     const groupText = p.group !== '-' ? String(p.group).padStart(2, '0') : '-';
 
     return `
       <tr class="${rowBg}">
-        <td class="py-2.5 px-3 whitespace-nowrap">${prizeCol}</td>
-        <td class="py-2.5 px-3 text-center whitespace-nowrap">${milharCol}</td>
-        <td class="py-2.5 px-3 text-center whitespace-nowrap">
-          <span class="font-mono font-bold text-xs px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+        <td class="py-2 sm:py-2.5 px-1.5 sm:px-3">${prizeCol}</td>
+        <td class="py-2 sm:py-2.5 px-1 sm:px-2 text-center">${milharCol}</td>
+        <td class="py-2 sm:py-2.5 px-1 sm:px-2 text-center">
+          <span class="font-mono font-bold text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 inline-block">
             ${groupText}
           </span>
         </td>
-        <td class="py-2.5 px-3 whitespace-nowrap">
-          <div class="flex items-center gap-1.5">
-            <span class="text-base leading-none">${p.animal_emoji || '🐾'}</span>
-            <span class="font-black text-white text-xs">${p.animal_name || '-'}</span>
+        <td class="py-2 sm:py-2.5 px-1.5 sm:px-3">
+          <div class="flex items-center gap-1 sm:gap-1.5 min-w-0">
+            <span class="text-sm sm:text-base leading-none shrink-0">${p.animal_emoji || '🎯'}</span>
+            <span class="font-black text-white text-[11px] sm:text-xs truncate uppercase tracking-tight">${p.animal_name || '-'}</span>
           </div>
         </td>
       </tr>
@@ -3495,33 +3500,33 @@ function renderDrawSlotCard(draw, slotInfo) {
   }).join('');
 
   return `
-    <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-slate-800 hover:border-slate-700 transition-all animate-fade-in space-y-3 overflow-hidden shadow-xl bg-slate-900/90 flex flex-col justify-between">
+    <div class="card-glass p-2.5 sm:p-4 rounded-xl border border-slate-800 hover:border-slate-700 transition-all animate-fade-in space-y-2.5 overflow-hidden shadow-xl bg-slate-900/90 flex flex-col justify-between">
       <div>
         <!-- Topo do Horário -->
-        <div class="flex items-center justify-between flex-wrap gap-2 pb-2.5 border-b border-slate-800/80 mb-3">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-black uppercase tracking-wider text-slate-100 flex items-center gap-1.5">
-              <span>🕒</span> ${slotInfo.name}
+        <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-800/80 mb-2.5">
+          <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-100 flex items-center gap-1.5 truncate">
+              <span>🕐</span> ${slotInfo.name}
             </span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shrink-0">
+            <span class="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> APURADO
             </span>
           </div>
           <button type="button" onclick="selectSlotForPrediction('${slotInfo.code}', '${draw.draw_date}')" 
-            class="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 hover:border-indigo-500/60 text-[11px] text-indigo-300 hover:text-white font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
+            class="px-2 sm:px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 hover:border-indigo-500/60 text-[10px] sm:text-[11px] text-indigo-300 hover:text-white font-bold flex items-center gap-1 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0">
             <span>🎯 Palpite</span> &rarr;
           </button>
         </div>
 
-        <!-- Tabela Estruturada de Prêmios (Estilo da Foto) -->
-        <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/80 shadow-inner">
-          <table class="w-full text-left text-xs border-collapse">
+        <!-- Tabela Estruturada de Prêmios (100% responsiva, sem scroll horizontal no celular) -->
+        <div class="w-full rounded-xl border border-slate-800 bg-slate-950/80 shadow-inner overflow-hidden">
+          <table class="w-full table-fixed text-left text-xs border-collapse">
             <thead>
               <tr class="bg-slate-900/90 text-slate-400 text-[10px] font-black uppercase tracking-wider border-b border-slate-800">
-                <th class="py-2 px-3 text-slate-300">Prêmio</th>
-                <th class="py-2 px-3 font-mono text-center text-slate-300">Milhar</th>
-                <th class="py-2 px-3 text-center text-slate-300">Grupo</th>
-                <th class="py-2 px-3 text-slate-300">Bicho</th>
+                <th class="py-2 px-1.5 sm:px-3 text-slate-300 w-[22%] sm:w-[24%]">Prêmio</th>
+                <th class="py-2 px-1 sm:px-2 font-mono text-center text-slate-300 w-[26%] sm:w-[25%]">Milhar</th>
+                <th class="py-2 px-1 sm:px-2 text-center text-slate-300 w-[18%] sm:w-[17%]">Grupo</th>
+                <th class="py-2 px-1.5 sm:px-3 text-slate-300 w-[34%] sm:w-[34%]">Bicho</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-800/60 font-medium">
