@@ -347,7 +347,9 @@ function updateHomeScreenData() {
   const homeNextSlot = document.getElementById('home-next-slot-name');
   const targetSlotSelect = document.getElementById('target-slot');
   if (homeNextSlot && targetSlotSelect) {
-    const selectedOpt = targetSlotSelect.options[targetSlotSelect.selectedIndex];
+    const currentVal = targetSlotSelect.value;
+    const selectedOpt = Array.from(targetSlotSelect.options).find(o => o.value === currentVal)
+      || targetSlotSelect.options[targetSlotSelect.selectedIndex];
     if (selectedOpt) {
       homeNextSlot.textContent = selectedOpt.textContent;
     }
@@ -651,6 +653,21 @@ async function initSlotSelector(lottery = currentLottery) {
       slotSelect.appendChild(opt);
     });
 
+    // Sincroniza valor explicitamente no select e nos cabeçalhos
+    slotSelect.value = defaultSlot;
+    const selectedOpt = Array.from(slotSelect.options).find(o => o.value === defaultSlot);
+    if (selectedOpt) selectedOpt.selected = true;
+
+    const homeNextSlot = document.getElementById('home-next-slot-name');
+    if (homeNextSlot && selectedOpt) {
+      homeNextSlot.textContent = selectedOpt.textContent;
+    }
+
+    const currentSlotName = document.getElementById('current-slot-name');
+    if (currentSlotName && selectedOpt) {
+      currentSlotName.textContent = selectedOpt.textContent;
+    }
+
     renderSlotPillsUI(slots, defaultSlot);
   } catch (err) {
     console.error('Erro ao inicializar horários:', err);
@@ -770,6 +787,18 @@ window.selectSlotFromPill = async function(slotCode) {
   const slotSelect = document.getElementById('target-slot');
   if (slotSelect) {
     slotSelect.value = slotCode;
+    const selectedOpt = Array.from(slotSelect.options).find(o => o.value === slotCode);
+    if (selectedOpt) selectedOpt.selected = true;
+
+    const homeNextSlot = document.getElementById('home-next-slot-name');
+    if (homeNextSlot && selectedOpt) {
+      homeNextSlot.textContent = selectedOpt.textContent;
+    }
+
+    const currentSlotName = document.getElementById('current-slot-name');
+    if (currentSlotName && selectedOpt) {
+      currentSlotName.textContent = selectedOpt.textContent;
+    }
   }
   updateSlotPillsUI(slotCode);
   await Promise.all([loadPrediction(), loadDrawResults()]);
