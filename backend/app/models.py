@@ -297,10 +297,10 @@ class LoginRequestModel(BaseModel):
 
 
 class RegisterRequestModel(BaseModel):
-    name: str = Field(..., description="Nome completo do usuário")
-    email: str = Field(..., description="E-mail do usuário")
-    phone: Optional[str] = Field(None, description="Número de WhatsApp com DDD")
+    name: str = Field(..., description="Nome completo do usuário ou apelido")
+    phone: str = Field(..., description="Número de WhatsApp com DDD")
     password: str = Field(..., description="Senha de acesso à plataforma")
+    email: Optional[str] = Field(None, description="E-mail opcional do usuário")
     device_id: Optional[str] = Field(None, description="Identificador único de dispositivo do cliente")
 
 
