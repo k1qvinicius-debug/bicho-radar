@@ -93,10 +93,8 @@ def serve_historico():
 
 @app.get("/admin")
 @app.get("/admin.html")
-@app.get(r"/\admin")
-@app.get(r"/\\admin")
+@app.get("/\admin")
 @app.get("/%5Cadmin")
-@app.get("/%5cadmin")
 def serve_admin():
     return FileResponse(os.path.join(FRONTEND_DIR, "admin.html"))
 
