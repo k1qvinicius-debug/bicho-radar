@@ -5077,17 +5077,7 @@ window.handleMainRegister = async function(event) {
   }
 };
 
-window.openAdminQuickPrompt = function() {
-  const pass = prompt('Acesso Administrativo Master:\nDigite a senha do administrador:');
-  if (!pass) return;
-  const idInput = document.getElementById('login-input-identity');
-  const passInput = document.getElementById('login-input-password');
-  if (idInput) idInput.value = 'admin';
-  if (passInput) passInput.value = pass;
-  switchAuthGateTab('login');
-  const form = document.getElementById('form-main-login');
-  if (form) form.requestSubmit();
-};
+
 
 // ===================================================================
 // ASSINATURA E PLANOS VIP
@@ -5151,66 +5141,4 @@ window.subscribePlan = async function(planKey) {
   const waUrl = `https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`;
 
   window.open(waUrl, '_blank');
-};
-
-window.loginAsAdminQuick = async function() {
-  const pass = prompt('Acesso Administrativo Master:\nDigite sua senha de administrador:');
-  if (!pass || !pass.trim()) return;
-  try {
-    if (typeof showToast === 'function') showToast('Autenticando como Administrador Master...', 'info');
-    const res = await api.login({
-      username: 'admin',
-      email: 'k1qvinicius@gmail.com',
-      password: pass.trim(),
-      key: pass.trim()
-    });
-    const tenantData = {
-      id: 1,
-      name: 'K. Vinicius (KVS)',
-      email: 'k1qvinicius@gmail.com',
-      role: 'admin',
-      status: 'active',
-      subscription_status: 'active'
-    };
-    if (res && res.tenant) {
-      Object.assign(tenantData, res.tenant);
-      tenantData.role = 'admin';
-      tenantData.name = 'K. Vinicius (KVS)';
-    }
-    localStorage.setItem('bicho_tenant', JSON.stringify(tenantData));
-    if (res && res.token) {
-      localStorage.setItem('bicho_auth_token', res.token);
-    }
-    document.documentElement.classList.add('is-authenticated');
-    if (typeof showToast === 'function') showToast('👑 Bem-vindo, Administrador Master K. Vinicius!', 'success');
-    updateAuthUI();
-    window.location.reload();
-  } catch (err) {
-    alert('Senha incorreta ou erro ao autenticar: ' + (err.message || 'Tente novamente.'));
-  }
-};
-
-
-// Atalho secreto do Administrador: 3 cliques rápidos no logo
-let _logoClicks = 0;
-let _logoClickTimer = null;
-window.handleSecretLogoClick = function() {
-  _logoClicks++;
-  clearTimeout(_logoClickTimer);
-  if (_logoClicks >= 3) {
-    _logoClicks = 0;
-    const pass = prompt('Acesso Administrativo Master:\nDigite sua senha:');
-    if (!pass || !pass.trim()) return;
-    api.login({ username: 'admin', password: pass.trim(), key: pass.trim() })
-      .then(res => {
-        showToast('👑 Bem-vindo, Administrador Master K. Vinicius!', 'success');
-        updateAuthUI();
-        window.location.reload();
-      })
-      .catch(err => {
-        alert('Acesso negado: ' + (err.message || 'Senha incorreta.'));
-      });
-  } else {
-    _logoClickTimer = setTimeout(() => { _logoClicks = 0; }, 1500);
-  }
 };
