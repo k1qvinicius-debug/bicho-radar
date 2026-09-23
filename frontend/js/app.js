@@ -1802,19 +1802,19 @@ window.loadCruzModalContent = async function(forceDate = null) {
         const milharesHtml = anim.thousands.map(m => `
           <button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')"
             title="Clique para copiar ${m}"
-            class="px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-800/60 hover:border-cyan-400 text-cyan-200 font-mono text-xs font-bold transition-all cursor-pointer">
+            class="px-2 py-0.5 rounded-lg bg-cyan-950/70 border border-cyan-800/60 hover:border-cyan-400 text-cyan-200 font-mono text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-sm">
             ${m}
           </button>
         `).join(' ');
 
         return `
-          <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-cyan-500/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div class="flex items-center gap-2.5">
-              <span class="text-2xl shrink-0">${anim.emoji}</span>
+          <div class="p-3 sm:p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-cyan-500/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-2xl shrink-0">${anim.emoji}</span>
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="text-xs font-black text-white">${anim.animal.toUpperCase()}</span>
-                  <span class="text-[10px] font-mono text-slate-400">Grupo ${String(anim.group).padStart(2, '0')}</span>
+                  <span class="text-sm font-black text-white">${anim.animal.toUpperCase()}</span>
+                  <span class="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded">Grupo ${String(anim.group).padStart(2, '0')}</span>
                 </div>
                 <div class="flex items-center gap-1.5 mt-0.5">
                   <span class="text-[10px] uppercase font-bold text-slate-500">Dezenas:</span>
@@ -1827,7 +1827,7 @@ window.loadCruzModalContent = async function(forceDate = null) {
                 ${milharesHtml}
               </div>
               <button type="button" onclick="copyCategoryList(this, '${anim.thousands.join(', ')}', 'Milhares de ${anim.animal}')"
-                class="p-1.5 rounded-lg bg-slate-800 hover:bg-cyan-950 border border-slate-700 hover:border-cyan-500 text-slate-300 hover:text-cyan-300 text-xs transition-all shrink-0" title="Copiar milhares de ${anim.animal}">
+                class="p-2 rounded-xl bg-slate-800 hover:bg-cyan-950 border border-slate-700 hover:border-cyan-500 text-slate-300 hover:text-cyan-300 text-xs transition-all shrink-0 cursor-pointer active:scale-95 shadow-sm" title="Copiar milhares de ${anim.animal}">
                 📋
               </button>
             </div>
