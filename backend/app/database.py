@@ -279,7 +279,7 @@ def init_db() -> None:
                 prize_6 TEXT,
                 prize_7 TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(draw_date, slot, lottery)
+                UNIQUE(draw_date, slot)
             );
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_draws_date ON draw_results(draw_date);")
