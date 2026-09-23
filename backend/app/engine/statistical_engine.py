@@ -281,19 +281,85 @@ class StatisticalEngine:
         last_g1 = get_group_for_number(last_p1) if last_p1 else fav_group.group_number
         last_anim = get_animal_info(last_g1)["name"] if last_g1 else fav_group.animal_name
 
-        # 3. Cálculo do 1º Bicho de Quebra: Oposto Polar no Círculo de 25 Bichos
+        # 3. Assimilação de Quebras Históricas Reais (Aprendizado Empírico da IA)
+        specific_escapes = []
+        lottery_zebras = []
+        try:
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                # 3a. Rota de fuga específica da banca para este favorito exato
+                cur.execute("""
+                    SELECT actual_winner_group, actual_winner_animal, COUNT(*) as freq
+                    FROM pattern_breaks_history
+                    WHERE lottery = ? AND favorite_group = ?
+                    GROUP BY actual_winner_group, actual_winner_animal
+                    ORDER BY freq DESC
+                    LIMIT 3
+                """, (lottery, fav_group.group_number))
+                specific_escapes = [
+                    {"group": int(r["actual_winner_group"]), "animal": r["actual_winner_animal"], "count": int(r["freq"])}
+                    for r in cur.fetchall()
+                ]
+
+                # 3b. Zebras mais frequentes em quebras de padrão desta banca no geral
+                cur.execute("""
+                    SELECT actual_winner_group, actual_winner_animal, COUNT(*) as freq
+                    FROM pattern_breaks_history
+                    WHERE lottery = ?
+                    GROUP BY actual_winner_group, actual_winner_animal
+                    ORDER BY freq DESC
+                    LIMIT 5
+                """, (lottery,))
+                lottery_zebras = [
+                    {"group": int(r["actual_winner_group"]), "animal": r["actual_winner_animal"], "count": int(r["freq"])}
+                    for r in cur.fetchall()
+                ]
+        except Exception:
+            pass
+
+        # Determina o 1º Bicho de Quebra (Prioridade: Fuga Específica > Zebra Geral > Oposto Polar)
         polar_g = ((last_g1 + 12 - 1) % 25) + 1
         while polar_g == last_g1 or polar_g == fav_group.group_number:
             polar_g = (polar_g % 25) + 1
 
-        bicho_1_info = get_animal_info(polar_g)
+        bicho_1_group = polar_g
+        rule_1 = "Contra-Puxada Polar (Círculo Oposto)"
+        is_empirical_1 = False
 
-        # 4. Cálculo do 2º Bicho de Quebra: Zebra Oposta de Cobertura
+        if specific_escapes and specific_escapes[0]["group"] != fav_group.group_number:
+            bicho_1_group = specific_escapes[0]["group"]
+            rule_1 = f"Rota de Fuga da Banca (Fugiu {specific_escapes[0]['count']}x para cá quando {fav_group.animal_name} quebrou)"
+            is_empirical_1 = True
+        elif lottery_zebras:
+            candidate = next((z for z in lottery_zebras if z["group"] not in (fav_group.group_number, last_g1)), None)
+            if candidate:
+                bicho_1_group = candidate["group"]
+                rule_1 = f"Zebra Mais Frequente em Quebras ({candidate['count']}x na {lottery})"
+                is_empirical_1 = True
+
+        bicho_1_info = get_animal_info(bicho_1_group)
+
+        # Determina o 2º Bicho de Quebra (Segunda rota empírica ou zebra polar +7)
         second_break_g = ((last_g1 + 7 - 1) % 25) + 1
-        while second_break_g == last_g1 or second_break_g == fav_group.group_number or second_break_g == polar_g:
+        while second_break_g in (last_g1, fav_group.group_number, bicho_1_group):
             second_break_g = (second_break_g % 25) + 1
 
-        bicho_2_info = get_animal_info(second_break_g)
+        bicho_2_group = second_break_g
+        rule_2 = "Segunda Cobertura (Zebra Oposta)"
+        is_empirical_2 = False
+
+        if len(specific_escapes) > 1 and specific_escapes[1]["group"] not in (fav_group.group_number, bicho_1_group):
+            bicho_2_group = specific_escapes[1]["group"]
+            rule_2 = f"2ª Rota de Fuga Empírica ({specific_escapes[1]['count']}x quando {fav_group.animal_name} quebrou)"
+            is_empirical_2 = True
+        elif lottery_zebras:
+            candidate_2 = next((z for z in lottery_zebras if z["group"] not in (fav_group.group_number, bicho_1_group, last_g1)), None)
+            if candidate_2:
+                bicho_2_group = candidate_2["group"]
+                rule_2 = f"2ª Zebra Histórica ({candidate_2['count']}x na {lottery})"
+                is_empirical_2 = True
+
+        bicho_2_info = get_animal_info(bicho_2_group)
 
         # 5. Dezenas de Proteção
         tens_b1 = bicho_1_info["tens"]
@@ -338,12 +404,20 @@ class StatisticalEngine:
         ]
 
         # 8. Explicação Contextual em Linguagem Simples e Clara
-        reason = (
-            f"O favorito do sistema é o {fav_group.animal_name} (Grupo {fav_group.group_number:02d}) com Score {fav_group.score:.1f}. "
-            f"Porém, se a banca tentar 'quebrar o padrão' e desviar do favorito, a contra-puxada do último 1º prêmio "
-            f"({last_anim} Gr. {last_g1:02d}) aponta para o {bicho_1_info['name']} (Grupo {bicho_1_info['group']:02d}) "
-            f"como o principal Bicho da Contra para cobertura."
-        )
+        if is_empirical_1:
+            reason = (
+                f"O favorito do sistema é o {fav_group.animal_name} (Grupo {fav_group.group_number:02d}) com Score {fav_group.score:.1f}. "
+                f"Com base na assimilação de quebras da {lottery}, a rota de fuga predileta da banca "
+                f"aponta para o {bicho_1_info['name']} (Grupo {bicho_1_info['group']:02d}) como cobertura principal, "
+                f"reforçada pelo {bicho_2_info['name']} (Grupo {bicho_2_info['group']:02d})."
+            )
+        else:
+            reason = (
+                f"O favorito do sistema é o {fav_group.animal_name} (Grupo {fav_group.group_number:02d}) com Score {fav_group.score:.1f}. "
+                f"Porém, se a banca tentar 'quebrar o padrão' e desviar do favorito, a contra-puxada do último 1º prêmio "
+                f"({last_anim} Gr. {last_g1:02d}) aponta para o {bicho_1_info['name']} (Grupo {bicho_1_info['group']:02d}) "
+                f"como o principal Bicho da Contra para cobertura."
+            )
 
         return {
             "risk_level": risk_level,
@@ -361,14 +435,23 @@ class StatisticalEngine:
                 "name": bicho_1_info["name"],
                 "emoji": bicho_1_info["emoji"],
                 "tens": bicho_1_info["tens"],
-                "rule": "Bicho da Contra (Oposto do Sorteio Anterior)"
+                "rule": rule_1,
+                "is_empirical": is_empirical_1
             },
             "secondary_break_animal": {
                 "group": bicho_2_info["group"],
                 "name": bicho_2_info["name"],
                 "emoji": bicho_2_info["emoji"],
                 "tens": bicho_2_info["tens"],
-                "rule": "Segunda Cobertura"
+                "rule": rule_2,
+                "is_empirical": is_empirical_2
+            },
+            "assimilation": {
+                "has_empirical_learning": is_empirical_1 or is_empirical_2,
+                "specific_escapes_count": sum(x["count"] for x in specific_escapes),
+                "total_lottery_breaks_recorded": sum(x["count"] for x in lottery_zebras),
+                "top_escape_animal": bicho_1_info["name"],
+                "learning_mode": "EMPIRICAL_ASSIMILATED" if (is_empirical_1 or is_empirical_2) else "MATHEMATICAL_MODEL"
             },
             "protection_tens": prot_tens,
             "protection_hundreds": prot_hundreds,
