@@ -67,9 +67,9 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
     },
     "LOOK": {
         "code": "LOOK",
-        "name": "Look Loterias (Goiás)",
-        "short_name": "Look Goiás",
-        "badge": "🌾 Look GO",
+        "name": "Look Loterias",
+        "short_name": "Look",
+        "badge": "🌾 Look",
         "icon": "🌾",
         "color": "amber",
         "slots": [
