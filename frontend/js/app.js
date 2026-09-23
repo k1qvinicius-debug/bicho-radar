@@ -278,7 +278,7 @@ window.switchMainTab = function(tabName, updateHash = true) {
    Tópicos: 'animals', 'duques', 'fixed'
    ========================================================================== */
 window.switchPalpitesTopic = function(topicName) {
-  const topics = ['animals', 'duques', 'fixed'];
+  const topics = ['animals', 'contra', 'duques', 'fixed'];
   if (!topics.includes(topicName)) topicName = 'animals';
 
   topics.forEach(t => {
@@ -287,9 +287,9 @@ window.switchPalpitesTopic = function(topicName) {
 
     if (btn) {
       if (t === topicName) {
-        btn.className = 'py-1.5 px-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 bg-indigo-600 text-white shadow-sm active:scale-95 cursor-pointer';
+        btn.className = 'py-1.5 px-0.5 sm:px-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-0.5 sm:gap-1 bg-indigo-600 text-white shadow-sm active:scale-95 cursor-pointer';
       } else {
-        btn.className = 'py-1.5 px-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer';
+        btn.className = 'py-1.5 px-0.5 sm:px-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer';
       }
     }
 
@@ -2257,6 +2257,16 @@ function renderPatternBreakSection(pb) {
   }
 
   card.classList.remove('hidden');
+
+  // Atualiza badge de alerta na abinha Contra-Banca
+  const contraTabBadge = document.getElementById('topic-contra-badge');
+  if (contraTabBadge) {
+    if (pb.risk_level === 'ALTO' || pb.risk_percentage >= 65) {
+      contraTabBadge.classList.remove('hidden');
+    } else {
+      contraTabBadge.classList.add('hidden');
+    }
+  }
 
   let borderStyle = 'border-rose-500/40 bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-900 shadow-rose-950/20';
   let badgeStyle = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
@@ -4674,6 +4684,16 @@ async function executeMilharTracking(rawMilhar) {
 
     if (card) {
       card.classList.remove('hidden');
+
+  // Atualiza badge de alerta na abinha Contra-Banca
+  const contraTabBadge = document.getElementById('topic-contra-badge');
+  if (contraTabBadge) {
+    if (pb.risk_level === 'ALTO' || pb.risk_percentage >= 65) {
+      contraTabBadge.classList.remove('hidden');
+    } else {
+      contraTabBadge.classList.add('hidden');
+    }
+  }
     }
 
     const bichoIcon = document.getElementById('tracker-bicho-icon');
