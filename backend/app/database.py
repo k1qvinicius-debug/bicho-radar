@@ -24,8 +24,8 @@ logger = logging.getLogger("bicho_analytics.database")
 # Caminho do banco local SQLite (utilizado como fallback ou desenvolvimento offline)
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bicho_analytics.db")
 
-# URL de conexão com Supabase (Pooler IPv4 para compatibilidade garantida local e em nuvem)
-DEFAULT_SUPABASE_URL = "postgresql://postgres.kiiezdplqozrjejkurwn:2OKQnddAt9VPfOKm@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
+# URL de conexão com PostgreSQL Dedicado (Hospedado na VPS via Coolify)
+DEFAULT_POSTGRES_URL = "postgresql://postgres:9Jx1gwFhtYcJFFF43iF8djZUuy489bxrvSzbb0rjkmho4TOo8VM0HjHZ9LPHuhGo@uwx4ahlymo5ox6ebkxrg4aco:5432/postgres"
 
 
 def get_db_path() -> str:
@@ -33,8 +33,9 @@ def get_db_path() -> str:
 
 
 def get_database_url() -> str:
-    """Retorna a URL do banco configurada em ambiente ou o padrão Supabase."""
-    return os.getenv("DATABASE_URL", DEFAULT_SUPABASE_URL)
+    """Retorna a URL do banco configurada em ambiente ou o padrão do PostgreSQL na VPS."""
+    return os.getenv("DATABASE_URL", DEFAULT_POSTGRES_URL)
+
 
 
 def is_postgres_configured() -> bool:
@@ -392,6 +393,11 @@ def init_db() -> None:
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS device_id TEXT;")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tenants_reg_ip ON tenants(registration_ip);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tenants_device_id ON tenants(device_id);")
+
+            # Ativa Row Level Security (RLS) para proteger o acesso direto via Supabase REST API
+            for tbl in ["draw_results", "engine_weights", "analysis_snapshots", "analysis_evaluations", "bichocerto_atrasados", "tenants", "system_settings"]:
+                cursor.execute(f"ALTER TABLE {tbl} ENABLE ROW LEVEL SECURITY;")
+
 
         else:
             # DDL para SQLite
