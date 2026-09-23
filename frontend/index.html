@@ -27,7 +27,7 @@
     }
   </script>
   <link rel="icon" type="image/png" href="/img/favicon.png?v=87.0" />
-  <link rel="stylesheet" href="/css/style.css?v=90.0" />
+  <link rel="stylesheet" href="/css/style.css?v=91.0" />
   <!-- Prevenção imediata de flash da tela de login para usuários autenticados -->
   <script>
     (function() {
@@ -971,24 +971,31 @@
           <span id="strategy-desc-badge" class="hidden"></span>
         </div>
 
-        <!-- Linha 3: Segmented Control dos 3 Tópicos (Fichas, Duques, Bicho Fixo) -->
-        <div class="p-1 bg-slate-950/70 border border-slate-800/90 rounded-xl grid grid-cols-3 gap-1">
+        <!-- Linha 3: Segmented Control dos 4 Tópicos (Fichas, Contra-Banca, Duques, Bicho Fixo) -->
+        <div class="p-1 bg-slate-950/70 border border-slate-800/90 rounded-xl grid grid-cols-4 gap-1">
           <button type="button" id="topic-tab-animals" onclick="switchPalpitesTopic('animals')"
-            class="py-1.5 px-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 bg-indigo-600 text-white shadow-sm active:scale-95 cursor-pointer">
+            class="py-1.5 px-0.5 sm:px-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-0.5 sm:gap-1 bg-indigo-600 text-white shadow-sm active:scale-95 cursor-pointer">
             <span>🐾</span>
-            <span>Por Bicho</span>
+            <span class="truncate">Por Bicho</span>
+          </button>
+
+          <button type="button" id="topic-tab-contra" onclick="switchPalpitesTopic('contra')"
+            class="py-1.5 px-0.5 sm:px-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer relative">
+            <span>🛡️</span>
+            <span class="truncate">Contra-Banca</span>
+            <span id="topic-contra-badge" class="hidden w-2 h-2 rounded-full bg-rose-500 animate-ping absolute top-1 right-1"></span>
           </button>
 
           <button type="button" id="topic-tab-duques" onclick="switchPalpitesTopic('duques')"
-            class="py-1.5 px-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer">
-            <span>🛡️</span>
-            <span>Duques</span>
+            class="py-1.5 px-0.5 sm:px-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer">
+            <span>⚔️</span>
+            <span class="truncate">Duques</span>
           </button>
 
           <button type="button" id="topic-tab-fixed" onclick="switchPalpitesTopic('fixed')"
-            class="py-1.5 px-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer">
+            class="py-1.5 px-0.5 sm:px-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer">
             <span>🎲</span>
-            <span>Bicho Fixo</span>
+            <span class="truncate">Bicho Fixo</span>
           </button>
         </div>
       </div>
@@ -1003,9 +1010,6 @@
       <!-- TÓPICO 1: FICHAS POR BICHO (TOP ANIMAIS + CENTENAS + MILHARES) -->
       <!-- ============================================================== -->
       <div id="topic-content-animals" class="space-y-4">
-        <!-- RADAR DE QUEBRA DE PADRÃO & PROTEÇÃO CONTRA-BANCA -->
-        <div id="pattern-break-card" class="hidden"></div>
-
         <!-- RADAR DE TRANSIÇÃO HISTÓRICA (CADEIAS DE MARKOV - ALTA PRECISÃO) -->
         <div id="transition-matrix-card" class="hidden"></div>
         <div class="flex items-center justify-between px-1">
@@ -1072,7 +1076,16 @@
       </div>
 
       <!-- ============================================================== -->
-      <!-- TÓPICO 2: DUQUES & FECHAMENTO (FECHAMENTO HÍBRIDO + DDZ) -->
+      <!-- TÓPICO 2: RADAR DE QUEBRA DE PADRÃO & PROTEÇÃO CONTRA-BANCA   -->
+      <!-- ============================================================== -->
+      <div id="topic-content-contra" class="space-y-4 hidden">
+        <div id="pattern-break-card">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- TÓPICO 3: DUQUES & FECHAMENTO (FECHAMENTO HÍBRIDO + DDZ) -->
       <!-- ============================================================== -->
       <div id="topic-content-duques" class="space-y-4 hidden">
         <!-- 0. FECHAMENTO HÍBRIDO ANTI-ALEATORIEDADE -->
@@ -2075,8 +2088,8 @@
     </div>
   </div>
 
-<script src="/js/api.js?v=90.0"></script>
-  <script src="/js/app.js?v=90.0"></script>
+<script src="/js/api.js?v=91.0"></script>
+  <script src="/js/app.js?v=91.0"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
