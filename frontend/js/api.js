@@ -416,6 +416,15 @@ const api = {
     return await res.json();
   },
 
+  async getPatternBreaks(lottery = 'RJ', limit = 30) {
+    let url = `${API_BASE}/analysis/pattern-breaks?lottery=${encodeURIComponent(lottery || 'RJ')}&limit=${limit}`;
+    const res = await fetch(url, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao carregar histórico de quebras.');
+    return await res.json();
+  },
+
   async getCentenaMaster(date = null, lottery = 'RJ') {
     let url = `${API_BASE}/analysis/centena-master?lottery=${encodeURIComponent(lottery || 'RJ')}`;
     if (date) url += `&target_date=${encodeURIComponent(date)}`;
