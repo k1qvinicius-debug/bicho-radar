@@ -394,8 +394,34 @@ def init_db() -> None:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tenants_reg_ip ON tenants(registration_ip);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tenants_device_id ON tenants(device_id);")
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS pattern_breaks_history (
+                id SERIAL PRIMARY KEY,
+                draw_id INTEGER REFERENCES draw_results(id) ON DELETE CASCADE,
+                draw_date TEXT NOT NULL,
+                slot TEXT NOT NULL,
+                lottery TEXT NOT NULL,
+                favorite_group INTEGER NOT NULL,
+                favorite_animal TEXT NOT NULL,
+                favorite_score REAL NOT NULL,
+                contra_predicted_1_group INTEGER,
+                contra_predicted_1_animal TEXT,
+                contra_predicted_2_group INTEGER,
+                contra_predicted_2_animal TEXT,
+                actual_winner_group INTEGER NOT NULL,
+                actual_winner_animal TEXT NOT NULL,
+                actual_prize_1 TEXT NOT NULL,
+                risk_level TEXT NOT NULL,
+                hit_contra INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(draw_date, slot, lottery)
+            );
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pb_lottery ON pattern_breaks_history(lottery);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pb_date_slot ON pattern_breaks_history(draw_date, slot);")
+
             # Ativa Row Level Security (RLS) para proteger o acesso direto via Supabase REST API
-            for tbl in ["draw_results", "engine_weights", "analysis_snapshots", "analysis_evaluations", "bichocerto_atrasados", "tenants", "system_settings"]:
+            for tbl in ["draw_results", "engine_weights", "analysis_snapshots", "analysis_evaluations", "bichocerto_atrasados", "tenants", "system_settings", "pattern_breaks_history"]:
                 cursor.execute(f"ALTER TABLE {tbl} ENABLE ROW LEVEL SECURITY;")
 
 
@@ -552,8 +578,35 @@ def init_db() -> None:
             if "device_id" not in tenant_cols:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN device_id TEXT")
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS pattern_breaks_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                draw_id INTEGER REFERENCES draw_results(id) ON DELETE CASCADE,
+                draw_date TEXT NOT NULL,
+                slot TEXT NOT NULL,
+                lottery TEXT NOT NULL,
+                favorite_group INTEGER NOT NULL,
+                favorite_animal TEXT NOT NULL,
+                favorite_score REAL NOT NULL,
+                contra_predicted_1_group INTEGER,
+                contra_predicted_1_animal TEXT,
+                contra_predicted_2_group INTEGER,
+                contra_predicted_2_animal TEXT,
+                actual_winner_group INTEGER NOT NULL,
+                actual_winner_animal TEXT NOT NULL,
+                actual_prize_1 TEXT NOT NULL,
+                risk_level TEXT NOT NULL,
+                hit_contra INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(draw_date, slot, lottery)
+            );
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pb_lottery ON pattern_breaks_history(lottery);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pb_date_slot ON pattern_breaks_history(draw_date, slot);")
+
+
         # Garante que a conta Master Admin k1qvinicius@gmail.com exista com chave 0203040
-        cursor.execute("SELECT id FROM tenants WHERE LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com' LIMIT 1")
+        cursor.execute("SELECT id FROM tenants WHERE LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com' OR tenant_key = '0203040' LIMIT 1")
         admin_row = cursor.fetchone()
         if not admin_row:
             cursor.execute("""
