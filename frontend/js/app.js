@@ -4684,16 +4684,6 @@ async function executeMilharTracking(rawMilhar) {
 
     if (card) {
       card.classList.remove('hidden');
-
-  // Atualiza badge de alerta na abinha Contra-Banca
-  const contraTabBadge = document.getElementById('topic-contra-badge');
-  if (contraTabBadge) {
-    if (pb.risk_level === 'ALTO' || pb.risk_percentage >= 65) {
-      contraTabBadge.classList.remove('hidden');
-    } else {
-      contraTabBadge.classList.add('hidden');
-    }
-  }
     }
 
     const bichoIcon = document.getElementById('tracker-bicho-icon');
