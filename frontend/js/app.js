@@ -297,6 +297,10 @@ window.switchPalpitesTopic = function(topicName) {
       content.classList.toggle('hidden', t !== topicName);
     }
   });
+
+  if (topicName === 'contra' && typeof window.loadAndRenderPatternBreaksHistory === 'function') {
+    window.loadAndRenderPatternBreaksHistory(window.currentLottery || 'RJ');
+  }
 };
 
 /* ==========================================================================
@@ -1969,6 +1973,9 @@ function renderDashboard(data) {
 
   // 0.1 Radar de Quebra de Padrão & Proteção Contra-Banca
   renderPatternBreakSection(data.pattern_break);
+  if (typeof window.loadAndRenderPatternBreaksHistory === 'function') {
+    window.loadAndRenderPatternBreaksHistory(data.lottery || window.currentLottery || 'RJ');
+  }
 
   // Transição Histórica
   renderTransitionMatrixSection(data.transition_data);
@@ -2311,6 +2318,7 @@ function renderPatternBreakSection(pb) {
             <h3 class="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
               <span>Radar de Quebra de Padrão</span>
               <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 uppercase tracking-widest">Contra-Banca</span>
+              ${pb.assimilation?.has_empirical_learning ? '<span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">🧠 IA ASSIMILADA</span>' : ''}
             </h3>
             <p class="text-[10px] text-slate-400">Proteção estatística contra inversões e zebras calculadas</p>
           </div>
