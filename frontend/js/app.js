@@ -860,14 +860,14 @@ function renderSlotPillsUI(slots, activeSlotCode) {
 function updateLotteryButtonsUI() {
   const lotNames = {
     'RJ': 'Rio de Janeiro (RJ)',
-    'LOOK': 'Look Goiás (LOOK)',
+    'LOOK': 'Look (LOOK)',
     'NACIONAL': 'Loteria Nacional',
     'SP': 'São Paulo (SP)',
     'FEDERAL': 'Loteria Federal'
   };
   const pureNames = {
     'RJ': 'Rio de Janeiro',
-    'LOOK': 'Look Goiás',
+    'LOOK': 'Look',
     'NACIONAL': 'Loteria Nacional',
     'SP': 'São Paulo',
     'FEDERAL': 'Loteria Federal'
@@ -1023,7 +1023,7 @@ window.switchLottery = async function(lotteryCode) {
 
   const lotLabels = {
     'RJ': 'Rio de Janeiro',
-    'LOOK': 'Look Goiás',
+    'LOOK': 'Look',
     'NACIONAL': 'Nacional',
     'SP': 'São Paulo',
     'FEDERAL': 'Federal'
@@ -1259,7 +1259,7 @@ window.syncPuxadasModal = async function () {
 
   const lotNames = {
     'RJ': 'Rio de Janeiro (RJ)',
-    'LOOK': 'Look Goiás',
+    'LOOK': 'Look',
     'NACIONAL': 'Nacional',
     'SP': 'São Paulo',
     'FEDERAL': 'Federal'
@@ -1311,7 +1311,7 @@ async function loadPuxadasModalContent(selectedGroup = null, forceRefresh = fals
 
     const lotNames = {
       'RJ': 'Rio de Janeiro (RJ)',
-      'LOOK': 'Look Goiás',
+      'LOOK': 'Look',
       'NACIONAL': 'Loteria Nacional',
       'SP': 'São Paulo',
       'FEDERAL': 'Loteria Federal'
@@ -1894,7 +1894,7 @@ async function loadAtrasadosModalList() {
   const lotBadge = document.getElementById('atrasados-lottery-badge');
   const lotLabels = {
     'RJ': 'Rio de Janeiro (RJ)',
-    'LOOK': 'Look Goiás (LOOK)',
+    'LOOK': 'Look (LOOK)',
     'NACIONAL': 'Nacional (LN)',
     'SP': 'São Paulo (SP)',
     'FEDERAL': 'Federal'
