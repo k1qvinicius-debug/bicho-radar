@@ -368,4 +368,104 @@ def get_centena_master_endpoint(
     return calculate_centena_master(target_date=target_date, lottery=lottery or "RJ")
 
 
+@router.get("/pattern-breaks", response_model=Dict[str, Any])
+def get_pattern_breaks_endpoint(
+    lottery: Optional[str] = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    limit: int = Query(30, ge=1, le=100, description="Quantidade de quebras recentes"),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
+):
+    """
+    Retorna o histórico de Quebras de Padrão registradas, taxa de proteção
+    da Contra-Banca e o ranking empírico das maiores zebras e rotas de fuga.
+    """
+    eff_lot = (lottery or "RJ").upper()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        # 1. Busca quebras recentes
+        cursor.execute("""
+            SELECT * FROM pattern_breaks_history
+            WHERE lottery = ?
+            ORDER BY draw_date DESC, id DESC
+            LIMIT ?
+        """, (eff_lot, limit))
+        recent_rows = [dict(r) for r in cursor.fetchall()]
+
+        # 2. Métricas agregadas
+        cursor.execute("SELECT COUNT(*) as total, SUM(CASE WHEN hit_contra = 1 THEN 1 ELSE 0 END) as hits FROM pattern_breaks_history WHERE lottery = ?", (eff_lot,))
+        agg_row = cursor.fetchone()
+        total_breaks = (agg_row["total"] if agg_row else 0) or 0
+        contra_hits = (agg_row["hits"] if agg_row else 0) or 0
+        hit_rate = round((contra_hits / total_breaks * 100), 1) if total_breaks > 0 else 0.0
+
+        # 3. Top rotas de fuga (zebras que mais ganharam quando o favorito falhou)
+        cursor.execute("""
+            SELECT actual_winner_group, actual_winner_animal, COUNT(*) as freq
+            FROM pattern_breaks_history
+            WHERE lottery = ?
+            GROUP BY actual_winner_group, actual_winner_animal
+            ORDER BY freq DESC
+            LIMIT 5
+        """, (eff_lot,))
+        top_zebras = [
+            {
+                "group": int(r["actual_winner_group"]),
+                "animal": r["actual_winner_animal"],
+                "count": int(r["freq"]),
+                "percentage": round(int(r["freq"]) / total_breaks * 100, 1) if total_breaks > 0 else 0.0
+            }
+            for r in cursor.fetchall()
+        ]
+
+        # 4. Formata as linhas recentes para a interface
+        history = []
+        for r in recent_rows:
+            history.append({
+                "id": r["id"],
+                "draw_date": r["draw_date"],
+                "slot": r["slot"],
+                "lottery": r["lottery"],
+                "favorite_group": r["favorite_group"],
+                "favorite_animal": r["favorite_animal"],
+                "favorite_score": r["favorite_score"],
+                "contra_1": {
+                    "group": r.get("contra_predicted_1_group"),
+                    "animal": r.get("contra_predicted_1_animal")
+                },
+                "contra_2": {
+                    "group": r.get("contra_predicted_2_group"),
+                    "animal": r.get("contra_predicted_2_animal")
+                },
+                "actual_winner_group": r["actual_winner_group"],
+                "actual_winner_animal": r["actual_winner_animal"],
+                "actual_prize_1": r["actual_prize_1"],
+                "risk_level": r["risk_level"],
+                "hit_contra": bool(r.get("hit_contra", 0)),
+                "created_at": str(r["created_at"]) if r.get("created_at") else None
+            })
+
+    return {
+        "lottery": eff_lot,
+        "total_breaks": total_breaks,
+        "contra_hits": contra_hits,
+        "contra_protection_rate": hit_rate,
+        "top_escape_animals": top_zebras,
+        "history": history
+    }
+
+
+@router.post("/pattern-breaks/backfill", response_model=Dict[str, Any])
+def post_pattern_breaks_backfill(
+    limit: int = Query(500, ge=10, le=1000),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
+):
+    """
+    Aciona o backfill retroativo de quebras de padrão a partir de todos os snapshots apurados no banco.
+    """
+    from ..engine.evaluator import backfill_pattern_breaks_from_snapshots
+    total = backfill_pattern_breaks_from_snapshots(limit=limit)
+    return {"status": "ok", "total_breaks_in_database": total}
+
+
+
 
