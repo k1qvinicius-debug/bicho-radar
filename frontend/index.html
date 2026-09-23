@@ -27,7 +27,7 @@
     }
   </script>
   <link rel="icon" type="image/png" href="/img/favicon.png?v=87.0" />
-  <link rel="stylesheet" href="/css/style.css?v=93.0" />
+  <link rel="stylesheet" href="/css/style.css?v=94.0" />
   <!-- Prevenção imediata de flash da tela de login para usuários autenticados -->
   <script>
     (function() {
@@ -257,6 +257,32 @@
           </div>
         </div>
 
+        <!-- Look -->
+        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-LOOK">
+          <button type="button" onclick="toggleLotteryAccordion('LOOK')"
+            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">🌾</span>
+              <span>Look</span>
+            </div>
+            <svg id="acc-icon-LOOK" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="acc-content-LOOK" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
+            <button type="button" onclick="navigateTo('LOOK', 'palpites')" id="subnav-LOOK-palpites"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🎯</span> <span>Palpites do Motor</span>
+            </button>
+            <button type="button" onclick="navigateTo('LOOK', 'atrasados')" id="subnav-LOOK-atrasados"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>⏱️</span> <span>Mais Atrasados</span>
+            </button>
+            <button type="button" onclick="navigateTo('LOOK', 'puxadas')" id="subnav-LOOK-puxadas"
+              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
+              <span>🧲</span> <span>Radar de Puxadas</span>
+            </button>
+          </div>
+        </div>
+
         <!-- São Paulo -->
         <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-SP">
           <button type="button" onclick="toggleLotteryAccordion('SP')"
@@ -277,32 +303,6 @@
               <span>⏱️</span> <span>Mais Atrasados</span>
             </button>
             <button type="button" onclick="navigateTo('SP', 'puxadas')" id="subnav-SP-puxadas"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🧲</span> <span>Radar de Puxadas</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Look Goiás -->
-        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-LOOK">
-          <button type="button" onclick="toggleLotteryAccordion('LOOK')"
-            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
-            <div class="flex items-center gap-2">
-              <span class="text-sm">🌾</span>
-              <span>Look Goiás</span>
-            </div>
-            <svg id="acc-icon-LOOK" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div id="acc-content-LOOK" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
-            <button type="button" onclick="navigateTo('LOOK', 'palpites')" id="subnav-LOOK-palpites"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🎯</span> <span>Palpites do Motor</span>
-            </button>
-            <button type="button" onclick="navigateTo('LOOK', 'atrasados')" id="subnav-LOOK-atrasados"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>⏱️</span> <span>Mais Atrasados</span>
-            </button>
-            <button type="button" onclick="navigateTo('LOOK', 'puxadas')" id="subnav-LOOK-puxadas"
               class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
               <span>🧲</span> <span>Radar de Puxadas</span>
             </button>
@@ -353,6 +353,7 @@
           </div>
         </div>
       </div>
+
 
       <!-- Cruz do Dia (Item ÚNICO e Universal!) -->
       <div class="pt-2 border-t border-slate-800/80 space-y-1">
@@ -594,7 +595,7 @@
       <select id="global-lottery-select" onchange="switchLottery(this.value)" class="hidden">
         <option value="RJ">Rio de Janeiro</option>
         <option value="SP">São Paulo</option>
-        <option value="LOOK">Goiás (Look Goiás)</option>
+        <option value="LOOK">Look</option>
         <option value="FEDERAL">Loteria Federal</option>
         <option value="NACIONAL">Loteria Nacional</option>
       </select>
@@ -1468,7 +1469,7 @@
           </button>
           <button type="button" onclick="switchPuxadasLottery('LOOK')" data-puxadas-lottery="LOOK"
             class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
-            Look Goiás
+            Look
           </button>
           <button type="button" onclick="switchPuxadasLottery('NACIONAL')" data-puxadas-lottery="NACIONAL"
             class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
@@ -2168,8 +2169,8 @@
     </div>
   </div>
 
-<script src="/js/api.js?v=93.0"></script>
-  <script src="/js/app.js?v=93.0"></script>
+<script src="/js/api.js?v=94.0"></script>
+  <script src="/js/app.js?v=94.0"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
