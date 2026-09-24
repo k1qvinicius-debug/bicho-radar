@@ -3,8 +3,8 @@ Endpoints de Métricas e Indicadores de Desempenho.
 Calcula taxas de acerto, desempenho por horário, estatísticas agregadas e distribuições.
 """
 
-from fastapi import APIRouter
-from typing import Dict, Any, List
+from fastapi import APIRouter, Query
+from typing import Dict, Any, List, Optional
 from ..database import get_db_connection
 from ..domain import STANDARD_SLOTS, ANIMALS, get_animal_info
 
@@ -12,35 +12,60 @@ router = APIRouter(prefix="/metrics", tags=["Métricas"])
 
 
 @router.get("/summary", response_model=Dict[str, Any])
-def get_metrics_summary():
-    """Retorna o resumo global de métricas de acertos do sistema."""
+def get_metrics_summary(lottery: Optional[str] = None):
+    """Retorna o resumo global de métricas de acertos do sistema, opcionalmente filtrado por loteria."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
         # Total de sorteios cadastrados
-        cursor.execute("SELECT COUNT(*) FROM draw_results")
-        total_draws = cursor.fetchone()[0]
+        if lottery and isinstance(lottery, str):
+            lot_code = lottery.upper()
+            cursor.execute("SELECT COUNT(*) FROM draw_results WHERE (lottery = ? OR (lottery IS NULL AND ? = 'RJ'))", (lot_code, lot_code))
+            total_draws = cursor.fetchone()[0]
 
-        # Total de snapshots
-        cursor.execute("SELECT COUNT(*) FROM analysis_snapshots")
-        total_snapshots = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM analysis_snapshots WHERE (lottery = ? OR (lottery IS NULL AND ? = 'RJ'))", (lot_code, lot_code))
+            total_snapshots = cursor.fetchone()[0]
 
-        # Snapshots avaliados
-        cursor.execute("""
-            SELECT
-                COUNT(*) as total_evals,
-                SUM(acerto_grupo_1) as sum_g1,
-                SUM(acertos_grupo_cercado) as sum_g_cercado,
-                SUM(acerto_dezena_1) as sum_d1,
-                SUM(acertos_dezena_cercado) as sum_d_cercado,
-                SUM(acerto_centena_1) as sum_c1,
-                SUM(acertos_centena_cercado) as sum_c_cercado,
-                SUM(acerto_milhar_1) as sum_m1,
-                SUM(acertos_milhar_cercado) as sum_m_cercado,
-                AVG(hit_rate_score) as avg_score
-            FROM analysis_evaluations
-        """)
-        row = cursor.fetchone()
+            cursor.execute("""
+                SELECT
+                    COUNT(e.id) as total_evals,
+                    SUM(e.acerto_grupo_1) as sum_g1,
+                    SUM(e.acertos_grupo_cercado) as sum_g_cercado,
+                    SUM(e.acerto_dezena_1) as sum_d1,
+                    SUM(e.acertos_dezena_cercado) as sum_d_cercado,
+                    SUM(e.acerto_centena_1) as sum_c1,
+                    SUM(e.acertos_centena_cercado) as sum_c_cercado,
+                    SUM(e.acerto_milhar_1) as sum_m1,
+                    SUM(e.acertos_milhar_cercado) as sum_m_cercado,
+                    AVG(e.hit_rate_score) as avg_score
+                FROM analysis_evaluations e
+                INNER JOIN analysis_snapshots s ON e.snapshot_id = s.id
+                WHERE (s.lottery = ? OR (s.lottery IS NULL AND ? = 'RJ'))
+            """, (lot_code, lot_code))
+            row = cursor.fetchone()
+        else:
+            cursor.execute("SELECT COUNT(*) FROM draw_results")
+            total_draws = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM analysis_snapshots")
+            total_snapshots = cursor.fetchone()[0]
+
+            cursor.execute("""
+                SELECT
+                    COUNT(*) as total_evals,
+                    SUM(acerto_grupo_1) as sum_g1,
+                    SUM(acertos_grupo_cercado) as sum_g_cercado,
+                    SUM(acerto_dezena_1) as sum_d1,
+                    SUM(acertos_dezena_cercado) as sum_d_cercado,
+                    SUM(acerto_centena_1) as sum_c1,
+                    SUM(acertos_centena_cercado) as sum_c_cercado,
+                    SUM(acerto_milhar_1) as sum_m1,
+                    SUM(acertos_milhar_cercado) as sum_m_cercado,
+                    AVG(hit_rate_score) as avg_score
+                FROM analysis_evaluations
+            """)
+            row = cursor.fetchone()
+
         evals_count = row["total_evals"] or 0
 
         if evals_count > 0:
@@ -72,16 +97,76 @@ def get_metrics_summary():
             "thousand_1st_hit_rate": rate_m1,
             "thousand_cercado_hit_rate": rate_m_cercado,
             "average_performance_score": avg_score,
+            "lottery": lottery.upper() if lottery else "ALL",
         }
 
 
-@router.get("/by-slot", response_model=List[Dict[str, Any]])
-def get_metrics_by_slot():
-    """Desempenho estratificado por horário de extração (PTM, PT, PTV, PTN, COR, FED)."""
+@router.get("/by-lottery", response_model=List[Dict[str, Any]])
+def get_metrics_by_lottery():
+    """Desempenho comparativo estratificado por praça/loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT
+                COALESCE(s.lottery, 'RJ') as lottery,
+                COUNT(e.id) as total_evals,
+                SUM(CASE WHEN e.hit_rate_score > 0 THEN 1 ELSE 0 END) as total_hits,
+                SUM(e.acerto_grupo_1) as hits_g1,
+                SUM(e.acertos_grupo_cercado) as hits_g_cercado,
+                SUM(e.acerto_dezena_1) as hits_d1,
+                SUM(e.acertos_dezena_cercado) as hits_d_cercado,
+                SUM(e.acerto_centena_1) as hits_c1,
+                SUM(e.acerto_milhar_1) as hits_m1,
+                AVG(e.hit_rate_score) as avg_score
+            FROM analysis_snapshots s
+            INNER JOIN analysis_evaluations e ON s.id = e.snapshot_id
+            GROUP BY COALESCE(s.lottery, 'RJ')
+            ORDER BY avg_score DESC, total_evals DESC
+        """)
+        rows = cursor.fetchall()
+
+        lottery_meta = {
+            "LOOK": {"name": "Look Goiás", "emoji": "🌾", "color": "emerald", "badge": "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"},
+            "RJ": {"name": "Rio de Janeiro", "emoji": "🌴", "color": "amber", "badge": "bg-amber-500/20 text-amber-300 border-amber-500/40"},
+            "NACIONAL": {"name": "Loteria Nacional", "emoji": "🇧🇷", "color": "cyan", "badge": "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"},
+            "SP": {"name": "São Paulo", "emoji": "🏙️", "color": "purple", "badge": "bg-purple-500/20 text-purple-300 border-purple-500/40"},
+            "FEDERAL": {"name": "Loteria Federal", "emoji": "🏛️", "color": "amber", "badge": "bg-amber-500/20 text-amber-300 border-amber-500/40"},
+        }
+
+        result = []
+        for r in rows:
+            evs = r["total_evals"] or 1
+            lot_code = str(r["lottery"]).upper()
+            meta = lottery_meta.get(lot_code, {"name": lot_code, "emoji": "🎲", "color": "indigo", "badge": "bg-indigo-500/20 text-indigo-300 border-indigo-500/40"})
+            
+            result.append({
+                "lottery": lot_code,
+                "name": meta["name"],
+                "emoji": meta["emoji"],
+                "color": meta["color"],
+                "badge": meta["badge"],
+                "total_evals": r["total_evals"],
+                "total_hits": r["total_hits"] or 0,
+                "hit_rate_pct": round(((r["total_hits"] or 0) / evs) * 100, 1),
+                "group_1st_rate": round((r["hits_g1"] or 0) / evs * 100, 1),
+                "group_cercado_rate": round((r["hits_g_cercado"] or 0) / (evs * 5) * 100, 1),
+                "ten_1st_rate": round((r["hits_d1"] or 0) / evs * 100, 1),
+                "hundred_1st_rate": round((r["hits_c1"] or 0) / evs * 100, 1),
+                "thousand_1st_rate": round((r["hits_m1"] or 0) / evs * 100, 1),
+                "average_score": round(r["avg_score"] or 0.0, 1),
+            })
+
+        return result
+
+
+@router.get("/by-slot", response_model=List[Dict[str, Any]])
+def get_metrics_by_slot(lottery: Optional[str] = None):
+    """Desempenho estratificado por horário de extração, opcionalmente filtrado por loteria."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        query = """
+            SELECT
+                COALESCE(s.lottery, 'RJ') as lottery,
                 s.target_slot as slot,
                 COUNT(e.id) as total_evals,
                 SUM(e.acerto_grupo_1) as hits_g1,
@@ -93,15 +178,22 @@ def get_metrics_by_slot():
                 AVG(e.hit_rate_score) as avg_score
             FROM analysis_snapshots s
             INNER JOIN analysis_evaluations e ON s.id = e.snapshot_id
-            GROUP BY s.target_slot
-            ORDER BY total_evals DESC
-        """)
+        """
+        params = []
+        if lottery and isinstance(lottery, str):
+            lot_code = lottery.upper()
+            query += " WHERE (s.lottery = ? OR (s.lottery IS NULL AND ? = 'RJ'))"
+            params.extend([lot_code, lot_code])
+
+        query += " GROUP BY COALESCE(s.lottery, 'RJ'), s.target_slot ORDER BY total_evals DESC, avg_score DESC"
+        cursor.execute(query, params)
         rows = cursor.fetchall()
 
         result = []
         for r in rows:
             evs = r["total_evals"] or 1
             result.append({
+                "lottery": str(r["lottery"]).upper(),
                 "slot": r["slot"],
                 "total_evals": r["total_evals"],
                 "group_1st_rate": round((r["hits_g1"] or 0) / evs * 100, 1),
