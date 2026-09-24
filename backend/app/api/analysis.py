@@ -214,12 +214,13 @@ def list_snapshots(
         cursor = conn.cursor()
         query = """
             SELECT s.id, s.target_date, s.target_slot, COALESCE(s.lottery, 'RJ') as lottery, s.status, s.created_at, s.tenant_id,
+                   s.predictions_json,
                    t.name as tenant_name,
                    e.acerto_grupo_1, e.acertos_grupo_cercado,
                    e.acerto_dezena_1, e.acertos_dezena_cercado,
                    e.acerto_centena_1, e.acertos_centena_cercado,
                    e.acerto_milhar_1, e.acertos_milhar_cercado,
-                   e.hit_rate_score, e.evaluated_at,
+                   e.hit_rate_score, e.evaluated_at, e.details_json,
                    d.prize_1, d.prize_2, d.prize_3, d.prize_4, d.prize_5
             FROM analysis_snapshots s
             LEFT JOIN tenants t ON s.tenant_id = t.id
@@ -262,6 +263,25 @@ def list_snapshots(
         result = []
         for r in rows:
             d = dict(r)
+            if d.get("predictions_json"):
+                try:
+                    preds = json.loads(d["predictions_json"])
+                    d["top_groups"] = preds.get("top_groups", [])
+                except Exception:
+                    d["top_groups"] = []
+                del d["predictions_json"]
+            else:
+                d["top_groups"] = []
+
+            if d.get("details_json"):
+                try:
+                    d["evaluation_details"] = json.loads(d["details_json"])
+                except Exception:
+                    d["evaluation_details"] = None
+                del d["details_json"]
+            else:
+                d["evaluation_details"] = None
+
             result.append(d)
 
         return result
