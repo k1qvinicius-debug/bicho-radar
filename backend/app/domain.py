@@ -174,6 +174,27 @@ def get_lottery_slots(lottery_code: Optional[str] = "RJ", target_date: Optional[
     return slots
 
 
+def infer_lottery_from_slot(slot: Optional[str], default: Optional[str] = None) -> str:
+    """Infere a loteria/praça canônica a partir do código do horário de extração."""
+    if not slot:
+        return (default or "RJ").upper()
+    s = str(slot).strip().upper()
+    if s.startswith("LK") or s.startswith("LOOK"):
+        return "LOOK"
+    if s.startswith("SP") or s.startswith("BAND") or "SP" in s:
+        return "SP"
+    if s.startswith("LN") or s.startswith("NAC"):
+        return "NACIONAL"
+    if s in ("FED", "FEDERAL") or s.startswith("FED"):
+        return "FEDERAL"
+    if s in ("PPT", "PTM", "PT", "PTV", "PTN", "COR", "ALV") or s.startswith("RJ"):
+        return "RJ"
+    if default:
+        return default.upper()
+    return "RJ"
+
+
+
 def get_slot_order_weight(slot: Optional[str], draw_date: Optional[str] = None) -> int:
     """Calcula os minutos aproximados desde 00:00 para ordenação cronológica precisa do sorteio."""
     if not slot:
