@@ -2588,6 +2588,145 @@ function renderPatternBreakSection(pb) {
   `;
 }
 
+
+
+/* ==========================================================================
+   CARREGAMENTO E AUDITORIA DO HISTÓRICO DE QUEBRAS DE PADRÃO
+   ========================================================================== */
+window.loadAndRenderPatternBreaksHistory = async function(lottery) {
+  const container = document.getElementById('pattern-breaks-history-container');
+  if (!container) return;
+
+  const effLot = (lottery || window.currentLottery || 'RJ').toUpperCase();
+  container.innerHTML = `
+    <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400 animate-pulse">
+      Carregando histórico de quebras da banca (${effLot})...
+    </div>
+  `;
+
+  try {
+    const data = await API.getPatternBreaks(effLot, 20);
+    const totalBreaks = data.total_breaks || 0;
+    const contraHits = data.contra_hits || 0;
+    const rate = data.contra_protection_rate || 0;
+    const zebras = data.top_escape_animals || [];
+    const history = data.history || [];
+
+    if (totalBreaks === 0 && history.length === 0) {
+      container.innerHTML = `
+        <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center space-y-1">
+          <p class="text-xs font-bold text-slate-300">Nenhuma quebra registrada ainda para ${effLot}</p>
+          <p class="text-[10px] text-slate-500">As quebras são catalogadas automaticamente a cada sorteio apurado pela banca.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const zebrasHtml = zebras.map(z => `
+      <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/80 border border-slate-800 text-xs">
+        <div class="flex items-center gap-1.5">
+          <span class="w-5 h-5 rounded-full bg-rose-500/20 text-rose-300 font-black text-[10px] flex items-center justify-center">${z.group}</span>
+          <span class="font-bold text-slate-200">${z.animal}</span>
+        </div>
+        <div class="flex items-center gap-2 text-[10px]">
+          <span class="text-slate-400 font-medium">${z.count}x</span>
+          <span class="font-bold text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">${z.percentage}%</span>
+        </div>
+      </div>
+    `).join('');
+
+    const historyHtml = history.map(h => {
+      const hitBadge = h.hit_contra 
+        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center gap-1">🎯 Proteção Salvou</span>`
+        : `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 border border-slate-700 text-slate-400">Zebra Catalogada</span>`;
+
+      return `
+        <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-all flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div class="flex items-center gap-2.5">
+            <div class="flex flex-col">
+              <span class="font-black text-amber-300 font-mono text-[11px]">${h.slot}</span>
+              <span class="text-[9px] text-slate-500">${h.draw_date ? h.draw_date.split('-').reverse().slice(0, 2).join('/') : ''}</span>
+            </div>
+            <div class="h-6 w-[1px] bg-slate-800"></div>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-1 text-[11px]">
+                <span class="text-slate-400">Fav IA:</span>
+                <span class="font-bold text-slate-300">${h.favorite_animal}</span>
+                <span class="text-[9px] text-slate-500">(Gr ${h.favorite_group})</span>
+              </div>
+              <div class="flex items-center gap-1 text-[11px]">
+                <span class="text-rose-400 font-medium">Banca Deu:</span>
+                <strong class="text-white font-black">${h.actual_winner_animal}</strong>
+                <span class="text-[9px] text-amber-400 font-mono">1º: ${h.actual_prize_1 || ''}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            ${hitBadge}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 space-y-3.5">
+        <!-- Cabeçalho de Métricas de Quebra -->
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-2.5 border-b border-slate-800">
+          <div>
+            <h4 class="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
+              <span>Auditoria Empírica de Quebras</span>
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">${effLot}</span>
+            </h4>
+            <p class="text-[10px] text-slate-400">Registro real de desvios da banca contra os favoritos matemáticos</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-center">
+              <div class="text-[9px] text-slate-400">Total Quebras</div>
+              <div class="text-xs font-black text-rose-400 font-mono">${totalBreaks}</div>
+            </div>
+            <div class="px-2 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-center">
+              <div class="text-[9px] text-emerald-300">Proteção Ativa</div>
+              <div class="text-xs font-black text-emerald-400 font-mono">${contraHits} acertos (${rate}%)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Zebras da Banca -->
+        ${zebras.length > 0 ? `
+          <div class="space-y-1.5">
+            <div class="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+              <span>Zebras Mais Frequentes (Rotas de Fuga da ${effLot})</span>
+              <span class="text-slate-500 text-[9px]">Histórico de Inversão</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+              ${zebrasHtml}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Feed Recente de Quebras -->
+        <div class="space-y-1.5 pt-1">
+          <div class="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+            <span>Últimas Quebras Registradas & Auditadas</span>
+            <span class="text-slate-500 text-[9px]">${history.length} mais recentes</span>
+          </div>
+          <div class="space-y-1 max-h-64 overflow-y-auto pr-1">
+            ${historyHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    console.error('Erro ao carregar histórico de quebras:', err);
+    container.innerHTML = `
+      <div class="p-3 rounded-xl bg-rose-950/30 border border-rose-800/40 text-rose-300 text-xs text-center">
+        Não foi possível carregar o histórico de quebras agora.
+      </div>
+    `;
+  }
+};
+
+
 function renderHybridSection(hybridCombo) {
   const container = document.getElementById('hybrid-container');
   if (!container) return;
