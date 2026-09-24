@@ -621,7 +621,7 @@ function renderFilteredSnapshots() {
 
   container.innerHTML = filtered
     .map((s) => {
-      const isEvaluated = s.status === 'evaluated';
+      const isEvaluated = String(s.status || '').toLowerCase() === 'evaluated' || Boolean(s.evaluated_at) || Boolean(s.prize_1);
       const score = Number(s.hit_rate_score || 0);
       const isSuperScore = score >= 50;
 
