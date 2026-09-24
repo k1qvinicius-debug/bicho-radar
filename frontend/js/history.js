@@ -278,14 +278,80 @@ function getLotteryBadge(s) {
   return `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px] uppercase border border-amber-500/40 flex items-center gap-1"><span>🌴</span> <span>RIO (RJ)</span></span>`;
 }
 
+function computeLotteryRankingFromSnapshots(snapshots) {
+  const lotMeta = {
+    LOOK: { name: 'Look Goiás', emoji: '🌾', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+    RJ: { name: 'Rio de Janeiro', emoji: '🌴', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+    NACIONAL: { name: 'Loteria Nacional', emoji: '🇧🇷', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
+    SP: { name: 'São Paulo', emoji: '🏙️', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
+    FEDERAL: { name: 'Loteria Federal', emoji: '🏛️', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' }
+  };
+
+  const agg = {};
+  (snapshots || []).forEach(s => {
+    let lot = (s.lottery || '').toUpperCase();
+    if (!lot || lot === 'NULL') {
+      const slot = String(s.target_slot || '').toUpperCase();
+      if (slot.startsWith('LK-')) lot = 'LOOK';
+      else if (slot.startsWith('SP-')) lot = 'SP';
+      else if (slot.startsWith('LN-')) lot = 'NACIONAL';
+      else if (slot === 'FED' || slot === 'FEDERAL') lot = 'FEDERAL';
+      else lot = 'RJ';
+    }
+
+    if (!agg[lot]) {
+      agg[lot] = { lottery: lot, total_evals: 0, total_hits: 0, total_score: 0 };
+    }
+
+    const isEval = String(s.status || '').toLowerCase() === 'evaluated' || Boolean(s.evaluated_at) || Boolean(s.prize_1);
+    if (isEval) {
+      agg[lot].total_evals += 1;
+      const score = Number(s.hit_rate_score || 0);
+      agg[lot].total_score += score;
+      if (score > 0) agg[lot].total_hits += 1;
+    }
+  });
+
+  const list = Object.values(agg).filter(a => a.total_evals > 0).map(a => {
+    const meta = lotMeta[a.lottery] || { name: a.lottery, emoji: '🎲', badge: 'bg-slate-800 text-slate-300' };
+    const hitRate = Math.round((a.total_hits / a.total_evals) * 1000) / 10;
+    const avgScore = Math.round((a.total_score / a.total_evals) * 10) / 10;
+    return {
+      lottery: a.lottery,
+      name: meta.name,
+      emoji: meta.emoji,
+      badge: meta.badge,
+      total_evals: a.total_evals,
+      total_hits: a.total_hits,
+      hit_rate_pct: hitRate,
+      average_score: avgScore
+    };
+  });
+
+  list.sort((a, b) => (b.average_score - a.average_score) || (b.hit_rate_pct - a.hit_rate_pct));
+  return list;
+}
+
 async function loadLotteryRanking() {
   const container = document.getElementById('lottery-ranking-container');
   if (!container) return;
 
   try {
-    const list = await api.getMetricsByLottery();
+    let list = null;
+    try {
+      list = await api.getMetricsByLottery();
+    } catch (apiErr) {
+      console.warn('Endpoint /metrics/by-lottery indisponível, usando fallback dos snapshots:', apiErr);
+    }
+
     if (!list || list.length === 0) {
-      container.innerHTML = '<div class="text-xs text-slate-500 col-span-full py-2 text-center">Nenhum dado avaliado ainda.</div>';
+      if (allRawSnapshots && allRawSnapshots.length > 0) {
+        list = computeLotteryRankingFromSnapshots(allRawSnapshots);
+      }
+    }
+
+    if (!list || list.length === 0) {
+      container.innerHTML = '<div class="text-xs text-slate-500 col-span-full py-4 text-center">Nenhum dado avaliado no momento.</div>';
       return;
     }
 
@@ -326,6 +392,9 @@ async function loadLotteryRanking() {
     }).join('');
   } catch (err) {
     console.error('Erro ao carregar ranking de loterias:', err);
+    if (container) {
+      container.innerHTML = '<div class="text-xs text-slate-500 col-span-full py-4 text-center">Nenhum dado avaliado no momento.</div>';
+    }
   }
 }
 
@@ -534,6 +603,7 @@ async function loadSnapshotsList() {
   try {
     allRawSnapshots = await api.getSnapshots(100, 0);
     renderFilteredSnapshots();
+    loadLotteryRanking();
   } catch (err) {
     console.error('Erro ao carregar lista de análises:', err);
     container.innerHTML = `<p class="text-xs text-rose-400 py-6 text-center">Erro ao carregar auditorias: ${err.message}</p>`;
