@@ -1,6 +1,6 @@
 """
-Módulo Centena Master (Algoritmo Chave 24).
-Calcula as 6 centenas econômicas de alta assertividade a partir da data do dia e da chave matemática 24,
+Módulo Centena Master (Algoritmo Matemático da Data).
+Calcula as 4 milhares e centenas econômicas de alta assertividade a partir da data do dia,
 com conferência automática em tempo real com os resultados apurados da banca.
 """
 
@@ -14,22 +14,16 @@ from ..database import get_db_connection
 
 def calculate_centena_master(target_date: Optional[str] = None, lottery: str = "RJ") -> Dict[str, Any]:
     """
-    Executa o algoritmo matemático do Centena Master:
-    1. Obtém o dia do mês (1 a 31) formatado com 2 dígitos (ex: '16', '20').
-    2. Aplica a Chave Fixa '24' em 4 etapas descendentes, somando dígito a dígito (módulo 10, sem vai-um):
-       - Linha 1 = Dia + Chave
-       - Linha 2 = Chave + Linha 1
-       - Linha 3 = Chave + Linha 2
-       - Linha 4 = Chave + Linha 3
-    3. Forma as 6 centenas combinando os 2 dígitos da linha superior com a dezena da linha inferior:
-       - C1 = L1[0] + L2
-       - C2 = L1[1] + L2
-       - C3 = L2[0] + L3
-       - C4 = L2[1] + L3
-       - C5 = L3[0] + L4
-       - C6 = L3[1] + L4
-    4. Mapeia animais, grupos e gera jogos derivados (Terno de Grupo, Duques de Grupo, Terno e Duques de Dezenas).
-    5. Confere automaticamente se alguma centena já foi sorteada no dia para a loteria.
+    Executa o algoritmo matemático da data:
+    1. Obtém o dia do mês formatado com 2 dígitos (ex: '24', '22', '01').
+    2. Soma os 2 dígitos do dia (ex: 2 + 4 = 6 -> '06', dígitos '0' e '6').
+    3. Monta as 4 Milhares e Centenas:
+       - M1: s1 + DD + s2 (ex: 0 + 24 + 6 = 0246)
+       - M2: s2 + DD + s1 (ex: 6 + 24 + 0 = 6240)
+       - M3: soma_str + DD (ex: 06 + 24 = 0624)
+       - M4: s2 + s1 + DD (ex: 60 + 24 = 6024)
+    4. Mapeia animais, grupos, dezenas e gera jogos derivados (Terno de Grupo, Duques de Grupo, Terno e Duques de Dezenas).
+    5. Confere automaticamente se alguma milhar ou centena já foi sorteada no dia para a loteria (1º ao 5º prêmio).
     """
     eff_date = target_date or datetime.now().strftime("%Y-%m-%d")
     try:
@@ -41,44 +35,19 @@ def calculate_centena_master(target_date: Optional[str] = None, lottery: str = "
     day_int = dt.day
     day_str = f"{day_int:02d}"
 
-    # Chave Fixa Universal
-    KEY_D1, KEY_D2 = 2, 4
-    key_str = "24"
+    # Cálculo da Data
+    d1, d2 = int(day_str[0]), int(day_str[1])
+    soma = d1 + d2
+    soma_str = f"{soma:02d}"
+    s1, s2 = soma_str[0], soma_str[1]
 
-    # Etapa 1: Dia + Chave
-    d_left, d_right = int(day_str[0]), int(day_str[1])
-    l1_d1 = (d_left + KEY_D1) % 10
-    l1_d2 = (d_right + KEY_D2) % 10
-    l1_str = f"{l1_d1}{l1_d2}"
+    # As 4 Milhares
+    m1 = f"{s1}{day_str}{s2}"
+    m2 = f"{s2}{day_str}{s1}"
+    m3 = f"{soma_str}{day_str}"
+    m4 = f"{s2}{s1}{day_str}"
 
-    # Etapa 2: Chave + Linha 1
-    l2_d1 = (KEY_D1 + l1_d1) % 10
-    l2_d2 = (KEY_D2 + l1_d2) % 10
-    l2_str = f"{l2_d1}{l2_d2}"
-
-    # Etapa 3: Chave + Linha 2
-    l3_d1 = (KEY_D1 + l2_d1) % 10
-    l3_d2 = (KEY_D2 + l2_d2) % 10
-    l3_str = f"{l3_d1}{l3_d2}"
-
-    # Etapa 4: Chave + Linha 3
-    l4_d1 = (KEY_D1 + l3_d1) % 10
-    l4_d2 = (KEY_D2 + l3_d2) % 10
-    l4_str = f"{l4_d1}{l4_d2}"
-
-    # As 6 Centenas
-    raw_centenas = [
-        f"{l1_d1}{l2_str}",  # C1
-        f"{l1_d2}{l2_str}",  # C2
-        f"{l2_d1}{l3_str}",  # C3
-        f"{l2_d2}{l3_str}",  # C4
-        f"{l3_d1}{l4_str}",  # C5
-        f"{l3_d2}{l4_str}",  # C6
-    ]
-
-    # Dezenas geradas
-    tens_list = [l2_str, l3_str, l4_str]
-    unique_tens = sorted(list(dict.fromkeys(tens_list)))
+    raw_milhares = [m1, m2, m3, m4]
 
     # Conferência em tempo real no banco de dados para a data e loteria
     hits_map: Dict[str, List[Dict[str, Any]]] = {}
@@ -109,40 +78,56 @@ def calculate_centena_master(target_date: Optional[str] = None, lottery: str = "
                     val = str(row[p_col] or "").strip()
                     if len(val) >= 3:
                         centena_drawn = val[-3:]
-                        for c in raw_centenas:
-                            if c == centena_drawn:
-                                if c not in hits_map:
-                                    hits_map[c] = []
-                                hits_map[c].append({
+                        for m in raw_milhares:
+                            c_seca = m[-3:]
+                            c_frente = m[:3]
+                            is_milhar_hit = (val == m)
+                            is_centena_hit = (centena_drawn == c_seca)
+                            is_frente_hit = (centena_drawn == c_frente or (len(val) == 4 and val[:3] == c_seca))
+
+                            if is_milhar_hit or is_centena_hit or is_frente_hit:
+                                if m not in hits_map:
+                                    hits_map[m] = []
+                                hit_type = "Milhar Exata" if is_milhar_hit else ("Centena Seca" if is_centena_hit else "Centena Frontal")
+                                hits_map[m].append({
                                     "slot": slot_code,
                                     "prize": p_idx,
                                     "milhar": val,
-                                    "centena": centena_drawn
+                                    "centena": centena_drawn,
+                                    "type": hit_type
                                 })
     except Exception:
         hits_map = {}
 
-    # Detalhar cada uma das 6 centenas
-    centenas_details = []
+    # Detalhar cada uma das 4 Milhares / Centenas
+    items_details = []
     groups_present = []
+    tens_present = []
 
-    for idx, c in enumerate(raw_centenas, start=1):
-        ten = c[-2:]
+    for idx, m in enumerate(raw_milhares, start=1):
+        centena = m[-3:]
+        centena_frontal = m[:3]
+        ten = m[-2:]
+        if ten not in tens_present:
+            tens_present.append(ten)
+
         grp = TEN_TO_GROUP.get(ten)
         animal_info = ANIMALS.get(grp, {"name": "Desconhecido", "emoji": "❓"}) if grp else {"name": "Desconhecido", "emoji": "❓"}
         if grp and grp not in groups_present:
             groups_present.append(grp)
 
-        # Invertidas únicas
-        perms = sorted(list(set(["".join(p) for p in itertools.permutations(c, 3)])))
-        inverted = [p for p in perms if p != c]
+        # Invertidas únicas da centena
+        perms = sorted(list(set(["".join(p) for p in itertools.permutations(centena, 3)])))
+        inverted = [p for p in perms if p != centena]
 
-        hit_list = hits_map.get(c, [])
+        hit_list = hits_map.get(m, [])
         is_hit = len(hit_list) > 0
 
-        centenas_details.append({
+        items_details.append({
             "index": idx,
-            "centena": c,
+            "milhar": m,
+            "centena": centena,
+            "centena_frontal": centena_frontal,
             "ten": ten,
             "group": grp,
             "animal": animal_info.get("name"),
@@ -152,8 +137,8 @@ def calculate_centena_master(target_date: Optional[str] = None, lottery: str = "
             "hits": hit_list
         })
 
-    # Ordenar grupos únicos
     unique_groups = sorted(list(set(groups_present)))
+    unique_tens = sorted(list(set(tens_present)))
 
     # Terno de Grupo Fechado
     terno_grupo = [
@@ -182,45 +167,48 @@ def calculate_centena_master(target_date: Optional[str] = None, lottery: str = "
     # Terno de Dezenas
     terno_dezenas = " - ".join(unique_tens) if len(unique_tens) >= 3 else None
 
+    steps = [
+        {
+            "step": 1,
+            "label": "Data do Dia",
+            "left_calc": f"Dia: {day_str}",
+            "right_calc": f"{d1} + {d2} = {soma}",
+            "result": f"Soma: {soma_str}"
+        },
+        {
+            "step": 2,
+            "label": "Milhar 1 (Central)",
+            "left_calc": f"Extremos: {s1} ... {s2}",
+            "right_calc": f"Meio: {day_str}",
+            "result": m1
+        },
+        {
+            "step": 3,
+            "label": "Milhar 2 (Invertida)",
+            "left_calc": f"Extremos: {s2} ... {s1}",
+            "right_calc": f"Meio: {day_str}",
+            "result": m2
+        },
+        {
+            "step": 4,
+            "label": "Milhares 3 e 4 (Frontais)",
+            "left_calc": f"{soma_str} + {day_str} = {m3}",
+            "right_calc": f"{s2}{s1} + {day_str} = {m4}",
+            "result": f"{m3} | {m4}"
+        }
+    ]
+
     return {
         "title": "Centena Master",
         "target_date": eff_date,
         "lottery": (lottery or "RJ").upper(),
         "day": day_str,
-        "key": key_str,
-        "steps": [
-            {
-                "step": 1,
-                "label": "Dia + Chave 24",
-                "left_calc": f"{day_str[0]} + 2 = {l1_d1}",
-                "right_calc": f"{day_str[1]} + 4 = {l1_d2}",
-                "result": l1_str
-            },
-            {
-                "step": 2,
-                "label": "Chave 24 + Linha 1",
-                "left_calc": f"2 + {l1_d1} = {l2_d1}",
-                "right_calc": f"4 + {l1_d2} = {l2_d2}",
-                "result": l2_str
-            },
-            {
-                "step": 3,
-                "label": "Chave 24 + Linha 2",
-                "left_calc": f"2 + {l2_d1} = {l3_d1}",
-                "right_calc": f"4 + {l2_d2} = {l3_d2}",
-                "result": l3_str
-            },
-            {
-                "step": 4,
-                "label": "Chave 24 + Linha 3",
-                "left_calc": f"2 + {l3_d1} = {l4_d1}",
-                "right_calc": f"4 + {l3_d2} = {l4_d2}",
-                "result": l4_str
-            }
-        ],
-        "lines": [l1_str, l2_str, l3_str, l4_str],
-        "centenas": centenas_details,
-        "total_hits_today": sum(len(hits_map.get(c, [])) for c in raw_centenas),
+        "sum": soma_str,
+        "key": f"Data {day_str}",
+        "steps": steps,
+        "centenas": items_details,
+        "milhares": raw_milhares,
+        "total_hits_today": sum(len(hits_map.get(m, [])) for m in raw_milhares),
         "games": {
             "terno_grupo": terno_grupo,
             "duques_grupo": duques_grupo,
