@@ -681,7 +681,7 @@ function renderFilteredSnapshots() {
         const isHit = origin.inPrediction;
 
         if (isHit && !distinctHitGroups.has(grp)) {
-          distinctHitGroups.set(grp, { group: grp, animal, origin });
+          distinctHitGroups.set(grp, { group: grp, animal, origin, info: origin });
         }
 
         let borderClass = 'border-slate-800 bg-slate-900/90 text-slate-300';
@@ -731,9 +731,9 @@ function renderFilteredSnapshots() {
           return `
             <div class="flex items-center gap-1.5 flex-wrap text-[11px] text-slate-300">
               <span class="font-bold text-amber-200">${h.animal.emoji} ${h.animal.name} (${String(h.group).padStart(2, '0')}):</span>
-              <span class="text-emerald-400 font-semibold">Veio do Palpite (Top #${h.origin.rank})</span>
+              <span class="text-emerald-400 font-semibold">Veio do Palpite (Top #${h.origin?.rank || h.info?.rank || 1})</span>
               <span class="text-slate-500">•</span>
-              ${h.info.badges.join(' ')}
+              ${((h.origin && h.origin.badges) || (h.info && h.info.badges) || []).join(' ')}
             </div>
           `;
         }).join('');
@@ -1068,7 +1068,7 @@ window.inspectSnapshot = async function (id) {
             <div class="flex items-center gap-1.5 flex-wrap">
               <span class="text-[11px] font-bold text-slate-300">Origem no Palpite:</span>
               <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">Top #${origin.rank}</span>
-              ${origin.badges.join(' ')}
+              ${(origin?.badges || []).join(' ')}
             </div>
             <ul class="text-[11px] text-slate-300 space-y-0.5 pl-1 pt-1 border-t border-slate-800/80">
               ${origin.details.map(d => `<li>• ${d}</li>`).join('')}
@@ -1120,7 +1120,7 @@ window.inspectSnapshot = async function (id) {
             <p>
               <strong>2. Veio da Cruz do Dia?</strong><br>
               <span class="text-slate-400">
-                ${winningList.some(w => w.origin.badges.some(b => b.includes('Cruz') || b.includes('Bicho do Dia')))
+                ${winningList.some(w => (w.origin?.badges || []).some(b => b.includes('Cruz') || b.includes('Bicho do Dia')))
                   ? `✨ <strong class="text-amber-300">Sim!</strong> Os cruzamentos da Cruz do Dia identificaram com precisão os bichos regentes da data.`
                   : `⚪ Nesta extração, os acertos vieram prioritariamente da frequência de horário, puxadas e atraso histórico.`
                 }
