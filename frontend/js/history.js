@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Carrega as seções de forma independente para que uma não trave as outras
   try {
+    await loadLotteryRanking();
     await loadMetricsSummary();
   } catch (e) {
     console.error('Erro ao carregar resumo de métricas:', e);
@@ -80,7 +81,8 @@ function setupHistoryEvents() {
       try {
         const res = await api.recalculateEvaluations();
         showToast(res.message, 'success');
-        await loadMetricsSummary();
+        await loadLotteryRanking();
+    await loadMetricsSummary();
         await loadMetricsBySlot();
         await loadSnapshotsList();
       } catch (err) {
@@ -93,9 +95,92 @@ function setupHistoryEvents() {
   }
 }
 
-async function loadMetricsSummary() {
+
+// =========================================================================
+// RANKING E IDENTIFICAÇÃO DE ASSERTIVIDADE POR LOTERIA
+// =========================================================================
+
+function getLotteryBadge(s) {
+  let lot = (s.lottery || '').toUpperCase();
+  if (!lot || lot === 'NULL') {
+    const slot = String(s.target_slot || '').toUpperCase();
+    if (slot.startsWith('LK-')) lot = 'LOOK';
+    else if (slot.startsWith('SP-')) lot = 'SP';
+    else if (slot.startsWith('LN-')) lot = 'NACIONAL';
+    else if (slot === 'FED' || slot === 'FEDERAL') lot = 'FEDERAL';
+    else lot = 'RJ';
+  }
+
+  if (lot === 'LOOK') {
+    return `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px] uppercase border border-emerald-500/40 flex items-center gap-1"><span>🌾</span> <span>LOOK</span></span>`;
+  }
+  if (lot === 'SP') {
+    return `<span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold text-[10px] uppercase border border-purple-500/40 flex items-center gap-1"><span>🏙️</span> <span>SÃO PAULO</span></span>`;
+  }
+  if (lot === 'NACIONAL') {
+    return `<span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold text-[10px] uppercase border border-cyan-500/40 flex items-center gap-1"><span>🇧🇷</span> <span>NACIONAL</span></span>`;
+  }
+  if (lot === 'FEDERAL') {
+    return `<span class="px-2 py-0.5 rounded bg-amber-500/25 text-amber-300 font-bold text-[10px] uppercase border border-amber-500/50 flex items-center gap-1"><span>🏛️</span> <span>FEDERAL</span></span>`;
+  }
+  return `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px] uppercase border border-amber-500/40 flex items-center gap-1"><span>🌴</span> <span>RIO (RJ)</span></span>`;
+}
+
+async function loadLotteryRanking() {
+  const container = document.getElementById('lottery-ranking-container');
+  if (!container) return;
+
   try {
-    const data = await api.getMetricsSummary();
+    const list = await api.getMetricsByLottery();
+    if (!list || list.length === 0) {
+      container.innerHTML = '<div class="text-xs text-slate-500 col-span-full py-2 text-center">Nenhum dado avaliado ainda.</div>';
+      return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉', '4º', '5º'];
+
+    container.innerHTML = list.map((item, idx) => {
+      const medal = medals[idx] || `${idx + 1}º`;
+      const isTop1 = idx === 0;
+      const isSelected = activeHistoryLotteryFilter.toUpperCase() === item.lottery.toUpperCase();
+      
+      let borderStyle = isTop1 ? 'border-amber-500/50 bg-amber-500/5 shadow-md shadow-amber-500/10' : 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+      if (isSelected) {
+        borderStyle = 'border-indigo-500 bg-indigo-950/60 ring-2 ring-indigo-500/50 shadow-lg shadow-indigo-500/20';
+      }
+
+      return `
+        <div onclick="setHistoryLotteryFilter('${item.lottery}')"
+          class="p-3 rounded-2xl border transition-all cursor-pointer ${borderStyle} hover:scale-[1.02] active:scale-98 relative group">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-sm font-black">${medal}</span>
+            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${item.badge}">${item.lottery}</span>
+          </div>
+          <div class="text-xs font-black text-slate-100 truncate flex items-center gap-1">${item.emoji} ${item.name}</div>
+          <div class="mt-2 flex items-baseline justify-between">
+            <span class="text-[10px] text-slate-400">Taxa de Acerto:</span>
+            <span class="text-sm font-black font-mono text-emerald-400">${item.hit_rate_pct}%</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-0.5">
+            <span class="text-[10px] text-slate-400">Score Médio:</span>
+            <span class="text-xs font-bold font-mono text-amber-300">${item.average_score} pts</span>
+          </div>
+          <div class="text-[9px] text-slate-500 mt-1.5 flex items-center justify-between border-t border-slate-800/60 pt-1">
+            <span>Extrações:</span>
+            <span class="font-mono font-semibold text-slate-300">${item.total_hits}/${item.total_evals}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Erro ao carregar ranking de loterias:', err);
+  }
+}
+
+async function loadMetricsSummary(lottery = null) {
+  try {
+    const lot = (lottery && lottery !== 'all') ? lottery : ((activeHistoryLotteryFilter && activeHistoryLotteryFilter !== 'all') ? activeHistoryLotteryFilter : null);
+    const data = await api.getMetricsSummary(lot);
 
     setText('metric-total-evals', data.evaluated_snapshots);
     setText('metric-group-1st', `${data.group_1st_hit_rate}%`);
@@ -109,51 +194,171 @@ async function loadMetricsSummary() {
   }
 }
 
-async function loadMetricsBySlot() {
+async function loadMetricsBySlot(lottery = null) {
   const container = document.getElementById('slot-metrics-container');
   if (!container) return;
 
+  const lot = (lottery && lottery !== 'all') ? lottery : ((activeHistoryLotteryFilter && activeHistoryLotteryFilter !== 'all') ? activeHistoryLotteryFilter : null);
+
+  // Atualiza título do quadro de horários
+  const titleEl = document.getElementById('slot-metrics-title');
+  if (titleEl) {
+    const lotNames = {
+      'LOOK': 'Look',
+      'RJ': 'Rio de Janeiro',
+      'NACIONAL': 'Loteria Nacional',
+      'SP': 'São Paulo',
+      'FEDERAL': 'Loteria Federal'
+    };
+    if (lot && lotNames[lot.toUpperCase()]) {
+      titleEl.innerHTML = `Desempenho por Horário: <span class="text-indigo-400 font-bold">${lotNames[lot.toUpperCase()]}</span>`;
+    } else {
+      titleEl.textContent = 'Desempenho por Horário de Sorteio (Separado por Praça)';
+    }
+  }
+
+  // Atualiza abas do quadro de horários
+  const slotTabs = ['all', 'look', 'rj', 'nacional', 'sp', 'federal'];
+  slotTabs.forEach((tabKey) => {
+    const tabBtn = document.getElementById(`slot-tab-${tabKey}`);
+    if (tabBtn) {
+      const isAct = (lot && tabKey.toUpperCase() === lot.toUpperCase()) || (!lot && tabKey === 'all');
+      if (isAct) {
+        tabBtn.className = 'px-2.5 py-1 rounded-lg font-bold bg-indigo-600 text-white transition-all text-xs shadow-sm cursor-pointer';
+      } else {
+        tabBtn.className = 'px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer';
+      }
+    }
+  });
+
   try {
-    const data = await api.getMetricsBySlot();
+    const data = await api.getMetricsBySlot(lot);
     if (!data || data.length === 0) {
-      container.innerHTML = '<div class="text-slate-400 text-sm py-4 text-center">Nenhum dado por horário disponível ainda.</div>';
+      container.innerHTML = '<div class="text-slate-400 text-xs py-4 text-center">Nenhum dado por horário disponível para esta praça.</div>';
       return;
     }
 
+    const lotteryMeta = {
+      'LOOK': { name: 'Look Goiás', emoji: '🌾', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+      'RJ': { name: 'Rio de Janeiro', emoji: '🌴', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+      'NACIONAL': { name: 'Loteria Nacional', emoji: '🇧🇷', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
+      'SP': { name: 'São Paulo', emoji: '🏙️', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
+      'FEDERAL': { name: 'Loteria Federal', emoji: '🏛️', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+    };
+
+    const renderTableRows = (items) => items.map((item) => `
+      <tr class="hover:bg-slate-800/40 transition-colors">
+        <td class="py-2.5 px-3 font-bold text-indigo-300 font-mono flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full ${item.average_score >= 40 ? 'bg-emerald-400' : 'bg-indigo-400'}"></span>
+          <span>${item.slot}</span>
+        </td>
+        <td class="py-2.5 px-3 text-center font-mono text-slate-200 font-semibold">${item.total_evals}</td>
+        <td class="py-2.5 px-3 text-center font-bold ${item.group_1st_rate > 0 ? 'text-emerald-400' : 'text-slate-400'}">${item.group_1st_rate}%</td>
+        <td class="py-2.5 px-3 text-center font-bold ${item.group_cercado_rate > 0 ? 'text-emerald-400' : 'text-slate-400'}">${item.group_cercado_rate}%</td>
+        <td class="py-2.5 px-3 text-center font-bold ${item.ten_1st_rate > 0 ? 'text-emerald-400' : 'text-slate-400'}">${item.ten_1st_rate}%</td>
+        <td class="py-2.5 px-3 text-center font-bold ${item.hundred_1st_rate > 0 ? 'text-cyan-400 font-bold' : 'text-slate-400'}">${item.hundred_1st_rate}%</td>
+        <td class="py-2.5 px-3 text-right font-mono font-black ${item.average_score >= 40 ? 'text-emerald-400' : 'text-amber-300'}">${item.average_score} pts</td>
+      </tr>
+    `).join('');
+
+    // Se uma loteria específica estiver selecionada
+    if (lot && lot !== 'all') {
+      const meta = lotteryMeta[lot.toUpperCase()] || { name: lot, emoji: '🎲', badge: 'bg-indigo-500/20 text-indigo-300' };
+      container.innerHTML = `
+        <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-3 space-y-2">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-800/60">
+            <span class="text-xs font-black text-slate-200 flex items-center gap-1.5">
+              <span>${meta.emoji}</span> <span>${meta.name}</span>
+              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${meta.badge}">${lot.toUpperCase()}</span>
+            </span>
+            <span class="text-[11px] text-slate-400 font-mono">${data.length} horários cadastrados</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 text-[11px]">
+                  <th class="py-2.5 px-3">Horário</th>
+                  <th class="py-2.5 px-3 text-center">Análises</th>
+                  <th class="py-2.5 px-3 text-center">Grupo 1º</th>
+                  <th class="py-2.5 px-3 text-center" title="Taxa de acertos do grupo entre o 1º e 5º prêmio">Grupo (1º ao 5º)</th>
+                  <th class="py-2.5 px-3 text-center">Dezena 1º</th>
+                  <th class="py-2.5 px-3 text-center">Centena 1º</th>
+                  <th class="py-2.5 px-3 text-right">Score Médio</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                ${renderTableRows(data)}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // Se "Todas": exibe cada praça separada em seu próprio bloco!
+    const grouped = {};
+    data.forEach((item) => {
+      let l = (item.lottery || '').toUpperCase();
+      if (!l || l === 'NULL') {
+        const slot = String(item.slot || '').toUpperCase();
+        if (slot.startsWith('LK-')) l = 'LOOK';
+        else if (slot.startsWith('SP-')) l = 'SP';
+        else if (slot.startsWith('LN-')) l = 'NACIONAL';
+        else if (slot === 'FED' || slot === 'FEDERAL') l = 'FEDERAL';
+        else l = 'RJ';
+      }
+      if (!grouped[l]) grouped[l] = [];
+      grouped[l].push(item);
+    });
+
+    const orderedLots = ['LOOK', 'RJ', 'SP', 'NACIONAL', 'FEDERAL'].filter((k) => grouped[k] && grouped[k].length > 0);
+
     container.innerHTML = `
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="border-b border-slate-800 text-slate-400">
-              <th class="py-2.5 px-3">Horário</th>
-              <th class="py-2.5 px-3 text-center">Análises</th>
-              <th class="py-2.5 px-3 text-center">Grupo 1º</th>
-              <th class="py-2.5 px-3 text-center">Grupo 1º-5º</th>
-              <th class="py-2.5 px-3 text-center">Dezena 1º</th>
-              <th class="py-2.5 px-3 text-right">Score Médio</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/60">
-            ${data
-              .map(
-                (item) => `
-              <tr class="hover:bg-slate-800/40 transition-colors">
-                <td class="py-2.5 px-3 font-bold text-indigo-300">${item.slot}</td>
-                <td class="py-2.5 px-3 text-center font-mono">${item.total_evals}</td>
-                <td class="py-2.5 px-3 text-center font-bold ${item.group_1st_rate > 0 ? 'text-emerald-400' : 'text-slate-400'}">${item.group_1st_rate}%</td>
-                <td class="py-2.5 px-3 text-center font-bold ${item.group_cercado_rate > 0 ? 'text-emerald-400' : 'text-slate-400'}">${item.group_cercado_rate}%</td>
-                <td class="py-2.5 px-3 text-center font-bold ${item.ten_1st_rate > 0 ? 'text-emerald-400' : 'text-slate-400'}">${item.ten_1st_rate}%</td>
-                <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-200">${item.average_score}</td>
-              </tr>
-            `
-              )
-              .join('')}
-          </tbody>
-        </table>
+      <div class="space-y-4">
+        ${orderedLots
+          .map((lotKey) => {
+            const meta = lotteryMeta[lotKey] || { name: lotKey, emoji: '🎲', badge: 'bg-indigo-500/20 text-indigo-300' };
+            const slots = grouped[lotKey];
+            return `
+            <div class="rounded-2xl border border-slate-800/90 bg-slate-900/40 p-3.5 space-y-2.5">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800/60 flex-wrap gap-2">
+                <span class="text-xs font-black text-slate-100 flex items-center gap-1.5">
+                  <span class="text-base">${meta.emoji}</span>
+                  <span>${meta.name}</span>
+                  <span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${meta.badge}">${lotKey}</span>
+                </span>
+                <button type="button" onclick="setHistoryLotteryFilter('${lotKey}')" class="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 hover:underline cursor-pointer">
+                  Filtrar só ${meta.name} (${slots.length} horários) →
+                </button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="border-b border-slate-800 text-slate-400 text-[11px]">
+                      <th class="py-2 px-3">Horário</th>
+                      <th class="py-2 px-3 text-center">Análises</th>
+                      <th class="py-2 px-3 text-center">Grupo 1º</th>
+                      <th class="py-2 px-3 text-center" title="Taxa de acertos do grupo entre o 1º e 5º prêmio">Grupo (1º ao 5º)</th>
+                      <th class="py-2 px-3 text-center">Dezena 1º</th>
+                      <th class="py-2 px-3 text-center">Centena 1º</th>
+                      <th class="py-2 px-3 text-right">Score Médio</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/60">
+                    ${renderTableRows(slots)}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+          })
+          .join('')}
       </div>
     `;
   } catch (err) {
     console.error('Erro ao carregar métricas por horário:', err);
+    container.innerHTML = `<div class="text-xs text-rose-400 py-2">Erro ao carregar horários: ${err.message}</div>`;
   }
 }
 
@@ -207,7 +412,15 @@ function renderFilteredSnapshots() {
   let filtered = allRawSnapshots.filter((s) => {
     // Filtro de Loteria
     if (activeHistoryLotteryFilter !== 'all') {
-      const lot = (s.lottery || 'RJ').toUpperCase();
+      let lot = (s.lottery || '').toUpperCase();
+      if (!lot || lot === 'NULL') {
+        const slot = String(s.target_slot || '').toUpperCase();
+        if (slot.startsWith('LK-')) lot = 'LOOK';
+        else if (slot.startsWith('SP-')) lot = 'SP';
+        else if (slot.startsWith('LN-')) lot = 'NACIONAL';
+        else if (slot === 'FED' || slot === 'FEDERAL') lot = 'FEDERAL';
+        else lot = 'RJ';
+      }
       if (lot !== activeHistoryLotteryFilter.toUpperCase()) return false;
     }
 
@@ -303,9 +516,9 @@ function renderFilteredSnapshots() {
         hitsSummary = `
           <div class="flex flex-wrap items-center gap-1.5 mt-2">
             ${hasG1Hit ? '<span class="hit-tag-success px-2 py-0.5 rounded text-xs font-bold">🎯 Grupo na Cabeça</span>' : ''}
-            ${s.acertos_grupo_cercado > 0 ? `<span class="bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded text-xs font-semibold">✨ ${s.acertos_grupo_cercado} Grupo(s) no Cercado</span>` : ''}
+            ${s.acertos_grupo_cercado > 0 ? `<span class="bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded text-xs font-semibold" title="Acerto em qualquer posição do 1º ao 5º prêmio">✨ ${s.acertos_grupo_cercado} Grupo(s) (1º ao 5º)</span>` : ''}
             ${hasD1Hit ? '<span class="hit-tag-success px-2 py-0.5 rounded text-xs font-bold">🔥 Dezena na Cabeça</span>' : ''}
-            ${s.acertos_dezena_cercado > 0 ? `<span class="bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded text-xs font-semibold">⚡ ${s.acertos_dezena_cercado} Dezena(s) Cercado</span>` : ''}
+            ${s.acertos_dezena_cercado > 0 ? `<span class="bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded text-xs font-semibold" title="Acerto em qualquer posição do 1º ao 5º prêmio">⚡ ${s.acertos_dezena_cercado} Dezena(s) (1º ao 5º)</span>` : ''}
             ${hasC1Hit ? '<span class="hit-tag-success px-2 py-0.5 rounded text-xs font-bold">💎 Centena na Cabeça!</span>' : ''}
             ${hasM1Hit ? '<span class="hit-tag-success px-2 py-0.5 rounded text-xs font-bold">👑 MILHAR NA CABEÇA!</span>' : ''}
             ${!hasG1Hit && (s.acertos_grupo_cercado || 0) === 0 && !hasD1Hit && (s.acertos_dezena_cercado || 0) === 0 ? '<span class="text-slate-500 text-xs py-0.5">Sem acerto nesta extração</span>' : ''}
@@ -323,11 +536,11 @@ function renderFilteredSnapshots() {
         : '';
 
       return `
-      <div class="card-glass p-4 transition-all animate-fade-in mb-3 border ${cardBorderClasses}">
+      <div class="card-glass p-3 sm:p-3.5 rounded-xl transition-all animate-fade-in mb-2.5 border ${cardBorderClasses}">
         <div class="flex items-center justify-between gap-3 mb-2">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-sm font-bold text-slate-100">${formatDateBR(s.target_date)}</span>
-            <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px] uppercase border border-amber-500/40">${s.lottery || 'RJ'}</span>
+            ${getLotteryBadge(s)}
             <span class="px-2 py-0.5 rounded bg-indigo-900/50 text-indigo-300 font-bold text-xs font-mono border border-indigo-700/40">${s.target_slot}</span>
             ${badgeHtml}
           </div>
@@ -431,6 +644,27 @@ window.setHistoryLotteryFilter = function(lotteryCode) {
     }
   });
 
+  // Atualiza título do escopo das métricas
+  const titleEl = document.getElementById('metrics-scope-title');
+  if (titleEl) {
+    const lotNames = {
+      'LOOK': 'Look',
+      'RJ': 'Rio de Janeiro',
+      'NACIONAL': 'Loteria Nacional',
+      'SP': 'São Paulo',
+      'FEDERAL': 'Loteria Federal'
+    };
+    if (lotteryCode !== 'all' && lotNames[lotteryCode.toUpperCase()]) {
+      titleEl.innerHTML = `Indicadores de Assertividade: <span class="text-indigo-400 font-bold">${lotNames[lotteryCode.toUpperCase()]}</span>`;
+    } else {
+      titleEl.textContent = 'Indicadores Globais de Assertividade (Todas as Loterias)';
+    }
+  }
+
+  // Recarrega métricas e cards de ranking filtrados
+  loadMetricsSummary(lotteryCode);
+  loadLotteryRanking();
+  loadMetricsBySlot(lotteryCode);
   renderFilteredSnapshots();
 };
 
@@ -630,13 +864,13 @@ window.inspectSnapshot = async function (id) {
               <span class="text-slate-200">Palpite de Grupos:</span>
               <div class="text-right">
                 <span class="${hitG1 ? 'text-emerald-400' : 'text-slate-400'} block">
-                  ${hitG1 ? '🎯 Acerto no 1º Prêmio' : 'Sem 1º prêmio'} (${evalDetails.grupo?.hits_cercado_count || 0} no cercado)
+                  ${hitG1 ? '🎯 Acerto no 1º Prêmio' : 'Sem 1º prêmio'} (${evalDetails.grupo?.hits_cercado_count || 0} do 1º ao 5º)
                 </span>
                 ${grupoOriginBadges.length > 0 ? `<div class="mt-1 flex items-center justify-end gap-1.5 flex-wrap">${grupoOriginBadges.join('')}</div>` : ''}
               </div>
             </div>
             <div class="text-slate-300 font-mono">Grupos Analisados: [ <span class="text-indigo-300 font-bold">${topG}</span> ]</div>
-            <div class="text-slate-400 mt-1">Grupo Ocorrido 1º: <b class="text-slate-100 font-mono font-bold">${evalDetails.grupo?.actual_1st || '-'}</b> | Cercado: <span class="font-mono text-slate-300">${evalDetails.grupo?.actual_1_to_5?.join(', ') || '-'}</span></div>
+            <div class="text-slate-400 mt-1">Grupo Ocorrido 1º: <b class="text-slate-100 font-mono font-bold">${evalDetails.grupo?.actual_1st || '-'}</b> | No 1º ao 5º: <span class="font-mono text-slate-300">${evalDetails.grupo?.actual_1_to_5?.join(', ') || '-'}</span></div>
 
             ${grupoOriginDetails.length > 0 ? `
               <div class="mt-2.5 pt-2 border-t border-emerald-500/25 bg-emerald-950/30 -mx-3 -mb-3 p-2.5 rounded-b-lg space-y-1">
@@ -652,7 +886,7 @@ window.inspectSnapshot = async function (id) {
               <span class="text-slate-200">Palpite de Dezenas:</span>
               <div class="text-right">
                 <span class="${hitD1 ? 'text-emerald-400' : 'text-slate-400'} block">
-                  ${hitD1 ? '🎯 Acerto no 1º Prêmio' : 'Sem 1º prêmio'} (${evalDetails.dezena?.hits_cercado_count || 0} no cercado)
+                  ${hitD1 ? '🎯 Acerto no 1º Prêmio' : 'Sem 1º prêmio'} (${evalDetails.dezena?.hits_cercado_count || 0} do 1º ao 5º)
                 </span>
                 ${dezenaOriginBadges.length > 0 ? `<div class="mt-1 flex items-center justify-end gap-1.5 flex-wrap">${dezenaOriginBadges.join('')}</div>` : ''}
               </div>
