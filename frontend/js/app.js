@@ -471,7 +471,7 @@ function getSlotMinutes(slot, dateStr = null) {
   const code = (slot.code || (typeof slot === 'string' ? slot : '')).toUpperCase().trim();
 
   if (code === 'FED' || code === 'FEDERAL') {
-    // Federal corre aos domingos às 11:00 e quartas/sábados às 20:00
+    // Federal corre aos domingos às 11:00 e quartas às 20:00
     const dStr = dateStr || document.getElementById('target-date')?.value || new Date().toISOString().split('T')[0];
     try {
       const parts = dStr.split('-');
@@ -538,23 +538,12 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
       }
     } catch (e) {}
 
-    let isSaturday = false;
-    try {
-      const parts = dStr.split('-');
-      if (parts.length === 3) {
-        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-        if (d.getDay() === 6) isSaturday = true;
-      }
-    } catch(e) {}
-
     if (isSunday) {
       return { code: 'FED', name: 'Federal 11h (Domingo) - 11:00', time: '11:00' };
     } else if (isWednesday) {
       return { code: 'FED', name: 'Federal 20h (Quarta) - 20:00', time: '20:00' };
-    } else if (isSaturday) {
-      return { code: 'FED', name: 'Federal 20h (Sábado) - 20:00', time: '20:00' };
     } else {
-      return { code: 'FED', name: 'Federal 20h - 20:00', time: '20:00' };
+      return { code: 'FED', name: 'Federal (Quarta e Domingo)', time: '20:00' };
     }
   }
   if (code === 'PPT') return { code, name: 'PPT - 09:20', time: '09:20' };
@@ -3475,7 +3464,7 @@ const OFFICIAL_LOTTERY_SLOTS = {
     { code: 'LN-23', name: 'Nacional 23h - 23:00', time: '23:00' },
   ],
   FEDERAL: [
-    { code: 'FED', name: 'Federal 20h - 20:00', time: '20:00' },
+    { code: 'FED', name: 'Federal (Quarta e Domingo)', time: '20:00' },
   ]
 };
 
@@ -3548,8 +3537,8 @@ async function loadDrawResults(dateOverride = null) {
           const parts = draw.draw_date.split('-');
           if (parts.length === 3) {
             const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            const dow = dt.getDay(); // 0 = Domingo, 3 = Quarta, 6 = Sábado
-            if (dow === 0 || dow === 3 || dow === 6) isFedDay = true;
+            const dow = dt.getDay(); // 0 = Domingo, 3 = Quarta
+            if (dow === 0 || dow === 3) isFedDay = true;
           }
         } catch (e) {}
         if (!isFedDay) return;
@@ -3557,7 +3546,7 @@ async function loadDrawResults(dateOverride = null) {
           return;
         }
       } else if (activeLotKey === 'RJ') {
-        // No RJ, aceita sorteios do RJ e a Federal (FED) que substitui a extração das 18h às quartas e sábados
+        // No RJ, aceita sorteios do RJ e a Federal (FED) que substitui a extração das 18h às quartas
         if (draw.lottery && draw.lottery.toUpperCase() !== 'RJ' && draw.slot !== 'FED') {
           return;
         }
@@ -3645,19 +3634,19 @@ async function loadDrawResults(dateOverride = null) {
     const lotKey = (currentLottery || 'RJ').toUpperCase();
     const baseSlots = OFFICIAL_LOTTERY_SLOTS[lotKey] || OFFICIAL_LOTTERY_SLOTS.RJ;
 
-    let isWedOrSat = false;
+    let isWed = false;
     try {
       const parts = selectedResultDate.split('-');
       if (parts.length === 3) {
         const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-        const dow = dt.getDay(); // 0 = Dom, 3 = Qua, 6 = Sáb
-        if (dow === 3 || dow === 6) isWedOrSat = true;
+        const dow = dt.getDay(); // 0 = Dom, 3 = Qua
+        if (dow === 3) isWed = true;
       }
     } catch(e) {}
 
     let slots = baseSlots.map(s => {
-      // No RJ às quartas e sábados, o sorteio das 18h é a Federal (FED às 20h)
-      if (lotKey === 'RJ' && isWedOrSat && s.code === 'PTN') {
+      // No RJ às quartas, o sorteio das 18h é a Federal (FED às 20h)
+      if (lotKey === 'RJ' && isWed && s.code === 'PTN') {
         return getFriendlySlotMeta('FED', selectedResultDate);
       }
       return { ...s };
@@ -3671,7 +3660,7 @@ async function loadDrawResults(dateOverride = null) {
     const dayDraws = allRecentDrawsByDate[selectedResultDate] || {};
     Object.keys(dayDraws).forEach((drawSlotCode) => {
       const draw = dayDraws[drawSlotCode];
-      if (draw && draw.lottery && draw.lottery.toUpperCase() !== lotKey && !(lotKey === 'RJ' && draw.slot === 'FED' && isWedOrSat)) {
+      if (draw && draw.lottery && draw.lottery.toUpperCase() !== lotKey && !(lotKey === 'RJ' && draw.slot === 'FED' && isWed)) {
         return;
       }
       if (!slots.some(s => s.code === drawSlotCode)) {
@@ -3682,8 +3671,8 @@ async function loadDrawResults(dateOverride = null) {
     // Filtra estritamente para garantir que nenhum horário de outra loteria vaze
     slots = slots.filter(s => {
       if (lotKey === 'RJ') {
-        if (s.code === 'FED') return isWedOrSat;
-        if (s.code === 'PTN') return !isWedOrSat;
+        if (s.code === 'FED') return isWed;
+        if (s.code === 'PTN') return !isWed;
         return !s.code.startsWith('SP-') && !s.code.startsWith('LK-') && !s.code.startsWith('LN-');
       }
       if (lotKey === 'SP') return s.code.startsWith('SP-');
