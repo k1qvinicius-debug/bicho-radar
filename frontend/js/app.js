@@ -538,12 +538,23 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
       }
     } catch (e) {}
 
+    let isSaturday = false;
+    try {
+      const parts = dStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        if (d.getDay() === 6) isSaturday = true;
+      }
+    } catch(e) {}
+
     if (isSunday) {
       return { code: 'FED', name: 'Federal 11h (Domingo) - 11:00', time: '11:00' };
     } else if (isWednesday) {
       return { code: 'FED', name: 'Federal 19h (Quarta) - 19:00', time: '19:00' };
+    } else if (isSaturday) {
+      return { code: 'FED', name: 'Federal 19h (Sábado) - 19:00', time: '19:00' };
     } else {
-      return { code: 'FED', name: 'Federal 19h (Quarta) • 11h (Domingo)', time: '19:00' };
+      return { code: 'FED', name: 'Federal 19h - 19:00', time: '19:00' };
     }
   }
   if (code === 'PPT') return { code, name: 'PPT - 09:20', time: '09:20' };
@@ -3511,12 +3522,17 @@ async function loadDrawResults(dateOverride = null) {
           const parts = draw.draw_date.split('-');
           if (parts.length === 3) {
             const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            const dow = dt.getDay(); // 0 = Domingo, 3 = Quarta
-            if (dow === 0 || dow === 3) isFedDay = true;
+            const dow = dt.getDay(); // 0 = Domingo, 3 = Quarta, 6 = Sábado
+            if (dow === 0 || dow === 3 || dow === 6) isFedDay = true;
           }
         } catch (e) {}
-        if (!isFedDay) return; // Ignora qualquer sábado ou outro dia para a Federal
+        if (!isFedDay) return;
         if (draw.lottery && draw.lottery.toUpperCase() !== 'FEDERAL' && draw.slot !== 'FED') {
+          return;
+        }
+      } else if (activeLotKey === 'RJ') {
+        // No RJ, aceita sorteios do RJ e a Federal (FED) que substitui a extração das 18h às quartas e sábados
+        if (draw.lottery && draw.lottery.toUpperCase() !== 'RJ' && draw.slot !== 'FED') {
           return;
         }
       } else {
@@ -3602,7 +3618,24 @@ async function loadDrawResults(dateOverride = null) {
     // 4. Determina lista de horários EXCLUSIVA da loteria ativa
     const lotKey = (currentLottery || 'RJ').toUpperCase();
     const baseSlots = OFFICIAL_LOTTERY_SLOTS[lotKey] || OFFICIAL_LOTTERY_SLOTS.RJ;
-    let slots = baseSlots.map(s => ({ ...s }));
+
+    let isWedOrSat = false;
+    try {
+      const parts = selectedResultDate.split('-');
+      if (parts.length === 3) {
+        const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        const dow = dt.getDay(); // 0 = Dom, 3 = Qua, 6 = Sáb
+        if (dow === 3 || dow === 6) isWedOrSat = true;
+      }
+    } catch(e) {}
+
+    let slots = baseSlots.map(s => {
+      // No RJ às quartas e sábados, o sorteio das 18h é a Federal (FED às 19h)
+      if (lotKey === 'RJ' && isWedOrSat && s.code === 'PTN') {
+        return getFriendlySlotMeta('FED', selectedResultDate);
+      }
+      return { ...s };
+    });
 
     if (lotKey === 'FEDERAL') {
       slots = [getFriendlySlotMeta('FED', selectedResultDate)];
@@ -3612,7 +3645,7 @@ async function loadDrawResults(dateOverride = null) {
     const dayDraws = allRecentDrawsByDate[selectedResultDate] || {};
     Object.keys(dayDraws).forEach((drawSlotCode) => {
       const draw = dayDraws[drawSlotCode];
-      if (draw && draw.lottery && draw.lottery.toUpperCase() !== lotKey) {
+      if (draw && draw.lottery && draw.lottery.toUpperCase() !== lotKey && !(lotKey === 'RJ' && draw.slot === 'FED' && isWedOrSat)) {
         return;
       }
       if (!slots.some(s => s.code === drawSlotCode)) {
@@ -3622,7 +3655,11 @@ async function loadDrawResults(dateOverride = null) {
 
     // Filtra estritamente para garantir que nenhum horário de outra loteria vaze
     slots = slots.filter(s => {
-      if (lotKey === 'RJ') return !s.code.startsWith('SP-') && !s.code.startsWith('LK-') && !s.code.startsWith('LN-') && s.code !== 'FED';
+      if (lotKey === 'RJ') {
+        if (s.code === 'FED') return isWedOrSat;
+        if (s.code === 'PTN') return !isWedOrSat;
+        return !s.code.startsWith('SP-') && !s.code.startsWith('LK-') && !s.code.startsWith('LN-');
+      }
       if (lotKey === 'SP') return s.code.startsWith('SP-');
       if (lotKey === 'LOOK') return s.code.startsWith('LK-');
       if (lotKey === 'NACIONAL') return s.code.startsWith('LN-');
