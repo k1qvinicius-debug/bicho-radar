@@ -134,10 +134,10 @@
         <!-- Abas Rápidas de Seleção da Loteria no Quadro de Horários -->
         <div class="flex items-center gap-1 flex-wrap" id="slot-lottery-tabs">
           <button type="button" onclick="setHistoryLotteryFilter('all')" id="slot-tab-all" class="px-2.5 py-1 rounded-lg font-bold bg-indigo-600 text-white transition-all text-xs shadow-sm cursor-pointer">Todas</button>
-          <button type="button" onclick="setHistoryLotteryFilter('LOOK')" id="slot-tab-look" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🌾 Look</button>
           <button type="button" onclick="setHistoryLotteryFilter('RJ')" id="slot-tab-rj" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🌴 Rio</button>
-          <button type="button" onclick="setHistoryLotteryFilter('NACIONAL')" id="slot-tab-nacional" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🇧🇷 Nacional</button>
+          <button type="button" onclick="setHistoryLotteryFilter('LOOK')" id="slot-tab-look" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🌾 Look</button>
           <button type="button" onclick="setHistoryLotteryFilter('SP')" id="slot-tab-sp" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🏙️ SP</button>
+          <button type="button" onclick="setHistoryLotteryFilter('NACIONAL')" id="slot-tab-nacional" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🇧🇷 Nacional</button>
           <button type="button" onclick="setHistoryLotteryFilter('FEDERAL')" id="slot-tab-federal" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🏛️ Federal</button>
         </div>
       </div>
@@ -176,15 +176,15 @@
             </button>
             <button type="button" onclick="setHistoryLotteryFilter('LOOK')" id="btn-lottery-look"
               class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
-              🌾 Look Goiás
-            </button>
-            <button type="button" onclick="setHistoryLotteryFilter('NACIONAL')" id="btn-lottery-nacional"
-              class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
-              🇧🇷 Nacional
+              🌾 Look
             </button>
             <button type="button" onclick="setHistoryLotteryFilter('SP')" id="btn-lottery-sp"
               class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
               🏙️ São Paulo
+            </button>
+            <button type="button" onclick="setHistoryLotteryFilter('NACIONAL')" id="btn-lottery-nacional"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              🇧🇷 Nacional
             </button>
             <button type="button" onclick="setHistoryLotteryFilter('FEDERAL')" id="btn-lottery-federal"
               class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
@@ -314,6 +314,6 @@
   </div>
 
   <script src="/js/api.js?v=20.0"></script>
-  <script src="/js/history.js?v=20.0"></script>
+  <script src="/js/history.js?v=21.0"></script>
 </body>
 </html>
