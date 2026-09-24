@@ -727,8 +727,9 @@ function startInstantResultsMonitor() {
         _lastKnownDrawId = latest.id;
         console.log('⚡ Novo resultado apurado detectado:', latest);
 
-        // 1. Limpa cache de puxadas
+        // 1. Limpa cache de puxadas e predições
         _puxadasDataCache = null;
+        _predictionCache.clear();
 
         // 2. Recarrega os resultados
         await loadDrawResults();
@@ -738,7 +739,7 @@ function startInstantResultsMonitor() {
 
         // 4. Recarrega palpites instantaneamente com a nova base apurada
         if (api.isLoggedIn()) {
-          await loadPrediction();
+          await loadPrediction(true);
         }
 
         // 5. Se o modal/tela de puxadas estiver aberto, atualiza imediatamente
@@ -1024,8 +1025,9 @@ window.switchLottery = async function(lotteryCode) {
   updateLotteryButtonsUI();
   await initSlotSelector(currentLottery);
   _puxadasDataCache = null;
+  _predictionCache.clear();
   currentFixedAnimalData = null;
-  await Promise.all([loadPrediction(), loadDrawResults()]);
+  await Promise.all([loadPrediction(true), loadDrawResults()]);
   const viewPuxadas = document.getElementById('view-puxadas');
   if (viewPuxadas && !viewPuxadas.classList.contains('hidden')) {
     await loadPuxadasModalContent();
@@ -2041,9 +2043,17 @@ function calculateConfidenceData(group) {
     badges.push({ icon: '🧲', label: `Puxado por ${pulledName}`, color: 'bg-violet-500/20 text-violet-300 border-violet-500/40' });
   }
 
-  if (bcMeta && bcMeta.delay_days >= 2) {
+  if (bcMeta && (bcMeta.is_last_winner || bcMeta.delay_draws_est === 0 || (typeof bcMeta.delay_text === 'string' && bcMeta.delay_text.includes('último')))) {
+    const slotStr = bcMeta.last_slot ? ` (${bcMeta.last_slot})` : '';
+    badges.push({ icon: '👑', label: `Saiu na cabeça anterior${slotStr}`, color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' });
+  } else if (bcMeta && (bcMeta.is_today_winner || bcMeta.delay_days === 0)) {
+    const slotStr = bcMeta.last_slot ? ` (${bcMeta.last_slot})` : '';
+    badges.push({ icon: '✨', label: `Saiu hoje na cabeça${slotStr}`, color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' });
+  } else if (bcMeta && bcMeta.delay_days >= 2) {
     points += 5;
     badges.push({ icon: '⏱️', label: `${bcMeta.delay_days}d sem sair na cabeça`, color: 'bg-rose-500/15 text-rose-300 border-rose-500/30' });
+  } else if (bcMeta && bcMeta.delay_days === 1) {
+    badges.push({ icon: '⏱️', label: `1d sem sair na cabeça`, color: 'bg-slate-500/20 text-slate-300 border-slate-500/30' });
   }
 
   if (presencePct >= 10) {
@@ -3002,13 +3012,29 @@ function renderGroups(groups) {
         </span>`)
         .join('');
 
-      const bcBadge = g.metadata?.bichocerto
-        ? `<div class="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-amber-300">
+      let bcBadge = '';
+      if (g.metadata?.bichocerto) {
+        const bc = g.metadata.bichocerto;
+        if (bc.is_last_winner || bc.delay_draws_est === 0 || (typeof bc.delay_text === 'string' && bc.delay_text.includes('último'))) {
+          bcBadge = `<div class="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-amber-300">
              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30">
-               <span>🕒</span> ${g.metadata.bichocerto.delay_days} dias sem sair (~${g.metadata.bichocerto.delay_draws_est} sorteios)
+               <span>👑</span> Saiu na cabeça anterior (${bc.last_slot || 'recente'})
              </span>
-           </div>`
-        : '';
+           </div>`;
+        } else if (bc.is_today_winner || bc.delay_days === 0) {
+          bcBadge = `<div class="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300">
+             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30">
+               <span>✨</span> Saiu hoje na cabeça (${bc.last_slot || 'recente'})
+             </span>
+           </div>`;
+        } else if (bc.delay_days >= 1) {
+          bcBadge = `<div class="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-rose-300">
+             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30">
+               <span>🕒</span> ${bc.delay_days} dias sem sair (${bc.delay_draws_est} apurações)
+             </span>
+           </div>`;
+        }
+      }
 
       const presencePct = g.metadata?.presence_pct;
       const presenceBadge = (presencePct !== undefined && presencePct !== null)
