@@ -59,11 +59,13 @@ def calculate_atrasados_from_db(lottery_code: str = "RJ") -> List[Dict[str, Any]
 
     last_seen_draws: Dict[int, int] = {}
     last_seen_date: Dict[int, str] = {}
+    last_seen_slot: Dict[int, str] = {}
     for idx, r in enumerate(rows):
         g = get_group_for_number(r["prize_1"])
         if g not in last_seen_draws:
             last_seen_draws[g] = idx
             last_seen_date[g] = r["draw_date"]
+            last_seen_slot[g] = r["slot"]
 
     today = datetime.now().date()
     ranking: List[Dict[str, Any]] = []
@@ -72,6 +74,7 @@ def calculate_atrasados_from_db(lottery_code: str = "RJ") -> List[Dict[str, Any]
     for g in range(1, 26):
         raw_draws = last_seen_draws.get(g, total_draws)
         dt_str = last_seen_date.get(g)
+        slot_name = last_seen_slot.get(g, "")
         if dt_str:
             try:
                 d_obj = datetime.strptime(dt_str, "%Y-%m-%d").date()
@@ -79,24 +82,23 @@ def calculate_atrasados_from_db(lottery_code: str = "RJ") -> List[Dict[str, Any]
             except Exception:
                 diff_days = max(1, raw_draws // multiplier)
 
-            if diff_days <= 0:
+            if raw_draws == 0:
                 delay_days = 0
-                delay_text = "Saiu hoje"
+                delay_text = f"Saiu no último sorteio ({slot_name})" if slot_name else "Saiu no último sorteio"
+            elif diff_days <= 0:
+                delay_days = 0
+                delay_text = f"Saiu hoje ({slot_name})" if slot_name else "Saiu hoje"
             elif diff_days == 1:
                 delay_days = 1
-                delay_text = "Saiu ontem"
+                delay_text = f"Saiu ontem ({slot_name})" if slot_name else f"Saiu ontem ({raw_draws} apurações)"
             else:
                 delay_days = diff_days
-                delay_text = f"a {diff_days} dias"
+                delay_text = f"a {diff_days} dias ({raw_draws} apurações)"
         else:
-            delay_days = max(1, raw_draws // multiplier) if raw_draws > 0 else 10
+            delay_days = max(15, raw_draws // multiplier) if raw_draws > 0 else 15
             delay_text = f"a {delay_days} dias"
 
-        # Compatibilidade com estimativa oficial de sorteios diários (dias * 6 no RJ)
-        if lot_code == "RJ":
-            draws_est = delay_days * 6
-        else:
-            draws_est = max(raw_draws, delay_days * multiplier)
+        draws_est = raw_draws
 
         anim = get_animal_info(g)
         ranking.append({
@@ -107,6 +109,10 @@ def calculate_atrasados_from_db(lottery_code: str = "RJ") -> List[Dict[str, Any]
             "delay_days": delay_days,
             "delay_draws_est": draws_est,
             "delay_text": delay_text,
+            "last_slot": slot_name,
+            "last_date": dt_str or "",
+            "is_last_winner": raw_draws == 0,
+            "is_today_winner": delay_days == 0 and raw_draws > 0,
         })
 
     # Ordena pelo maior atraso (dias e sorteios)
@@ -183,7 +189,8 @@ def fetch_and_sync_bichocerto_atrasados(lottery_code: Optional[str] = "RJ") -> D
                         if not grp:
                             img = tds[1].find("img")
                             if img and img.get("src"):
-                                src_match = re.search(r"/(\d+)\.png", img["src"])
+                                src_val = str(img.get("src") or "")
+                                src_match = re.search(r"/(\d+)\.png", src_val)
                                 if src_match:
                                     grp = int(src_match.group(1))
 
@@ -243,38 +250,8 @@ def fetch_and_sync_bichocerto_atrasados(lottery_code: Optional[str] = "RJ") -> D
 
 def get_cached_bichocerto_atrasados(lottery_code: Optional[str] = "RJ") -> List[Dict[str, Any]]:
     """
-    Retorna o ranking de atrasados para a loteria indicada.
-    Se for RJ, consulta a tabela bichocerto_atrasados (e auto-popula se necessário).
-    Se for outra banca, calcula dinamicamente com base nos sorteios apurados daquela banca.
+    Retorna o ranking de atrasados em tempo real para qualquer loteria (RJ, LOOK, SP, NACIONAL, FEDERAL),
+    calculando diretamente a partir dos resultados apurados mais recentes no banco de dados.
     """
     lot_code = (lottery_code or "RJ").upper()
-    if lot_code != "RJ":
-        return calculate_atrasados_from_db(lot_code)
-
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM bichocerto_atrasados ORDER BY ranking_pos ASC")
-        rows = cursor.fetchall()
-
-    if not rows or len(rows) < 25:
-        try:
-            res = fetch_and_sync_bichocerto_atrasados("RJ")
-            return res.get("items", [])
-        except Exception:
-            return calculate_atrasados_from_db("RJ")
-
-    result = []
-    for r in rows:
-        grp = r["group_number"]
-        anim_info = get_animal_info(grp)
-        result.append({
-            "group_number": grp,
-            "ranking_pos": r["ranking_pos"],
-            "animal_name": r["animal_name"],
-            "delay_text": r["delay_text"],
-            "delay_days": r["delay_days"],
-            "delay_draws_est": r["delay_draws_est"],
-            "animal_emoji": anim_info["emoji"],
-            "tens": anim_info["tens"]
-        })
-    return result
+    return calculate_atrasados_from_db(lot_code)
