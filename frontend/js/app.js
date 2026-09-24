@@ -471,7 +471,7 @@ function getSlotMinutes(slot, dateStr = null) {
   const code = (slot.code || (typeof slot === 'string' ? slot : '')).toUpperCase().trim();
 
   if (code === 'FED' || code === 'FEDERAL') {
-    // Federal corre aos domingos às 11:00 e quartas às 19:00
+    // Federal corre aos domingos às 11:00 e quartas/sábados às 20:00
     const dStr = dateStr || document.getElementById('target-date')?.value || new Date().toISOString().split('T')[0];
     try {
       const parts = dStr.split('-');
@@ -482,7 +482,7 @@ function getSlotMinutes(slot, dateStr = null) {
         }
       }
     } catch (e) {}
-    return 19 * 60;
+    return 20 * 60;
   }
 
   if (slot.time && slot.time.includes(':')) {
@@ -550,11 +550,11 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
     if (isSunday) {
       return { code: 'FED', name: 'Federal 11h (Domingo) - 11:00', time: '11:00' };
     } else if (isWednesday) {
-      return { code: 'FED', name: 'Federal 19h (Quarta) - 19:00', time: '19:00' };
+      return { code: 'FED', name: 'Federal 20h (Quarta) - 20:00', time: '20:00' };
     } else if (isSaturday) {
-      return { code: 'FED', name: 'Federal 19h (Sábado) - 19:00', time: '19:00' };
+      return { code: 'FED', name: 'Federal 20h (Sábado) - 20:00', time: '20:00' };
     } else {
-      return { code: 'FED', name: 'Federal 19h - 19:00', time: '19:00' };
+      return { code: 'FED', name: 'Federal 20h - 20:00', time: '20:00' };
     }
   }
   if (code === 'PPT') return { code, name: 'PPT - 09:20', time: '09:20' };
@@ -3449,7 +3449,7 @@ const OFFICIAL_LOTTERY_SLOTS = {
     { code: 'LN-23', name: 'Nacional 23h - 23:00', time: '23:00' },
   ],
   FEDERAL: [
-    { code: 'FED', name: 'Federal 19h - 19:00', time: '19:00' },
+    { code: 'FED', name: 'Federal 20h - 20:00', time: '20:00' },
   ]
 };
 
@@ -3630,7 +3630,7 @@ async function loadDrawResults(dateOverride = null) {
     } catch(e) {}
 
     let slots = baseSlots.map(s => {
-      // No RJ às quartas e sábados, o sorteio das 18h é a Federal (FED às 19h)
+      // No RJ às quartas e sábados, o sorteio das 18h é a Federal (FED às 20h)
       if (lotKey === 'RJ' && isWedOrSat && s.code === 'PTN') {
         return getFriendlySlotMeta('FED', selectedResultDate);
       }
