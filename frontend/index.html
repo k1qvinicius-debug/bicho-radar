@@ -27,7 +27,7 @@
     }
   </script>
   <link rel="icon" type="image/png" href="/img/favicon.png?v=87.0" />
-  <link rel="stylesheet" href="/css/style.css?v=97.0" />
+  <link rel="stylesheet" href="/css/style.css?v=98.0" />
   <!-- Prevenção imediata de flash da tela de login para usuários autenticados -->
   <script>
     (function() {
@@ -594,19 +594,19 @@
       <!-- Elementos ocultos para compatibilidade com rotinas JS existentes -->
       <select id="global-lottery-select" onchange="switchLottery(this.value)" class="hidden">
         <option value="RJ">Rio de Janeiro</option>
-        <option value="SP">São Paulo</option>
         <option value="LOOK">Look</option>
-        <option value="FEDERAL">Loteria Federal</option>
+        <option value="SP">São Paulo</option>
         <option value="NACIONAL">Loteria Nacional</option>
+        <option value="FEDERAL">Loteria Federal</option>
       </select>
       <span id="active-slot-badge" class="hidden">Carregando...</span>
       <span id="active-lottery-badge" class="hidden">Rio de Janeiro (RJ)</span>
       <div id="lottery-switcher-bar" class="hidden">
         <button type="button" data-lottery="RJ" class="lottery-btn hidden"></button>
-        <button type="button" data-lottery="SP" class="lottery-btn hidden"></button>
         <button type="button" data-lottery="LOOK" class="lottery-btn hidden"></button>
-        <button type="button" data-lottery="FEDERAL" class="lottery-btn hidden"></button>
+        <button type="button" data-lottery="SP" class="lottery-btn hidden"></button>
         <button type="button" data-lottery="NACIONAL" class="lottery-btn hidden"></button>
+        <button type="button" data-lottery="FEDERAL" class="lottery-btn hidden"></button>
       </div>
     </div>
 
@@ -874,7 +874,7 @@
               <span>📡 1.</span> <span>Monitoramento Multi-Loterias</span>
             </div>
             <p class="text-[11px] text-slate-400 leading-relaxed">
-              O sistema lê e armazena em tempo real as extrações oficiais de todas as principais bancas: Rio de Janeiro (RJ), Federal, Look Goiás, Loteria Nacional e São Paulo (SP), mantendo históricos auditados e prontos para o motor estatístico.
+              O sistema lê e armazena em tempo real as extrações oficiais de todas as principais bancas: Rio de Janeiro (RJ), Federal, Look, Loteria Nacional e São Paulo (SP), mantendo históricos auditados e prontos para o motor estatístico.
             </p>
           </div>
 
@@ -1474,13 +1474,13 @@
             class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
             Look
           </button>
-          <button type="button" onclick="switchPuxadasLottery('NACIONAL')" data-puxadas-lottery="NACIONAL"
-            class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
-            Nacional
-          </button>
           <button type="button" onclick="switchPuxadasLottery('SP')" data-puxadas-lottery="SP"
             class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
             São Paulo
+          </button>
+          <button type="button" onclick="switchPuxadasLottery('NACIONAL')" data-puxadas-lottery="NACIONAL"
+            class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
+            Nacional
           </button>
           <button type="button" onclick="switchPuxadasLottery('FEDERAL')" data-puxadas-lottery="FEDERAL"
             class="puxadas-lot-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer">
@@ -2172,8 +2172,8 @@
     </div>
   </div>
 
-<script src="/js/api.js?v=97.0"></script>
-  <script src="/js/app.js?v=97.0"></script>
+<script src="/js/api.js?v=98.0"></script>
+  <script src="/js/app.js?v=98.0"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
