@@ -252,16 +252,20 @@ function setupHistoryEvents() {
 // RANKING E IDENTIFICAÇÃO DE ASSERTIVIDADE POR LOTERIA
 // =========================================================================
 
+function getCanonicalLottery(s) {
+  if (!s) return 'RJ';
+  const slot = String(s.target_slot || s.slot || '').toUpperCase().trim();
+  if (slot.startsWith('LK-') || slot.startsWith('LOOK')) return 'LOOK';
+  if (slot.startsWith('SP-') || slot.startsWith('BAND') || slot.includes('SP')) return 'SP';
+  if (slot.startsWith('LN-') || slot.startsWith('NAC')) return 'NACIONAL';
+  if (slot === 'FED' || slot === 'FEDERAL' || slot.startsWith('FED')) return 'FEDERAL';
+  if (['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR', 'ALV'].includes(slot) || slot.startsWith('RJ')) return 'RJ';
+  const lot = (s.lottery || '').toUpperCase();
+  return (lot && lot !== 'NULL') ? lot : 'RJ';
+}
+
 function getLotteryBadge(s) {
-  let lot = (s.lottery || '').toUpperCase();
-  if (!lot || lot === 'NULL') {
-    const slot = String(s.target_slot || '').toUpperCase();
-    if (slot.startsWith('LK-')) lot = 'LOOK';
-    else if (slot.startsWith('SP-')) lot = 'SP';
-    else if (slot.startsWith('LN-')) lot = 'NACIONAL';
-    else if (slot === 'FED' || slot === 'FEDERAL') lot = 'FEDERAL';
-    else lot = 'RJ';
-  }
+  const lot = getCanonicalLottery(s);
 
   if (lot === 'LOOK') {
     return `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px] uppercase border border-emerald-500/40 flex items-center gap-1"><span>🌾</span> <span>LOOK</span></span>`;
@@ -289,15 +293,7 @@ function computeLotteryRankingFromSnapshots(snapshots) {
 
   const agg = {};
   (snapshots || []).forEach(s => {
-    let lot = (s.lottery || '').toUpperCase();
-    if (!lot || lot === 'NULL') {
-      const slot = String(s.target_slot || '').toUpperCase();
-      if (slot.startsWith('LK-')) lot = 'LOOK';
-      else if (slot.startsWith('SP-')) lot = 'SP';
-      else if (slot.startsWith('LN-')) lot = 'NACIONAL';
-      else if (slot === 'FED' || slot === 'FEDERAL') lot = 'FEDERAL';
-      else lot = 'RJ';
-    }
+    const lot = getCanonicalLottery(s);
 
     if (!agg[lot]) {
       agg[lot] = { lottery: lot, total_evals: 0, total_hits: 0, total_score: 0 };
@@ -484,15 +480,23 @@ async function loadMetricsBySlot(lottery = null) {
 
     // Se uma loteria específica estiver selecionada
     if (lot && lot !== 'all') {
-      const meta = lotteryMeta[lot.toUpperCase()] || { name: lot, emoji: '🎲', badge: 'bg-indigo-500/20 text-indigo-300' };
+      const activeLotUpper = lot.toUpperCase();
+      const filteredSlots = data.filter((item) => getCanonicalLottery(item) === activeLotUpper);
+
+      if (!filteredSlots || filteredSlots.length === 0) {
+        container.innerHTML = '<div class="text-slate-400 text-xs py-4 text-center">Nenhum dado por horário disponível para esta praça.</div>';
+        return;
+      }
+
+      const meta = lotteryMeta[activeLotUpper] || { name: activeLotUpper, emoji: '🎲', badge: 'bg-indigo-500/20 text-indigo-300' };
       container.innerHTML = `
         <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-3 space-y-2">
           <div class="flex items-center justify-between pb-2 border-b border-slate-800/60">
             <span class="text-xs font-black text-slate-200 flex items-center gap-1.5">
               <span>${meta.emoji}</span> <span>${meta.name}</span>
-              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${meta.badge}">${lot.toUpperCase()}</span>
+              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${meta.badge}">${activeLotUpper}</span>
             </span>
-            <span class="text-[11px] text-slate-400 font-mono">${data.length} horários cadastrados</span>
+            <span class="text-[11px] text-slate-400 font-mono">${filteredSlots.length} horários cadastrados</span>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs border-collapse">
@@ -508,7 +512,7 @@ async function loadMetricsBySlot(lottery = null) {
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-800/60">
-                ${renderTableRows(data)}
+                ${renderTableRows(filteredSlots)}
               </tbody>
             </table>
           </div>
@@ -520,15 +524,7 @@ async function loadMetricsBySlot(lottery = null) {
     // Se "Todas": exibe cada praça separada em seu próprio bloco!
     const grouped = {};
     data.forEach((item) => {
-      let l = (item.lottery || '').toUpperCase();
-      if (!l || l === 'NULL') {
-        const slot = String(item.slot || '').toUpperCase();
-        if (slot.startsWith('LK-')) l = 'LOOK';
-        else if (slot.startsWith('SP-')) l = 'SP';
-        else if (slot.startsWith('LN-')) l = 'NACIONAL';
-        else if (slot === 'FED' || slot === 'FEDERAL') l = 'FEDERAL';
-        else l = 'RJ';
-      }
+      const l = getCanonicalLottery(item);
       if (!grouped[l]) grouped[l] = [];
       grouped[l].push(item);
     });
@@ -634,15 +630,7 @@ function renderFilteredSnapshots() {
   let filtered = allRawSnapshots.filter((s) => {
     // Filtro de Loteria
     if (activeHistoryLotteryFilter !== 'all') {
-      let lot = (s.lottery || '').toUpperCase();
-      if (!lot || lot === 'NULL') {
-        const slot = String(s.target_slot || '').toUpperCase();
-        if (slot.startsWith('LK-')) lot = 'LOOK';
-        else if (slot.startsWith('SP-')) lot = 'SP';
-        else if (slot.startsWith('LN-')) lot = 'NACIONAL';
-        else if (slot === 'FED' || slot === 'FEDERAL') lot = 'FEDERAL';
-        else lot = 'RJ';
-      }
+      const lot = getCanonicalLottery(s);
       if (lot !== activeHistoryLotteryFilter.toUpperCase()) return false;
     }
 
@@ -944,12 +932,21 @@ window.setHistoryLotteryFilter = function(lotteryCode) {
 
   const lotteries = ['all', 'rj', 'look', 'nacional', 'sp', 'federal'];
   lotteries.forEach((l) => {
+    const isAct = l.toUpperCase() === lotteryCode.toUpperCase() || (l === 'all' && lotteryCode === 'all');
     const btn = document.getElementById(`btn-lottery-${l}`);
     if (btn) {
-      if (l.toUpperCase() === lotteryCode.toUpperCase() || (l === 'all' && lotteryCode === 'all')) {
+      if (isAct) {
         btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold transition-all bg-indigo-600 text-white shadow-sm';
       } else {
         btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all';
+      }
+    }
+    const slotTabBtn = document.getElementById(`slot-tab-${l}`);
+    if (slotTabBtn) {
+      if (isAct) {
+        slotTabBtn.className = 'px-2.5 py-1 rounded-lg font-bold bg-indigo-600 text-white transition-all text-xs shadow-sm cursor-pointer';
+      } else {
+        slotTabBtn.className = 'px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer';
       }
     }
   });
