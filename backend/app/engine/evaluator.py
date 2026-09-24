@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Optional
 from ..database import get_db_connection
 from ..domain import (
     format_milhar, extract_dezena, extract_centena, extract_milhar,
-    get_group_for_number, get_animal_info
+    get_group_for_number, get_animal_info, infer_lottery_from_slot
 )
 
 
@@ -33,20 +33,12 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
         target_date = draw["draw_date"]
         target_slot = draw["slot"]
 
-        target_lottery = draw.get("lottery") or "RJ"
-        if target_slot.startswith("LK-"):
-            target_lottery = "LOOK"
-        elif target_slot.startswith("SP-"):
-            target_lottery = "SP"
-        elif target_slot.startswith("LN-"):
-            target_lottery = "NACIONAL"
-        elif target_slot in ("FED", "FEDERAL"):
-            target_lottery = "FEDERAL"
+        target_lottery = infer_lottery_from_slot(target_slot, draw.get("lottery") or "RJ")
 
         # Busca snapshots pendentes ou existentes para esta data e horário
         cursor.execute(
-            "SELECT * FROM analysis_snapshots WHERE target_date = ? AND target_slot = ? AND (lottery = ? OR (lottery IS NULL AND ? = 'RJ'))",
-            (target_date, target_slot, target_lottery, target_lottery)
+            "SELECT * FROM analysis_snapshots WHERE target_date = ? AND target_slot = ? AND lottery = ?",
+            (target_date, target_slot, target_lottery)
         )
         snapshots = cursor.fetchall()
 
@@ -263,19 +255,11 @@ def ensure_snapshots_and_evaluate_for_draw(draw_id: int) -> List[Dict[str, Any]]
         target_date = draw["draw_date"]
         target_slot = draw["slot"]
 
-        target_lottery = draw.get("lottery") or "RJ"
-        if target_slot.startswith("LK-"):
-            target_lottery = "LOOK"
-        elif target_slot.startswith("SP-"):
-            target_lottery = "SP"
-        elif target_slot.startswith("LN-"):
-            target_lottery = "NACIONAL"
-        elif target_slot in ("FED", "FEDERAL"):
-            target_lottery = "FEDERAL"
+        target_lottery = infer_lottery_from_slot(target_slot, draw.get("lottery") or "RJ")
 
         cursor.execute(
-            "SELECT id FROM analysis_snapshots WHERE target_date = ? AND target_slot = ? AND (lottery = ? OR (lottery IS NULL AND ? = 'RJ'))",
-            (target_date, target_slot, target_lottery, target_lottery)
+            "SELECT id FROM analysis_snapshots WHERE target_date = ? AND target_slot = ? AND lottery = ?",
+            (target_date, target_slot, target_lottery)
         )
         existing = cursor.fetchone()
 
