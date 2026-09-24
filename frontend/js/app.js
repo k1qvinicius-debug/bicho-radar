@@ -3455,8 +3455,8 @@ const OFFICIAL_LOTTERY_SLOTS = {
 
 const RESULTS_LOTTERIES_CATALOG = [
   { code: 'RJ', name: 'Rio de Janeiro', state: 'RJ', icon: '🏛️' },
+  { code: 'LOOK', name: 'Look', state: 'LK', icon: '🎯' },
   { code: 'SP', name: 'São Paulo', state: 'SP', icon: '🏙️' },
-  { code: 'LOOK', name: 'Goiás (Look)', state: 'GO', icon: '🎯' },
   { code: 'NACIONAL', name: 'Loteria Nacional', state: 'BR', icon: '🇧🇷' },
   { code: 'FEDERAL', name: 'Loteria Federal', state: 'FED', icon: '⚖️' },
 ];
