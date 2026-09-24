@@ -26,7 +26,7 @@ def sync_results_from_web(lottery: Optional[str] = Query(None)):
     """
     Puxa e sincroniza automaticamente os últimos resultados em tempo real
     diretamente dos sites oficiais (Deu no Poste e Bicho Certo) para todas as bancas:
-    Rio de Janeiro (RJ), Federal, Look Goiás (LOOK), Loteria Nacional (NACIONAL) e São Paulo (SP).
+    Rio de Janeiro (RJ), Look (LOOK), São Paulo (SP), Loteria Nacional (NACIONAL) e Federal (FEDERAL).
     """
     try:
         res = fetch_and_sync_results(lottery)
@@ -39,7 +39,7 @@ def sync_results_from_web(lottery: Optional[str] = Query(None)):
 def get_bichocerto_atrasados(lottery: Optional[str] = Query("RJ")):
     """
     Retorna o ranking oficial dos 25 animais mais atrasados para a loteria indicada
-    (Rio de Janeiro, Look Goiás, Loteria Nacional, São Paulo ou Federal).
+    (Rio de Janeiro, Look, São Paulo, Loteria Nacional ou Federal).
     Inclui dias de atraso e sorteios equivalentes estimados.
     """
     return get_cached_bichocerto_atrasados(lottery)
