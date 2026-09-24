@@ -90,11 +90,12 @@ def list_results(
         if lottery:
             lot_code = lottery.upper()
             if lot_code == "FEDERAL":
-                query += " AND (lottery = 'FEDERAL' OR slot = 'FED') AND day_of_week IN (2, 6)"
-                count_query += " AND (lottery = 'FEDERAL' OR slot = 'FED') AND day_of_week IN (2, 6)"
+                query += " AND (lottery = 'FEDERAL' OR slot = 'FED')"
+                count_query += " AND (lottery = 'FEDERAL' OR slot = 'FED')"
             elif lot_code == "RJ":
-                query += " AND (lottery = 'RJ' OR (lottery IS NULL AND ? = 'RJ'))"
-                count_query += " AND (lottery = 'RJ' OR (lottery IS NULL AND ? = 'RJ'))"
+                # No Rio de Janeiro, a extração das 18h às quartas e sábados é a Loteria Federal (FED)
+                query += " AND (lottery = 'RJ' OR (slot = 'FED' AND day_of_week IN (2, 5)) OR (lottery IS NULL AND ? = 'RJ'))"
+                count_query += " AND (lottery = 'RJ' OR (slot = 'FED' AND day_of_week IN (2, 5)) OR (lottery IS NULL AND ? = 'RJ'))"
                 params.append(lot_code)
             else:
                 query += " AND lottery = ?"
@@ -171,7 +172,8 @@ def create_result(data: DrawResultCreate, _admin=Depends(require_admin)):
             ))
             new_id = cursor.lastrowid
         except Exception as e:
-            if "UNIQUE" in str(e):
+            err_str = str(e).upper()
+            if "UNIQUE" in err_str or "DUPLICATE KEY" in err_str:
                 raise HTTPException(
                     status_code=409,
                     detail=f"Já existe resultado cadastrado para a data {data.draw_date} no horário {data.slot}."
