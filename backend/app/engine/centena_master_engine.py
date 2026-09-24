@@ -161,8 +161,8 @@ def calculate_centena_master(target_date: Optional[str] = None, lottery: str = "
 
     # Duques de Dezenas
     duques_dezenas = []
-    for d1, d2 in itertools.combinations(unique_tens, 2):
-        duques_dezenas.append(f"{d1} - {d2}")
+    for ten1, ten2 in itertools.combinations(unique_tens, 2):
+        duques_dezenas.append(f"{ten1} - {ten2}")
 
     # Terno de Dezenas
     terno_dezenas = " - ".join(unique_tens) if len(unique_tens) >= 3 else None
