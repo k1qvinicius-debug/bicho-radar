@@ -127,7 +127,7 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
         "icon": "🏛️",
         "color": "purple",
         "slots": [
-            {"code": "FED", "name": "Federal 20h (Quarta/Sábado) • 11h (Domingo)", "time": "20:00", "order": 1},
+            {"code": "FED", "name": "Federal 20h (Quarta) • 11h (Domingo)", "time": "20:00", "order": 1},
         ]
     }
 }
@@ -155,20 +155,18 @@ def get_lottery_slots(lottery_code: Optional[str] = "RJ", target_date: Optional[
     if lot_code == "FEDERAL":
         if dow == 6:  # Domingo às 11h00
             return [{"code": "FED", "name": "Federal 11h (Domingo) - 11:00", "time": "11:00", "order": 1}]
-        elif dow in (2, 5):  # Quarta ou Sábado às 20h00
-            day_name = "Quarta" if dow == 2 else "Sábado"
-            return [{"code": "FED", "name": f"Federal 20h ({day_name}) - 20:00", "time": "20:00", "order": 1}]
+        elif dow == 2:  # Quarta às 20h00
+            return [{"code": "FED", "name": "Federal 20h (Quarta) - 20:00", "time": "20:00", "order": 1}]
         else:
-            return [{"code": "FED", "name": "Federal 20h (Quarta e Sábado)", "time": "20:00", "order": 1}]
+            return [{"code": "FED", "name": "Federal (Quarta e Domingo)", "time": "20:00", "order": 1}]
 
     elif lot_code == "RJ":
-        # Às quartas (dow=2) e aos sábados (dow=5), a extração das 18h no RJ é a Loteria Federal das 20h
-        if dow in (2, 5):
+        # Às quartas (dow=2), a extração das 18h no RJ é a Loteria Federal das 20h
+        if dow == 2:
             rj_slots = []
-            day_name = "Quarta" if dow == 2 else "Sábado"
             for s in slots:
                 if s["code"] == "PTN":
-                    rj_slots.append({"code": "FED", "name": f"Federal 20h ({day_name}) - 20:00", "time": "20:00", "order": 5})
+                    rj_slots.append({"code": "FED", "name": "Federal 20h (Quarta) - 20:00", "time": "20:00", "order": 5})
                 else:
                     rj_slots.append(s)
             return rj_slots
@@ -182,7 +180,7 @@ def get_slot_order_weight(slot: Optional[str], draw_date: Optional[str] = None) 
         return 0
     slot_upper = slot.upper().strip()
     if slot_upper in ["FED", "FEDERAL"]:
-        # Federal corre às quartas-feiras (20h) e aos sábados (20h), ou domingos/feriados (11h/12h)
+        # Federal corre às quartas-feiras (20h) e aos domingos (11h)
         if draw_date:
             try:
                 dt = datetime.strptime(str(draw_date)[:10], "%Y-%m-%d")
