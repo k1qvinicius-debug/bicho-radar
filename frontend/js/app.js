@@ -1959,6 +1959,172 @@ async function loadAtrasadosModalList() {
   }
 }
 
+
+let currentReadyBetsData = null;
+
+function renderReadyBetsCard(groups, targetSlot, targetDate) {
+  const container = document.getElementById('ready-bets-container');
+  const duquesTabContainer = document.getElementById('duques-tab-ready-bets-container');
+  
+  if (!groups || groups.length < 3) {
+    if (container) container.innerHTML = '';
+    if (duquesTabContainer) duquesTabContainer.innerHTML = '';
+    return;
+  }
+
+  const g0 = groups[0];
+  const g1 = groups[1];
+  const g2 = groups[2];
+
+  currentReadyBetsData = {
+    date: targetDate || document.getElementById('target-date')?.value || new Date().toISOString().split('T')[0],
+    slot: targetSlot || document.getElementById('target-slot')?.value || 'LK-23',
+    g0,
+    g1,
+    g2
+  };
+
+  const cardHtml = `
+    <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-slate-900/90 to-indigo-950/40 shadow-lg animate-fade-in mb-3">
+      <div class="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-amber-500/20 flex-wrap">
+        <div class="flex items-center gap-2">
+          <span class="text-xl sm:text-2xl animate-pulse">👑</span>
+          <div>
+            <h3 class="font-black text-amber-300 text-sm sm:text-base flex items-center gap-1.5">
+              <span>Jogos Prontos de Grupos</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">1º ao 5º</span>
+            </h3>
+            <p class="text-[11px] text-slate-300">Terno de Grupo e Duques (Passes) calculados pelo Radar para apostar</p>
+          </div>
+        </div>
+        <button type="button" onclick="copyReadyBetsToClipboard()"
+          class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm">
+          <span>📋</span> <span>Copiar Jogo</span>
+        </button>
+      </div>
+
+      <!-- 1. Terno de Grupo de Ouro -->
+      <div class="bg-slate-950/70 p-3 rounded-xl border border-amber-500/30 mb-3">
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-1">
+          <span class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
+            <span>🏆</span> Terno de Grupo de Ouro (Cercado 1º ao 5º)
+          </span>
+          <span class="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30">
+            Maior Probabilidade Conjunta
+          </span>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-2 my-2">
+          <div class="p-2 rounded-lg bg-slate-900 border border-amber-500/30 text-center flex flex-col items-center justify-center">
+            <span class="text-2xl mb-1">${g0.animal_emoji || '🐾'}</span>
+            <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Grupo ${g0.value}</span>
+            <span class="text-xs font-black text-amber-200 truncate w-full">${g0.animal_name}</span>
+          </div>
+          <div class="p-2 rounded-lg bg-slate-900 border border-amber-500/30 text-center flex flex-col items-center justify-center">
+            <span class="text-2xl mb-1">${g1.animal_emoji || '🐾'}</span>
+            <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Grupo ${g1.value}</span>
+            <span class="text-xs font-black text-amber-200 truncate w-full">${g1.animal_name}</span>
+          </div>
+          <div class="p-2 rounded-lg bg-slate-900 border border-amber-500/30 text-center flex flex-col items-center justify-center">
+            <span class="text-2xl mb-1">${g2.animal_emoji || '🐾'}</span>
+            <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Grupo ${g2.value}</span>
+            <span class="text-xs font-black text-amber-200 truncate w-full">${g2.animal_name}</span>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-slate-300 pt-1.5 border-t border-slate-800/80 flex items-center justify-between flex-wrap gap-1">
+          <span>💡 Jogue cercando do 1º ao 5º prêmio.</span>
+          <span class="text-amber-300/90 font-semibold">Bancas pagam de <strong>1.000x a 1.500x</strong> se os 3 saírem!</span>
+        </div>
+      </div>
+
+      <!-- 2. Duques de Grupo / Passes Prontos -->
+      <div class="bg-slate-950/70 p-3 rounded-xl border border-indigo-500/30">
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-1">
+          <span class="text-xs font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1">
+            <span>🤝</span> Passes / Duques de Grupo (1º ao 5º)
+          </span>
+          <span class="text-[10px] text-slate-400">Top 3 Duplas Cercadas</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <!-- Dupla 1 -->
+          <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-indigo-500/40 transition-all flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">${g0.animal_emoji || '🐾'} ${g1.animal_emoji || '🐾'}</span>
+              <div>
+                <div class="text-xs font-bold text-slate-100">${g0.animal_name} + ${g1.animal_name}</div>
+                <div class="text-[10px] text-indigo-300 font-mono">Grupos ${g0.value} + ${g1.value}</div>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">Top 1</span>
+          </div>
+
+          <!-- Dupla 2 -->
+          <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-indigo-500/40 transition-all flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">${g0.animal_emoji || '🐾'} ${g2.animal_emoji || '🐾'}</span>
+              <div>
+                <div class="text-xs font-bold text-slate-100">${g0.animal_name} + ${g2.animal_name}</div>
+                <div class="text-[10px] text-indigo-300 font-mono">Grupos ${g0.value} + ${g2.value}</div>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded">Top 2</span>
+          </div>
+
+          <!-- Dupla 3 -->
+          <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-indigo-500/40 transition-all flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">${g1.animal_emoji || '🐾'} ${g2.animal_emoji || '🐾'}</span>
+              <div>
+                <div class="text-xs font-bold text-slate-100">${g1.animal_name} + ${g2.animal_name}</div>
+                <div class="text-[10px] text-indigo-300 font-mono">Grupos ${g1.value} + ${g2.value}</div>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded">Top 3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (container) container.innerHTML = cardHtml;
+  if (duquesTabContainer) duquesTabContainer.innerHTML = cardHtml;
+}
+
+window.copyReadyBetsToClipboard = function () {
+  if (!currentReadyBetsData) {
+    showToast('Nenhum palpite de grupo disponível para cópia.', 'warning');
+    return;
+  }
+
+  const { date, slot, g0, g1, g2 } = currentReadyBetsData;
+  const msg = [
+    `🎯 BICHO MASTER PRO - JOGOS PRONTOS DE GRUPO`,
+    `📅 Data: ${date} | 🕒 Horário: ${slot}`,
+    ``,
+    `🏆 TERNO DE GRUPO DE OURO (1º ao 5º):`,
+    `👉 Grupo ${g0.value} (${g0.animal_name}) + Grupo ${g1.value} (${g1.animal_name}) + Grupo ${g2.value} (${g2.animal_name})`,
+    ``,
+    `🤝 PASSES / DUQUES DE GRUPO (1º ao 5º):`,
+    `1️⃣ Grupo ${g0.value} (${g0.animal_name}) + Grupo ${g1.value} (${g1.animal_name})`,
+    `2️⃣ Grupo ${g0.value} (${g0.animal_name}) + Grupo ${g2.value} (${g2.animal_name})`,
+    `3️⃣ Grupo ${g1.value} (${g1.animal_name}) + Grupo ${g2.value} (${g2.animal_name})`,
+    ``,
+    `🍀 Boa sorte nas apostas!`
+  ].join('\n');
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(() => {
+      showToast('Palpite de Terno e Duques copiado!', 'success');
+    }).catch(() => {
+      prompt('Copie o palpite abaixo:', msg);
+    });
+  } else {
+    prompt('Copie o palpite abaixo:', msg);
+  }
+};
+
 function renderDashboard(data) {
   // Informações do Topo
   const slotNameEl = document.getElementById('header-slot-name');
