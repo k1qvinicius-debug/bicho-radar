@@ -1983,6 +1983,9 @@ function renderDashboard(data) {
   renderTransitionMatrixSection(data.transition_data);
 
   // 1. Palpites Agrupados por Animal
+  const currentSlotVal = document.getElementById('target-slot')?.value || 'LK-23';
+  const currentDateVal = document.getElementById('target-date')?.value || new Date().toISOString().split('T')[0];
+  renderReadyBetsCard(data.top_groups || [], currentSlotVal, currentDateVal);
   renderAnimalCards(data);
 
   // 2. Duque de Dezena Combinado (DDZ)
