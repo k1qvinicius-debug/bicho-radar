@@ -604,6 +604,17 @@ def init_db() -> None:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_pb_lottery ON pattern_breaks_history(lottery);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_pb_date_slot ON pattern_breaks_history(draw_date, slot);")
 
+        # Normalização canônica das loterias para snapshots e avaliações baseadas nos horários
+        try:
+            cursor.execute("UPDATE analysis_snapshots SET lottery = 'LOOK' WHERE target_slot LIKE 'LK%' AND (lottery IS NULL OR lottery != 'LOOK')")
+            cursor.execute("UPDATE analysis_snapshots SET lottery = 'SP' WHERE target_slot LIKE 'SP%' AND (lottery IS NULL OR lottery != 'SP')")
+            cursor.execute("UPDATE analysis_snapshots SET lottery = 'NACIONAL' WHERE target_slot LIKE 'LN%' AND (lottery IS NULL OR lottery != 'NACIONAL')")
+            cursor.execute("UPDATE analysis_snapshots SET lottery = 'FEDERAL' WHERE target_slot IN ('FED', 'FEDERAL') AND (lottery IS NULL OR lottery != 'FEDERAL')")
+            cursor.execute("UPDATE analysis_snapshots SET lottery = 'RJ' WHERE target_slot IN ('PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR', 'ALV') AND (lottery IS NULL OR lottery != 'RJ')")
+        except Exception as norm_err:
+            logger.warning(f"Aviso ao normalizar loterias em analysis_snapshots: {norm_err}")
+
+
 
         # Garante que a conta Master Admin k1qvinicius@gmail.com exista com chave 0203040
         cursor.execute("SELECT id FROM tenants WHERE LOWER(COALESCE(email, '')) = 'k1qvinicius@gmail.com' OR tenant_key = '0203040' LIMIT 1")
