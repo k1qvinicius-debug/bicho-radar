@@ -166,7 +166,7 @@ class StatisticalEngine:
         # 1. Análise de Grupos
         top_groups = self._analyze_groups(
             draws, target_slot, target_day_of_week, weights, target_date,
-            strategy=strategy, transition_data=transition_data
+            strategy=strategy, transition_data=transition_data, lottery=effective_lottery
         )
 
         # 2. Análise de Dezenas
@@ -901,6 +901,7 @@ class StatisticalEngine:
         target_date: Optional[str] = None,
         strategy: str = "hybrid",
         transition_data: Optional[Dict[str, Any]] = None,
+        lottery: str = "RJ",
     ) -> List[RankedItem]:
         total_draws = len(draws)
         count_1st = Counter()
@@ -912,6 +913,7 @@ class StatisticalEngine:
 
         reversed_draws = list(reversed(draws))
         last_seen_1st: Dict[int, int] = {}
+        last_seen_1st_draw: Dict[int, Dict[str, Any]] = {}
         last_seen_all: Dict[int, int] = {}
         decay_scores: Dict[int, float] = defaultdict(float)
         recent_30_count_all: Counter = Counter()
@@ -934,6 +936,7 @@ class StatisticalEngine:
 
             if g1 not in last_seen_1st:
                 last_seen_1st[g1] = idx
+                last_seen_1st_draw[g1] = d
 
             for g in g_all:
                 if g not in last_seen_all:
@@ -960,13 +963,58 @@ class StatisticalEngine:
         last_g1 = get_group_for_number(last_draw["prize_1"]) if last_draw else 0
         last_g_all = {get_group_for_number(last_draw[f"prize_{i}"]) for i in range(1, 6)} if last_draw else set()
 
-        # Busca ranking oficial de atrasados do Bicho Certo RJ (dias x 6 sorteios)
-        try:
-            from .bichocerto_scraper import get_cached_bichocerto_atrasados
-            bc_list = get_cached_bichocerto_atrasados()
-            bc_data = {item["group_number"]: item for item in bc_list}
-        except Exception:
-            bc_data = {}
+        # Calcula atrasos reais e dinâmicos para a loteria atual com base nos draws apurados
+        today_date = datetime.now().date()
+        lot_code = (lottery or "RJ").upper()
+        multiplier = 8 if lot_code in ["LOOK", "NACIONAL"] else (5 if lot_code == "SP" else (2 if lot_code == "FEDERAL" else 6))
+        
+        delay_stats: Dict[int, Dict[str, Any]] = {}
+        for g in range(1, 26):
+            raw_draws = last_seen_1st.get(g, total_draws)
+            d_last = last_seen_1st_draw.get(g)
+            slot_name = d_last.get("slot", "") if d_last else ""
+            dt_str = d_last.get("draw_date", "") if d_last else ""
+            
+            if dt_str:
+                try:
+                    d_obj = datetime.strptime(dt_str, "%Y-%m-%d").date()
+                    diff_days = (today_date - d_obj).days
+                except Exception:
+                    diff_days = max(1, raw_draws // multiplier)
+
+                if raw_draws == 0:
+                    delay_days = 0
+                    delay_text = f"Saiu no último sorteio ({slot_name})" if slot_name else "Saiu no último sorteio"
+                elif diff_days <= 0:
+                    delay_days = 0
+                    delay_text = f"Saiu hoje ({slot_name})" if slot_name else "Saiu hoje"
+                elif diff_days == 1:
+                    delay_days = 1
+                    delay_text = f"Saiu ontem ({slot_name})" if slot_name else f"Saiu ontem ({raw_draws} apurações)"
+                else:
+                    delay_days = diff_days
+                    delay_text = f"a {diff_days} dias ({raw_draws} apurações)"
+            else:
+                delay_days = max(15, raw_draws // multiplier) if raw_draws > 0 else 15
+                delay_text = f"a {delay_days} dias"
+
+            delay_stats[g] = {
+                "group": g,
+                "delay_days": delay_days,
+                "delay_draws": raw_draws,
+                "delay_text": delay_text,
+                "last_slot": slot_name,
+                "last_date": dt_str,
+                "is_last_winner": raw_draws == 0,
+                "is_today_winner": delay_days == 0 and raw_draws > 0,
+            }
+
+        sorted_by_delay = sorted(
+            delay_stats.values(),
+            key=lambda x: (x["delay_days"], x["delay_draws"]),
+            reverse=True
+        )
+        delay_ranking_map = {item["group"]: pos for pos, item in enumerate(sorted_by_delay, 1)}
 
         # Busca Cruz do Dia para a data analisada
         try:
@@ -996,12 +1044,8 @@ class StatisticalEngine:
         group_items: List[RankedItem] = []
 
         for g in range(1, 26):
-            bc_info = bc_data.get(g)
-            if bc_info:
-                # Utiliza o atraso oficial do Bicho Certo (dias * 6 sorteios diários)
-                delay_1 = bc_info["delay_draws_est"]
-            else:
-                delay_1 = last_seen_1st.get(g, total_draws)
+            stat = delay_stats[g]
+            delay_1 = stat["delay_draws"]
             delay_all = last_seen_all.get(g, total_draws)
 
             freq_1 = count_1st[g] / max(total_draws, 1)
@@ -1051,22 +1095,23 @@ class StatisticalEngine:
             final_score = round(weighted_sum / total_weight, 1)
 
             factors: List[FactorItem] = []
-            if bc_info and bc_info["delay_days"] >= 2:
-                d_days = bc_info["delay_days"]
-                d_draws = bc_info["delay_draws_est"]
-                r_pos = bc_info["ranking_pos"]
+            if stat["is_last_winner"]:
+                slot_info_str = f" no {stat['last_slot']}" if stat['last_slot'] else ""
                 factors.append(FactorItem(
-                    name=f"Animal Mais Atrasado (#{r_pos})",
-                    description=f"Atrasado há {d_days} dias (~{d_draws} sorteios no 1º prêmio)",
+                    name="Último 1º Prêmio Apurado",
+                    description=f"Saiu no 1º prêmio anterior{slot_info_str} (Ciclo Recente Ativo)",
+                    impact_points=round(score_rep * (w.weight_repetition / total_weight), 1),
+                    type="positive" if score_rep > 0 else "neutral"
+                ))
+            elif stat["delay_days"] >= 2 or delay_1 >= 15:
+                d_days = stat["delay_days"]
+                d_draws = stat["delay_draws"]
+                r_pos = delay_ranking_map[g]
+                factors.append(FactorItem(
+                    name=f"Animal Atrasado (#{r_pos})",
+                    description=f"Atrasado há {d_days} dias ({d_draws} sorteios no 1º prêmio)",
                     impact_points=round(score_delay * (w.weight_delay / total_weight), 1),
                     type="positive" if d_draws >= 25 else "neutral"
-                ))
-            elif delay_1 >= 15:
-                factors.append(FactorItem(
-                    name="Atraso Elevado",
-                    description=f"Atrasado há {delay_1} sorteios no 1º prêmio (esperado médio: 25)",
-                    impact_points=round(score_delay * (w.weight_delay / total_weight), 1),
-                    type="positive" if delay_1 >= 25 else "neutral"
                 ))
             if score_slot >= 55.0 and slot_total_draws >= 5:
                 factors.append(FactorItem(
@@ -1189,11 +1234,15 @@ class StatisticalEngine:
                     "total_all": count_all[g],
                     "slot_1st": slot_count_1st[g],
                     "bichocerto": {
-                        "ranking_pos": bc_info["ranking_pos"],
-                        "delay_days": bc_info["delay_days"],
-                        "delay_draws_est": bc_info["delay_draws_est"],
-                        "delay_text": bc_info["delay_text"]
-                    } if bc_info else None,
+                        "ranking_pos": delay_ranking_map[g],
+                        "delay_days": stat["delay_days"],
+                        "delay_draws_est": stat["delay_draws"],
+                        "delay_text": stat["delay_text"],
+                        "last_slot": stat["last_slot"],
+                        "last_date": stat["last_date"],
+                        "is_last_winner": stat["is_last_winner"],
+                        "is_today_winner": stat["is_today_winner"],
+                    },
                     "cruz_do_dia": {
                         "is_present": bool(cruz_item or is_bicho_dia),
                         "is_bicho_dia": is_bicho_dia,
