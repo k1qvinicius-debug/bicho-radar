@@ -12,7 +12,7 @@ from ..database import get_db_connection
 from ..models import PredictionOutput, SnapshotCreateRequest, SnapshotEvaluationResponse
 from ..engine.statistical_engine import StatisticalEngine
 from ..engine.weights import get_active_weights
-from ..domain import STANDARD_SLOTS
+from ..domain import STANDARD_SLOTS, infer_lottery_from_slot
 from ..auth import get_current_tenant_optional, require_tenant
 
 router = APIRouter(prefix="/analysis", tags=["Análise Preditiva"])
@@ -125,12 +125,17 @@ def create_snapshot(
     Congela e salva a análise atual para uma data, horário e loteria antes da divulgação do resultado,
     permitindo auditoria e backtesting 100% transparentes e auditáveis vinculados ao testador/tenant.
     """
-    lottery_code = (data.lottery or "RJ").upper()
+    slot_upper = data.target_slot.upper()
+    inferred = infer_lottery_from_slot(slot_upper)
+    lottery_code = (data.lottery or inferred).upper()
+    if lottery_code == "RJ" and inferred != "RJ":
+        lottery_code = inferred
+
     engine = StatisticalEngine()
     weights = get_active_weights()
     prediction = engine.analyze(
         target_date=data.target_date,
-        target_slot=data.target_slot.upper(),
+        target_slot=slot_upper,
         lottery=lottery_code
     )
 
@@ -229,24 +234,24 @@ def list_snapshots(
             WHERE 1=1
         """
         params = []
-        if lottery:
+        if lottery and isinstance(lottery, str) and lottery.lower() != 'all':
             lot_code = lottery.upper()
-            query += " AND (s.lottery = ? OR (s.lottery IS NULL AND ? = 'RJ'))"
-            params.extend([lot_code, lot_code])
-        if status:
+            query += " AND s.lottery = ?"
+            params.append(lot_code)
+        if status and isinstance(status, str):
             query += " AND s.status = ?"
             params.append(status)
-        if target_date:
+        if target_date and isinstance(target_date, str):
             query += " AND s.target_date = ?"
             params.append(target_date)
 
         # Regra de exibição:
         # 1. Se tenant_id foi solicitado explicitamente:
-        if tenant_id:
+        if tenant_id and isinstance(tenant_id, int):
             query += " AND s.tenant_id = ?"
             params.append(tenant_id)
         # 2. Se o usuário marcou 'apenas minhas análises':
-        elif mine_only and isinstance(current_tenant, dict) and current_tenant.get("role") != "admin":
+        elif mine_only is True and isinstance(current_tenant, dict) and current_tenant.get("role") != "admin":
             query += " AND s.tenant_id = ?"
             params.append(current_tenant["id"])
         # 3. Para qualquer usuário logado (cliente/testador): exibe as auditorias oficiais da plataforma (tenant_id = 1 ou NULL) e as suas próprias
