@@ -143,18 +143,36 @@ def get_lottery_slots(lottery_code: Optional[str] = "RJ", target_date: Optional[
     """Retorna a lista de horários de uma loteria específica adaptando horários da Federal conforme o dia."""
     info = get_lottery_info(lottery_code)
     slots = list(info["slots"])
-    if (lottery_code or "").upper() == "FEDERAL":
-        ref_date = target_date or datetime.now().strftime("%Y-%m-%d")
-        try:
-            dt = datetime.strptime(str(ref_date)[:10], "%Y-%m-%d")
-            if dt.weekday() == 6:  # Domingo às 11h00
-                return [{"code": "FED", "name": "Federal 11h (Domingo) - 11:00", "time": "11:00", "order": 1}]
-            elif dt.weekday() == 2:  # Quarta-feira às 19h00
-                return [{"code": "FED", "name": "Federal 19h (Quarta) - 19:00", "time": "19:00", "order": 1}]
-            else:
-                return [{"code": "FED", "name": "Federal 19h (Quarta) • 11h (Domingo)", "time": "19:00", "order": 1}]
-        except Exception:
-            pass
+    lot_code = (lottery_code or "RJ").upper()
+
+    ref_date = target_date or datetime.now().strftime("%Y-%m-%d")
+    try:
+        dt = datetime.strptime(str(ref_date)[:10], "%Y-%m-%d")
+        dow = dt.weekday()
+    except Exception:
+        dow = datetime.now().weekday()
+
+    if lot_code == "FEDERAL":
+        if dow == 6:  # Domingo às 11h00
+            return [{"code": "FED", "name": "Federal 11h (Domingo) - 11:00", "time": "11:00", "order": 1}]
+        elif dow in (2, 5):  # Quarta ou Sábado às 19h00
+            day_name = "Quarta" if dow == 2 else "Sábado"
+            return [{"code": "FED", "name": f"Federal 19h ({day_name}) - 19:00", "time": "19:00", "order": 1}]
+        else:
+            return [{"code": "FED", "name": "Federal 19h (Quarta e Sábado)", "time": "19:00", "order": 1}]
+
+    elif lot_code == "RJ":
+        # Às quartas (dow=2) e aos sábados (dow=5), a extração das 18h no RJ é a Loteria Federal das 19h
+        if dow in (2, 5):
+            rj_slots = []
+            day_name = "Quarta" if dow == 2 else "Sábado"
+            for s in slots:
+                if s["code"] == "PTN":
+                    rj_slots.append({"code": "FED", "name": f"Federal 19h ({day_name}) - 19:00", "time": "19:00", "order": 5})
+                else:
+                    rj_slots.append(s)
+            return rj_slots
+
     return slots
 
 
