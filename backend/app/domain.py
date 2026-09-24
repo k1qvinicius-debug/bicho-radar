@@ -83,26 +83,24 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
             {"code": "LK-23", "name": "Look 23h - 23:20", "time": "23:20", "order": 8},
         ]
     },
-    "NACIONAL": {
-        "code": "NACIONAL",
-        "name": "Loteria Nacional",
-        "short_name": "Nacional",
-        "badge": "🇧🇷 Nacional",
-        "icon": "🇧🇷",
-        "color": "emerald",
+    "SP": {
+        "code": "SP",
+        "name": "São Paulo (Bandeirantes/PT-SP)",
+        "short_name": "São Paulo",
+        "badge": "🏙️ SP",
+        "icon": "🏙️",
+        "color": "cyan",
         "slots": [
-            {"code": "LN-02", "name": "Nacional 02h - 02:00", "time": "02:00", "order": 1},
-            {"code": "LN-08", "name": "Nacional 08h - 08:00", "time": "08:00", "order": 2},
-            {"code": "LN-10", "name": "Nacional 10h - 10:00", "time": "10:00", "order": 3},
-            {"code": "LN-12", "name": "Nacional 12h - 12:00", "time": "12:00", "order": 4},
-            {"code": "LN-15", "name": "Nacional 15h - 15:00", "time": "15:00", "order": 5},
-            {"code": "LN-17", "name": "Nacional 17h - 17:00", "time": "17:00", "order": 6},
-            {"code": "LN-19", "name": "Nacional 19h - 19:00", "time": "19:00", "order": 7},
-            {"code": "LN-21", "name": "Nacional 21h - 21:00", "time": "21:00", "order": 8},
-            {"code": "LN-23", "name": "Nacional 23h - 23:00", "time": "23:00", "order": 9},
+            {"code": "SP-08", "name": "PT-SP 08h20 - 08:20", "time": "08:20", "order": 1},
+            {"code": "SP-10", "name": "PT-SP 10h - 10:00", "time": "10:00", "order": 2},
+            {"code": "SP-13", "name": "PT-SP 13h - 13:00", "time": "13:00", "order": 3},
+            {"code": "SP-15", "name": "BAND-SP 15h30 - 15:30", "time": "15:30", "order": 4},
+            {"code": "SP-17", "name": "PT-SP 17h - 17:00", "time": "17:00", "order": 5},
+            {"code": "SP-19", "name": "PT-SP 19h - 19:00", "time": "19:00", "order": 6},
+            {"code": "SP-20", "name": "PTN-SP 20h - 20:00", "time": "20:00", "order": 7},
         ]
     },
-    "SP": {
+    "NACIONAL": {
         "code": "SP",
         "name": "São Paulo (Bandeirantes/PT-SP)",
         "short_name": "São Paulo",
