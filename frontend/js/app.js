@@ -4945,7 +4945,7 @@ window.loadCentenaMasterContent = async function(forceDate = null) {
     cardsGrid.innerHTML = `
       <div class="col-span-full py-12 flex flex-col items-center justify-center text-center space-y-3">
         <div class="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-        <p class="text-xs text-slate-400 font-medium">Calculando Centena Master pela Chave 24...</p>
+        <p class="text-xs text-slate-400 font-medium">Calculando Centena & Milhar Master pela Soma da Data...</p>
       </div>`;
   }
 
@@ -4955,7 +4955,7 @@ window.loadCentenaMasterContent = async function(forceDate = null) {
     window._currentCentenaMasterData = data;
 
     if (badgeEl) {
-      badgeEl.textContent = `Dia ${data.day} • Chave ${data.key}`;
+      badgeEl.textContent = `Dia ${data.day} • Soma ${data.sum || ''}`;
     }
 
     if (hitsCountEl) {
@@ -4986,13 +4986,13 @@ window.loadCentenaMasterContent = async function(forceDate = null) {
       `).join('');
     }
 
-    // 2. Renderiza os 6 cards de centenas
+    // 2. Renderiza os cards das 4 Milhares & Centenas
     if (cardsGrid && data.centenas) {
       cardsGrid.innerHTML = data.centenas.map(c => {
         const hitBadge = c.is_hit ? `
           <div class="mb-2 p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black flex items-center gap-1.5 animate-pulse">
             <span>🎯</span>
-            <span>BINGO no ${c.hits[0].prize}º Prêmio (${c.hits[0].slot}: ${c.hits[0].milhar})</span>
+            <span>BINGO no ${c.hits[0].prize}º Prêmio (${c.hits[0].slot}: ${c.hits[0].milhar}${c.hits[0].type ? ` - ${c.hits[0].type}` : ''})</span>
           </div>` : '';
 
         const cardBorder = c.is_hit 
@@ -5010,9 +5010,12 @@ window.loadCentenaMasterContent = async function(forceDate = null) {
               ${hitBadge}
               <div class="flex items-start justify-between">
                 <div>
-                  <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Centena ${c.index}</span>
+                  <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Milhar & Centena ${c.index}</span>
                   <div class="text-3xl font-black font-mono text-amber-300 tracking-wider group-hover:scale-105 transition-transform origin-left">
-                    ${c.centena}
+                    ${c.milhar}
+                  </div>
+                  <div class="text-xs font-bold text-amber-400/90 mt-0.5">
+                    Centena: <span class="font-mono text-white">${c.centena}</span> <span class="text-slate-500">•</span> Frontal: <span class="font-mono text-slate-300">${c.centena_frontal || ''}</span>
                   </div>
                 </div>
                 <div class="text-right">
@@ -5023,12 +5026,12 @@ window.loadCentenaMasterContent = async function(forceDate = null) {
               </div>
 
               <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                <span class="text-slate-400">Dezena da Centena:</span>
+                <span class="text-slate-400">Dezena do Jogo:</span>
                 <span class="font-mono font-bold text-slate-200 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">${c.ten}</span>
               </div>
 
               <div class="mt-2 flex flex-col space-y-1">
-                <span class="text-[10px] text-slate-500 font-bold uppercase">Invertidas sugeridas:</span>
+                <span class="text-[10px] text-slate-500 font-bold uppercase">Centenas Invertidas:</span>
                 <div class="flex flex-wrap gap-1">
                   ${invertedPills}
                 </div>
@@ -5036,9 +5039,9 @@ window.loadCentenaMasterContent = async function(forceDate = null) {
             </div>
 
             <div class="pt-2 border-t border-slate-800/80">
-              <button type="button" onclick="copyCentena('${c.centena}', this)"
+              <button type="button" onclick="copyCentena('${c.milhar}', this)"
                 class="w-full py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer">
-                <span>📋</span> <span>Copiar Centena ${c.centena}</span>
+                <span>📋</span> <span>Copiar Milhar ${c.milhar} (Ct ${c.centena})</span>
               </button>
             </div>
           </div>
@@ -5166,19 +5169,19 @@ window.copyAllCentenaMaster = function(btn) {
   if (!window._currentCentenaMasterData) return;
   const d = window._currentCentenaMasterData;
 
-  const centenasList = (d.centenas || []).map(c => 
-    `${c.index}️⃣ ${c.centena} (${c.animal} - G${String(c.group).padStart(2, '0')})`
+  const milharesList = (d.centenas || []).map(c => 
+    `• Milhar ${c.milhar} (Centena ${c.centena} - ${c.animal} Gr.${String(c.group).padStart(2, '0')})`
   ).join('\n');
 
-  const ternos = (d.games.terno_grupo || []).map(g => 
+  const ternos = (d.games?.terno_grupo || []).map(g => 
     `${String(g.group).padStart(2, '0')} (${g.animal})`
   ).join(' - ');
 
-  const duques = (d.games.duques_grupo || []).map(p => 
+  const duques = (d.games?.duques_grupo || []).map(p => 
     `• ${p.animals}`
   ).join('\n');
 
-  const text = `🎯 *CENTENA MASTER - CHAVE 24* 🎯\n📅 Data: ${d.target_date} | Loteria: ${d.lottery}\n\n🪙 *6 CENTENAS DE OURO:*\n${centenasList}\n\n👑 *TERNO DE GRUPO:*\n${ternos}\n\n🤝 *DUQUES DE GRUPO (PASSE):*\n${duques}\n\n🔢 *DEZENAS FORTES:*\nTerno: ${d.games.terno_dezenas || ''}\nDuques: ${(d.games.duques_dezenas || []).join(' | ')}`;
+  const text = `🎯 *CENTENA & MILHAR MASTER* 🎯\n📅 Data: ${d.target_date} | Loteria: ${d.lottery}\n🔢 Cálculo da Data: Dia ${d.day} (Soma ${d.sum || ''})\n\n🪙 *4 MILHARES & CENTENAS DE OURO:*\n${milharesList}\n\n👑 *TERNO DE GRUPO:*\n${ternos}\n\n🤝 *DUQUES DE GRUPO (PASSE):*\n${duques}\n\n🔢 *DEZENAS FORTES:*\nTerno: ${d.games?.terno_dezenas || ''}\nDuques: ${(d.games?.duques_dezenas || []).join(' | ')}`;
 
   navigator.clipboard.writeText(text).then(() => {
     if (btn) {
