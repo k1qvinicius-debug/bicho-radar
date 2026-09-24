@@ -1,3 +1,155 @@
+
+// Catálogo Canônico dos 25 Animais do Jogo do Bicho
+const ANIMAL_CATALOG = {
+  1: { name: 'Avestruz', emoji: '🐦', tens: ['01', '02', '03', '04'] },
+  2: { name: 'Águia', emoji: '🦅', tens: ['05', '06', '07', '08'] },
+  3: { name: 'Burro', emoji: '🐴', tens: ['09', '10', '11', '12'] },
+  4: { name: 'Borboleta', emoji: '🦋', tens: ['13', '14', '15', '16'] },
+  5: { name: 'Cachorro', emoji: '🐕', tens: ['17', '18', '19', '20'] },
+  6: { name: 'Cabra', emoji: '🐐', tens: ['21', '22', '23', '24'] },
+  7: { name: 'Carneiro', emoji: '🐏', tens: ['25', '26', '27', '28'] },
+  8: { name: 'Camelo', emoji: '🐪', tens: ['29', '30', '31', '32'] },
+  9: { name: 'Cobra', emoji: '🐍', tens: ['33', '34', '35', '36'] },
+  10: { name: 'Coelho', emoji: '🐇', tens: ['37', '38', '39', '40'] },
+  11: { name: 'Cavalo', emoji: '🐎', tens: ['41', '42', '43', '44'] },
+  12: { name: 'Elefante', emoji: '🐘', tens: ['45', '46', '47', '48'] },
+  13: { name: 'Galo', emoji: '🐓', tens: ['49', '50', '51', '52'] },
+  14: { name: 'Gato', emoji: '🐈', tens: ['53', '54', '55', '56'] },
+  15: { name: 'Jacaré', emoji: '🐊', tens: ['57', '58', '59', '60'] },
+  16: { name: 'Leão', emoji: '🦁', tens: ['61', '62', '63', '64'] },
+  17: { name: 'Macaco', emoji: '🐒', tens: ['65', '66', '67', '68'] },
+  18: { name: 'Porco', emoji: '🐖', tens: ['69', '70', '71', '72'] },
+  19: { name: 'Pavão', emoji: '🦚', tens: ['73', '74', '75', '76'] },
+  20: { name: 'Peru', emoji: '🦃', tens: ['77', '78', '79', '80'] },
+  21: { name: 'Touro', emoji: '🐂', tens: ['81', '82', '83', '84'] },
+  22: { name: 'Tigre', emoji: '🐅', tens: ['85', '86', '87', '88'] },
+  23: { name: 'Urso', emoji: '🐻', tens: ['89', '90', '91', '92'] },
+  24: { name: 'Veado', emoji: '🦌', tens: ['93', '94', '95', '96'] },
+  25: { name: 'Vaca', emoji: '🐄', tens: ['97', '98', '99', '00'] }
+};
+
+function getGroupFromNumber(numStr) {
+  if (!numStr) return null;
+  const clean = String(numStr).trim().replace(/\D/g, '');
+  if (!clean) return null;
+  const tenStr = clean.slice(-2).padStart(2, '0');
+  const tenVal = parseInt(tenStr, 10);
+  if (tenStr === '00' || tenVal === 0) return 25;
+  return Math.ceil(tenVal / 4);
+}
+
+function getAnimalByGroup(grp) {
+  const g = parseInt(grp, 10);
+  return ANIMAL_CATALOG[g] || { name: `Grupo ${g}`, emoji: '🐾', tens: [] };
+}
+
+function getGroupOriginInfo(groupVal, topGroups, slotName) {
+  const gNum = parseInt(groupVal, 10);
+  const pad = String(gNum).padStart(2, '0');
+  const item = (topGroups || []).find(
+    (g) => String(g.value).padStart(2, '0') === pad || parseInt(g.value, 10) === gNum
+  );
+
+  if (!item) {
+    return {
+      inPrediction: false,
+      rank: null,
+      score: null,
+      badges: [],
+      originTags: [],
+      originSummary: 'Não constava no Top 5 de palpites calculados.',
+      details: ['⚪ Não constava no Top 5 de recomendações desta apuração.']
+    };
+  }
+
+  const rank = (topGroups || []).findIndex(
+    (g) => String(g.value).padStart(2, '0') === pad || parseInt(g.value, 10) === gNum
+  ) + 1;
+
+  const isBichoDia = item.metadata?.cruz_do_dia?.is_bicho_dia || 
+    (item.factors || []).some((f) => (f.name || '').toLowerCase().includes('bicho do dia'));
+
+  const isPuxada = item.metadata?.puxada?.is_pulled ||
+    (item.factors || []).some((f) => (f.name || '').toLowerCase().includes('puxada'));
+
+  const isCruz = !isBichoDia && (item.metadata?.cruz_do_dia?.is_present ||
+    (item.factors || []).some((f) => (f.name || '').toLowerCase().includes('cruz do dia') || (f.name || '').toLowerCase().includes('cruz')));
+
+  const isHorario = (item.factors || []).some((f) => {
+    const fn = (f.name || '').toLowerCase();
+    return fn.includes('horário') || fn.includes('slot') || fn.includes('afinidade') || fn.includes('lk-') || fn.includes('ptm') || fn.includes('pt') || fn.includes('ptv') || fn.includes('fed');
+  });
+
+  const isAtrasado = (item.factors || []).some((f) => {
+    const fn = (f.name || '').toLowerCase();
+    return fn.includes('atrasad') || fn.includes('atraso');
+  });
+
+  const isTendencia = (item.factors || []).some((f) => {
+    const fn = (f.name || '').toLowerCase();
+    return fn.includes('tendência') || fn.includes('ciclo') || fn.includes('frequência') || fn.includes('presença');
+  });
+
+  const badges = [];
+  const originTags = [];
+  const details = [];
+
+  if (isBichoDia) {
+    badges.push(`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 border border-amber-500/40 text-amber-300">👑 Bicho do Dia (Cruz)</span>`);
+    originTags.push('👑 Bicho do Dia da Cruz');
+    details.push('👑 <strong>Bicho do Dia na Cruz:</strong> Eleito o principal animal regente da data pelo cálculo da Cruz do Dia.');
+  }
+
+  if (isPuxada) {
+    const pullName = item.metadata?.puxada?.pulled_by_name || '';
+    const pullEmoji = item.metadata?.puxada?.pulled_by_emoji || '';
+    const pullLabel = pullName ? ` (Puxado por ${pullEmoji} ${pullName})` : '';
+    badges.push(`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/20 border border-indigo-500/40 text-indigo-300">🧲 Puxada</span>`);
+    originTags.push(`🧲 Puxada${pullLabel}`);
+    details.push(`🧲 <strong>Puxada Tradicional:</strong> Puxado pelo resultado do sorteio imediatamente anterior${pullLabel}.`);
+  }
+
+  if (isCruz) {
+    badges.push(`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-500/20 border border-cyan-500/40 text-cyan-300">✨ Cruz do Dia</span>`);
+    originTags.push('✨ Cruz do Dia');
+    details.push('✨ <strong>Cruz do Dia:</strong> Presente no cruzamento dos dígitos cardeais somados da data.');
+  }
+
+  if (isHorario) {
+    badges.push(`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-blue-500/20 border border-blue-500/40 text-blue-300">🕒 Forte no Horário</span>`);
+    originTags.push('🕒 Forte no Horário');
+    details.push(`🕒 <strong>Forte no Horário (${slotName || 'Extração'}):</strong> Alta frequência histórica comprovada neste horário de apuração.`);
+  }
+
+  if (isAtrasado) {
+    badges.push(`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/20 border border-rose-500/40 text-rose-300">⏳ Atrasado</span>`);
+    originTags.push('⏳ Atrasado');
+    details.push('⏳ <strong>Ciclo de Atraso:</strong> Animal sem sair há vários sorteios, acumulando probabilidade iminente de retorno.');
+  }
+
+  if (isTendencia && badges.length < 3) {
+    badges.push(`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">📈 Tendência</span>`);
+    originTags.push('📈 Tendência');
+    details.push('📈 <strong>Tendência Recente:</strong> Alta taxa de repetição e presença nos últimos sorteios.');
+  }
+
+  if (badges.length === 0) {
+    badges.push(`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/20 border border-indigo-500/40 text-indigo-300">🎯 Top #${rank} Palpite</span>`);
+    originTags.push(`🎯 Top #${rank}`);
+    details.push(`🎯 <strong>Recomendação do Motor:</strong> Indicado na posição #${rank} do ranking de probabilidade.`);
+  }
+
+  return {
+    inPrediction: true,
+    rank,
+    score: item.score,
+    badges,
+    originTags,
+    originSummary: originTags.join(' + '),
+    details
+  };
+}
+
 /**
  * Lógica da Tela de Histórico e Auditoria de Desempenho - Bicho Analytics
  */
@@ -449,56 +601,42 @@ function renderFilteredSnapshots() {
   } else if (activeHistorySort === 'score_asc') {
     filtered.sort((a, b) => (Number(a.hit_rate_score || 0) - Number(b.hit_rate_score || 0)) || b.target_date.localeCompare(a.target_date) || (b.id - a.id));
   } else {
-    // 'recent' (cronológico mais recente primeiro)
     filtered.sort((a, b) => b.target_date.localeCompare(a.target_date) || (b.id - a.id));
   }
 
-  // Atualiza contador
   if (countEl) {
     countEl.textContent = `Exibindo ${filtered.length} de ${allRawSnapshots.length} análises`;
   }
 
-  // Estado Vazio com Filtro
   if (filtered.length === 0) {
     container.innerHTML = `
       <div class="card-glass p-8 text-center text-slate-400 space-y-2">
-        <div class="text-3xl mb-1">🔍</div>
-        <p class="text-sm font-bold text-slate-200">Nenhuma análise encontrada com os filtros selecionados.</p>
-        <p class="text-xs text-slate-400">Tente selecionar "Todas as Datas" ou limpar o filtro de pontuação.</p>
-        <div class="pt-2">
-          <button type="button" onclick="resetHistoryFilters()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all active:scale-95">
-            Restaurar Todos os Filtros
-          </button>
-        </div>
+        <p class="text-sm font-semibold">Nenhuma análise encontrada com os filtros selecionados.</p>
+        <button onclick="setHistoryDateFilter('all'); setHistoryScoreFilter('all'); setHistoryLotteryFilter('all')" class="text-xs text-indigo-400 hover:underline cursor-pointer">
+          Limpar filtros
+        </button>
       </div>`;
     return;
   }
 
-  // 3. Renderização dos Cards
   container.innerHTML = filtered
     .map((s) => {
-      const isEvaluated = s.status === 'EVALUATED';
+      const isEvaluated = s.status === 'evaluated';
       const score = Number(s.hit_rate_score || 0);
+      const isSuperScore = score >= 50;
+
       const hasG1Hit = Boolean(s.acerto_grupo_1);
       const hasD1Hit = Boolean(s.acerto_dezena_1);
       const hasC1Hit = Boolean(s.acerto_centena_1);
       const hasM1Hit = Boolean(s.acerto_milhar_1);
 
-      const isSuperScore = score >= 50;
-      const isHighScore = score >= 25 && score < 50;
-      const hasAnyHit = score > 0;
-
-      // Destaque visual por intensidade de acertos
-      let cardBorderClasses = 'border-slate-800 hover:border-indigo-500/40';
+      let cardBorderClasses = 'border-slate-800 hover:border-slate-700';
       if (isSuperScore) {
-        cardBorderClasses = 'border-amber-500/60 bg-gradient-to-r from-amber-500/10 via-slate-900 to-slate-900 shadow-xl shadow-amber-500/10 ring-1 ring-amber-500/30';
-      } else if (isHighScore) {
-        cardBorderClasses = 'border-emerald-500/50 bg-gradient-to-r from-emerald-500/10 via-slate-900 to-slate-900 shadow-lg shadow-emerald-500/10';
-      } else if (hasAnyHit) {
-        cardBorderClasses = 'border-emerald-500/30 hover:border-emerald-500/50';
+        cardBorderClasses = 'border-amber-500/50 bg-gradient-to-r from-amber-500/5 to-transparent hover:border-amber-500/80 shadow-lg shadow-amber-500/5';
+      } else if (score > 0) {
+        cardBorderClasses = 'border-emerald-500/30 hover:border-emerald-500/60';
       }
 
-      // Selo de Status / Pontuação
       const badgeHtml = isEvaluated
         ? `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Auditado
@@ -510,6 +648,107 @@ function renderFilteredSnapshots() {
       const superBadge = isSuperScore
         ? `<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/25 text-amber-300 border border-amber-500/40 animate-pulse">🔥 SUPER PONTUAÇÃO</span>`
         : '';
+
+      const scoreDisplay = isEvaluated
+        ? `<div class="flex items-center gap-2">
+             ${superBadge}
+             <span class="text-base sm:text-lg font-black font-mono ${score >= 50 ? 'text-amber-400' : score > 0 ? 'text-emerald-400' : 'text-slate-500'}">
+               ${score} pts
+             </span>
+           </div>`
+        : '';
+
+      // Análise dos 5 Prêmios e Acertos
+      const p1 = s.prize_1;
+      const p2 = s.prize_2;
+      const p3 = s.prize_3;
+      const p4 = s.prize_4;
+      const p5 = s.prize_5;
+      const rawPrizes = [
+        { label: '1º', val: p1 },
+        { label: '2º', val: p2 },
+        { label: '3º', val: p3 },
+        { label: '4º', val: p4 },
+        { label: '5º', val: p5 }
+      ].filter(p => Boolean(p.val));
+
+      const topG = s.top_groups || [];
+      const distinctHitGroups = new Map();
+      const prizePills = rawPrizes.map((p, idx) => {
+        const grp = getGroupFromNumber(p.val);
+        const animal = getAnimalByGroup(grp);
+        const origin = getGroupOriginInfo(grp, topG, s.target_slot);
+        const isHit = origin.inPrediction;
+
+        if (isHit && !distinctHitGroups.has(grp)) {
+          distinctHitGroups.set(grp, { group: grp, animal, origin });
+        }
+
+        let borderClass = 'border-slate-800 bg-slate-900/90 text-slate-300';
+        let badgeTag = '';
+        if (idx === 0 && isHit) {
+          borderClass = 'border-amber-500/50 bg-amber-950/30 text-amber-200';
+          badgeTag = '<span class="text-[9px] font-black text-amber-300 bg-amber-500/20 px-1 py-0.2 rounded ml-1">🎯 1º</span>';
+        } else if (isHit) {
+          borderClass = 'border-emerald-500/50 bg-emerald-950/30 text-emerald-200';
+          badgeTag = '<span class="text-[9px] font-bold text-emerald-300 bg-emerald-500/20 px-1 py-0.2 rounded ml-1">✅ Cercado</span>';
+        }
+
+        const tensPart = String(p.val).slice(-2);
+        const thousandsPart = String(p.val).slice(0, -2);
+
+        return `
+          <div class="p-1 sm:p-1.5 rounded-lg border ${borderClass} flex items-center justify-between gap-1 text-[11px] sm:text-xs font-mono">
+            <div class="flex items-center gap-1 truncate">
+              <span class="text-[10px] text-slate-400 font-sans font-semibold">${p.label}</span>
+              <span class="font-bold font-mono text-slate-200">${thousandsPart}<strong class="text-amber-300">${tensPart}</strong></span>
+              <span class="font-sans font-bold text-slate-200 truncate">${animal.emoji} ${animal.name}</span>
+            </div>
+            ${badgeTag}
+          </div>
+        `;
+      }).join('');
+
+      const hitCount = distinctHitGroups.size;
+      let comboBadges = '';
+      if (hitCount >= 3) {
+        comboBadges = `
+          <span class="px-2 py-0.5 rounded text-[10px] sm:text-xs font-black bg-gradient-to-r from-amber-500/30 via-emerald-500/20 to-indigo-500/30 text-amber-300 border border-amber-500/50 shadow-sm animate-pulse flex items-center gap-1">
+            <span>🏆</span> <span>TERNO DE GRUPO PREMIADO (1º AO 5º)!</span>
+          </span>
+        `;
+      } else if (hitCount === 2) {
+        comboBadges = `
+          <span class="px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1">
+            <span>🤝</span> <span>DUQUE DE GRUPO (PASSE) PREMIADO!</span>
+          </span>
+        `;
+      }
+
+      let originSummaryBlock = '';
+      if (hitCount > 0) {
+        const originItems = Array.from(distinctHitGroups.values()).map(h => {
+          return `
+            <div class="flex items-center gap-1.5 flex-wrap text-[11px] text-slate-300">
+              <span class="font-bold text-amber-200">${h.animal.emoji} ${h.animal.name} (${String(h.group).padStart(2, '0')}):</span>
+              <span class="text-emerald-400 font-semibold">Veio do Palpite (Top #${h.origin.rank})</span>
+              <span class="text-slate-500">•</span>
+              ${h.info.badges.join(' ')}
+            </div>
+          `;
+        }).join('');
+
+        originSummaryBlock = `
+          <div class="mt-2 p-2 rounded-lg bg-slate-950/70 border border-slate-800/90 text-xs">
+            <div class="font-bold text-slate-200 text-[10px] sm:text-[11px] uppercase tracking-wider mb-1 flex items-center gap-1">
+              <span>💡</span> <span>De Onde Vieram os Acertos no Palpite:</span>
+            </div>
+            <div class="space-y-1">
+              ${originItems}
+            </div>
+          </div>
+        `;
+      }
 
       let hitsSummary = '';
       if (isEvaluated) {
@@ -526,15 +765,6 @@ function renderFilteredSnapshots() {
         `;
       }
 
-      const scoreDisplay = isEvaluated
-        ? `<div class="flex items-center gap-2">
-             ${superBadge}
-             <span class="text-base sm:text-lg font-black font-mono ${score >= 50 ? 'text-amber-400' : score > 0 ? 'text-emerald-400' : 'text-slate-500'}">
-               ${score} pts
-             </span>
-           </div>`
-        : '';
-
       return `
       <div class="card-glass p-3 sm:p-3.5 rounded-xl transition-all animate-fade-in mb-2.5 border ${cardBorderClasses}">
         <div class="flex items-center justify-between gap-3 mb-2">
@@ -543,6 +773,7 @@ function renderFilteredSnapshots() {
             ${getLotteryBadge(s)}
             <span class="px-2 py-0.5 rounded bg-indigo-900/50 text-indigo-300 font-bold text-xs font-mono border border-indigo-700/40">${s.target_slot}</span>
             ${badgeHtml}
+            ${comboBadges}
           </div>
           <div class="text-right shrink-0">
             ${scoreDisplay}
@@ -552,16 +783,25 @@ function renderFilteredSnapshots() {
         ${
           isEvaluated && s.prize_1
             ? `
-          <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 text-xs my-2 flex flex-wrap gap-2 justify-between items-center">
-            <div>
-              <span class="text-slate-400">Resultado Real:</span>
-              <span class="font-mono font-bold text-amber-300 ml-1">1º ${s.prize_1}</span>
-              ${s.prize_2 ? `<span class="font-mono text-slate-400 ml-1">| 2º ${s.prize_2} | 3º ${s.prize_3 || '-'}</span>` : ''}
+          <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 my-2">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+              <span>Resultado Oficial da Banca:</span>
+              <span class="text-slate-500 font-normal">1º ao 5º Prêmio</span>
             </div>
-            <button onclick="inspectSnapshot(${s.id})" class="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
-              Conferência Detalhada
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </button>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+              ${prizePills}
+            </div>
+            ${originSummaryBlock}
+            <div class="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2">
+              <div class="text-[11px] text-slate-400">
+                ${hitCount > 0 ? `<span class="text-emerald-400 font-bold">🎯 ${hitCount} bicho(s)</span> do palpite foram sorteados!` : '<span class="text-slate-500">Nenhum bicho do palpite sorteado nesta apuração</span>'}
+              </div>
+              <button onclick="inspectSnapshot(${s.id})" class="px-3 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-bold text-indigo-200 hover:text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
+                <span>🔍</span>
+                <span>Conferência Detalhada e Origem dos Acertos</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
           </div>
         `
             : ''
@@ -705,232 +945,276 @@ window.inspectSnapshot = async function (id) {
 
     const preds = data.predictions || {};
     const evalDetails = data.evaluation_details || {};
-
-    const topG = (preds.top_groups || []).map((g) => g.value).join(', ');
+    const topG = preds.top_groups || [];
     const topD = (preds.top_tens || []).map((t) => t.value).join(', ');
     const topC = (preds.top_hundreds || []).map((c) => c.value).join(', ');
     const topM = (preds.top_thousands || []).map((m) => m.value).join(', ');
 
-    // 1. Identificação precisa de origem dos pontos no Palpite de Grupos
-    const actG1 = String(evalDetails.grupo?.actual_1st || '').padStart(2, '0');
-    const hitG1 = Boolean(evalDetails.grupo?.hit_1st);
-    const winningGroupItem = (preds.top_groups || []).find(
-      (g) => String(g.value).padStart(2, '0') === actG1 || Number(g.value) === Number(evalDetails.grupo?.actual_1st)
-    );
+    const p1 = data.prize_1;
+    const p2 = data.prize_2;
+    const p3 = data.prize_3;
+    const p4 = data.prize_4;
+    const p5 = data.prize_5;
+    const prizes = [
+      { label: '1º Prêmio', val: p1, isHead: true },
+      { label: '2º Prêmio', val: p2, isHead: false },
+      { label: '3º Prêmio', val: p3, isHead: false },
+      { label: '4º Prêmio', val: p4, isHead: false },
+      { label: '5º Prêmio', val: p5, isHead: false },
+    ];
 
-    let grupoOriginBadges = [];
-    let grupoOriginDetails = [];
-
-    if (hitG1 && winningGroupItem) {
-      const isBichoDia = winningGroupItem.metadata?.cruz_do_dia?.is_bicho_dia || 
-        (winningGroupItem.factors || []).some((f) => (f.name || '').toLowerCase().includes('bicho do dia'));
-      
-      const isPuxada = winningGroupItem.metadata?.puxada?.is_pulled ||
-        (winningGroupItem.factors || []).some((f) => (f.name || '').toLowerCase().includes('puxada'));
-
-      const isCruz = !isBichoDia && (winningGroupItem.metadata?.cruz_do_dia?.is_present ||
-        (winningGroupItem.factors || []).some((f) => (f.name || '').toLowerCase().includes('cruz do dia')));
-
-      if (isBichoDia) {
-        grupoOriginBadges.push(
-          `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 border border-amber-500/40 text-amber-300 shadow-sm">👑 Bicho do Dia</span>`
-        );
-        grupoOriginDetails.push(
-          `<div class="flex items-center gap-1.5 text-amber-300 font-semibold"><span class="text-sm leading-none">👑</span> <span>Bicho do Dia na Cruz do Dia (+35 pts no cálculo do algoritmo)</span></div>`
-        );
+    // Compute distinct winning groups
+    const distinctWinningGroups = new Map();
+    prizes.forEach((p, idx) => {
+      if (!p.val) return;
+      const grp = getGroupFromNumber(p.val);
+      const origin = getGroupOriginInfo(grp, topG, data.target_slot);
+      if (origin.inPrediction && !distinctWinningGroups.has(grp)) {
+        distinctWinningGroups.set(grp, {
+          group: grp,
+          prizeLabel: p.label,
+          animal: getAnimalByGroup(grp),
+          origin
+        });
       }
+    });
 
-      if (isPuxada) {
-        const pullName = winningGroupItem.metadata?.puxada?.pulled_by_name || '';
-        const pullEmoji = winningGroupItem.metadata?.puxada?.pulled_by_emoji || '';
-        grupoOriginBadges.push(
-          `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 shadow-sm">⚡ Puxada Tradicional</span>`
-        );
-        grupoOriginDetails.push(
-          `<div class="flex items-center gap-1.5 text-indigo-300 font-semibold"><span class="text-sm leading-none">⚡</span> <span>Puxada Tradicional do 1º Prêmio anterior ${pullEmoji ? `(${pullEmoji} ${pullName})` : ''} (+22 pts)</span></div>`
-        );
-      }
+    const winningList = Array.from(distinctWinningGroups.values());
+    const winningCount = winningList.length;
 
-      if (isCruz) {
-        grupoOriginBadges.push(
-          `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 shadow-sm">✨ Cruz do Dia</span>`
-        );
-        grupoOriginDetails.push(
-          `<div class="flex items-center gap-1.5 text-cyan-300 font-semibold"><span class="text-sm leading-none">✨</span> <span>Formado pelos Dígitos Cardeais da Cruz (+5 pts)</span></div>`
-        );
-      }
-
-      // Outros fatores adicionais
-      (winningGroupItem.factors || []).forEach((f) => {
-        const fName = (f.name || '').toLowerCase();
-        if (!fName.includes('bicho do dia') && !fName.includes('puxada') && !fName.includes('cruz do dia')) {
-          if (f.impact_points >= 12) {
-            grupoOriginDetails.push(
-              `<div class="text-slate-300 text-[11px]">• <strong class="text-slate-200">${f.name}:</strong> ${f.description || `+${f.impact_points} pts`}</div>`
-            );
-          }
+    // 1. Banner de Premiações Combinadas (Terno e Duque)
+    let comboAwardHtml = '';
+    if (winningCount >= 3) {
+      const winningPairs = [];
+      for (let i = 0; i < winningList.length; i++) {
+        for (let j = i + 1; j < winningList.length; j++) {
+          winningPairs.push(`${winningList[i].animal.emoji} ${winningList[i].animal.name} (${String(winningList[i].group).padStart(2, '0')}) + ${winningList[j].animal.emoji} ${winningList[j].animal.name} (${String(winningList[j].group).padStart(2, '0')})`);
         }
-      });
-    }
-
-    // 2. Identificação de origem para Dezenas
-    const actD1 = String(evalDetails.dezena?.actual_1st || '').padStart(2, '0');
-    const hitD1 = Boolean(evalDetails.dezena?.hit_1st);
-    const winningTenItem = (preds.top_tens || []).find(
-      (t) => String(t.value).padStart(2, '0') === actD1 || Number(t.value) === Number(evalDetails.dezena?.actual_1st)
-    );
-
-    let dezenaOriginBadges = [];
-    let dezenaOriginDetails = [];
-    if (hitD1 && winningTenItem) {
-      const isBichoDiaTen = (winningTenItem.factors || []).some((f) => (f.name || '').toLowerCase().includes('bicho do dia'));
-      const isCruzTen = !isBichoDiaTen && (winningTenItem.factors || []).some((f) => (f.name || '').toLowerCase().includes('cruz'));
-
-      if (isBichoDiaTen) {
-        dezenaOriginBadges.push(
-          `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 border border-amber-500/40 text-amber-300 shadow-sm">👑 Dezena do Bicho do Dia</span>`
-        );
-        dezenaOriginDetails.push(
-          `<div class="text-amber-300 font-semibold flex items-center gap-1">👑 Dezena direta do Bicho do Dia (+14 pts)</div>`
-        );
-      } else if (isCruzTen) {
-        dezenaOriginBadges.push(
-          `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 shadow-sm">✨ Dezena da Cruz</span>`
-        );
-        dezenaOriginDetails.push(
-          `<div class="text-cyan-300 font-semibold flex items-center gap-1">✨ Formada pelos dígitos da Cruz do Dia (+6 pts)</div>`
-        );
       }
-    }
 
-    // 3. Identificação para Centenas
-    const actC1 = String(evalDetails.centena?.actual_1st || '').padStart(3, '0');
-    const hitC1 = Boolean(evalDetails.centena?.hit_1st);
-    const winningCentenaItem = (preds.top_hundreds || []).find(
-      (c) => String(c.value).padStart(3, '0') === actC1
-    );
-    let centenaOriginBadges = [];
-    if (hitC1 && winningCentenaItem) {
-      centenaOriginBadges.push(
-        `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 border border-amber-500/40 text-amber-300 shadow-sm">🎯 Acerto de Centena</span>`
-      );
-    }
-
-    // 4. Identificação para Milhares
-    const actM1 = String(evalDetails.milhar?.actual_1st || '').padStart(4, '0');
-    const hitM1 = Boolean(evalDetails.milhar?.hit_1st);
-    const winningMilharItem = (preds.top_thousands || []).find(
-      (m) => String(m.value).padStart(4, '0') === actM1
-    );
-    let milharOriginBadges = [];
-    if (hitM1 && winningMilharItem) {
-      milharOriginBadges.push(
-        `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 border border-amber-500/40 text-amber-300 shadow-sm">👑 Acerto de Milhar</span>`
-      );
-    }
-
-    content.innerHTML = `
-      <div class="space-y-4 text-xs">
-        <div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
-          <div class="font-bold text-slate-300 mb-1 text-sm">Resultado Ocorrido (${data.target_date} - ${data.target_slot})</div>
-          <div class="grid grid-cols-5 gap-2 font-mono text-center">
-            <div class="p-2 rounded bg-indigo-950/60 border border-indigo-800/60">
-              <div class="text-[10px] text-slate-400">1º Prêmio</div>
-              <div class="font-bold text-sm text-indigo-200">${data.prize_1}</div>
+      comboAwardHtml = `
+        <div class="p-3.5 rounded-xl bg-gradient-to-r from-amber-500/25 via-emerald-500/20 to-indigo-500/25 border border-amber-500/40 shadow-lg animate-fade-in mb-3">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="text-2xl animate-bounce">🏆</span>
+            <div>
+              <h4 class="font-black text-amber-300 text-sm sm:text-base">TERNO DE GRUPO CONFIRMADO NO SORTEIO!</h4>
+              <p class="text-xs text-slate-200">
+                ${winningCount} bichos indicados nos nossos palpites foram sorteados entre o 1º e o 5º prêmio!
+              </p>
             </div>
-            <div class="p-2 rounded bg-slate-800/80">
-              <div class="text-[10px] text-slate-400">2º Prêmio</div>
-              <div class="font-bold text-slate-200">${data.prize_2}</div>
+          </div>
+          <div class="bg-slate-900/80 p-2.5 rounded-lg border border-amber-500/30 my-2 space-y-1.5">
+            <div class="text-xs text-amber-200 font-bold flex items-center gap-1.5 flex-wrap">
+              <span>🎯</span> <span>Bichos Combinados:</span>
+              <span class="text-slate-100">${winningList.map(w => `${w.animal.emoji} ${w.animal.name} (${String(w.group).padStart(2, '0')})`).join(' + ')}</span>
             </div>
-            <div class="p-2 rounded bg-slate-800/80">
-              <div class="text-[10px] text-slate-400">3º Prêmio</div>
-              <div class="font-bold text-slate-200">${data.prize_3}</div>
+            <div class="text-[11px] text-indigo-300 font-medium">
+              🤝 <strong>Duques de Grupo / Passes Premiados Também:</strong> ${winningPairs.join(' • ')}
             </div>
-            <div class="p-2 rounded bg-slate-800/80">
-              <div class="text-[10px] text-slate-400">4º Prêmio</div>
-              <div class="font-bold text-slate-200">${data.prize_4}</div>
-            </div>
-            <div class="p-2 rounded bg-slate-800/80">
-              <div class="text-[10px] text-slate-400">5º Prêmio</div>
-              <div class="font-bold text-slate-200">${data.prize_5}</div>
+            <div class="text-[11px] text-emerald-300/90 font-semibold pt-1 border-t border-slate-800">
+              💰 <strong>Premiação Típica de Banca:</strong> O Terno de Grupo cercado paga de <strong>1.000x a 1.500x</strong> o valor da aposta!
             </div>
           </div>
         </div>
-
-        <div class="space-y-3">
-          <!-- Palpite de Grupos -->
-          <div class="p-3 rounded-lg border ${hitG1 ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-slate-800 bg-slate-800/40'}">
-            <div class="flex justify-between items-start font-bold mb-1">
-              <span class="text-slate-200">Palpite de Grupos:</span>
-              <div class="text-right">
-                <span class="${hitG1 ? 'text-emerald-400' : 'text-slate-400'} block">
-                  ${hitG1 ? '🎯 Acerto no 1º Prêmio' : 'Sem 1º prêmio'} (${evalDetails.grupo?.hits_cercado_count || 0} do 1º ao 5º)
-                </span>
-                ${grupoOriginBadges.length > 0 ? `<div class="mt-1 flex items-center justify-end gap-1.5 flex-wrap">${grupoOriginBadges.join('')}</div>` : ''}
-              </div>
+      `;
+    } else if (winningCount === 2) {
+      comboAwardHtml = `
+        <div class="p-3.5 rounded-xl bg-gradient-to-r from-indigo-500/25 via-emerald-500/20 to-slate-900 border border-indigo-500/40 shadow-md animate-fade-in mb-3">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="text-2xl">🤝</span>
+            <div>
+              <h4 class="font-black text-indigo-200 text-sm sm:text-base">DUQUE DE GRUPO (PASSE) CONFIRMADO!</h4>
+              <p class="text-xs text-slate-200">
+                2 animais recomendados no palpite saíram juntos no resultado oficial!
+              </p>
             </div>
-            <div class="text-slate-300 font-mono">Grupos Analisados: [ <span class="text-indigo-300 font-bold">${topG}</span> ]</div>
-            <div class="text-slate-400 mt-1">Grupo Ocorrido 1º: <b class="text-slate-100 font-mono font-bold">${evalDetails.grupo?.actual_1st || '-'}</b> | No 1º ao 5º: <span class="font-mono text-slate-300">${evalDetails.grupo?.actual_1_to_5?.join(', ') || '-'}</span></div>
+          </div>
+          <div class="bg-slate-900/80 p-2.5 rounded-lg border border-indigo-500/30 mt-2">
+            <div class="text-xs text-indigo-200 font-bold">
+              Dupla Premiada: ${winningList.map(w => `${w.animal.emoji} ${w.animal.name} (${String(w.group).padStart(2, '0')})`).join(' + ')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
-            ${grupoOriginDetails.length > 0 ? `
-              <div class="mt-2.5 pt-2 border-t border-emerald-500/25 bg-emerald-950/30 -mx-3 -mb-3 p-2.5 rounded-b-lg space-y-1">
-                <div class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Origem dos Pontos / Auditoria:</div>
-                ${grupoOriginDetails.join('')}
-              </div>
-            ` : ''}
+    // 2. Tabela Didática dos 5 Prêmios Ocorridos
+    const prizeRowsHtml = prizes.map((p, idx) => {
+      if (!p.val) return '';
+      const grp = getGroupFromNumber(p.val);
+      const animal = getAnimalByGroup(grp);
+      const origin = getGroupOriginInfo(grp, topG, data.target_slot);
+      const isHit = origin.inPrediction;
+      const isHead = idx === 0;
+
+      const tensPart = String(p.val).slice(-2);
+      const thousandsPart = String(p.val).slice(0, -2);
+
+      let cardBorder = 'border-slate-800 bg-slate-900/70';
+      let statusBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-semibold text-slate-400 bg-slate-800 border border-slate-700">⚪ Fora do Top 5</span>';
+
+      if (isHead && isHit) {
+        cardBorder = 'border-amber-500/50 bg-amber-950/20';
+        statusBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-black text-amber-300 bg-amber-500/25 border border-amber-500/40 shadow-sm animate-pulse">🎯 NA CABEÇA (1º PRÊMIO)</span>';
+      } else if (isHit) {
+        cardBorder = 'border-emerald-500/50 bg-emerald-950/20';
+        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold text-emerald-300 bg-emerald-500/25 border border-emerald-500/40 shadow-sm">✅ CERCADO (${p.label})</span>`;
+      }
+
+      let explanationHtml = '';
+      if (isHit) {
+        explanationHtml = `
+          <div class="mt-2 p-2 rounded-lg bg-slate-950/80 border border-slate-800 space-y-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[11px] font-bold text-slate-300">Origem no Palpite:</span>
+              <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">Top #${origin.rank}</span>
+              ${origin.badges.join(' ')}
+            </div>
+            <ul class="text-[11px] text-slate-300 space-y-0.5 pl-1 pt-1 border-t border-slate-800/80">
+              ${origin.details.map(d => `<li>• ${d}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      } else {
+        explanationHtml = `
+          <div class="mt-1 text-[11px] text-slate-500 italic">
+            ⚪ Este animal não constava entre os 5 principais recomendados para esta apuração.
+          </div>
+        `;
+      }
+
+      return `
+        <div class="p-3 rounded-xl border ${cardBorder} transition-all">
+          <div class="flex items-center justify-between gap-2 flex-wrap mb-1">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-xs">${p.label}</span>
+              <span class="font-mono text-base font-bold text-slate-100">${thousandsPart}<strong class="text-amber-300">${tensPart}</strong></span>
+              <span class="text-sm font-bold text-slate-200">${animal.emoji} ${animal.name}</span>
+              <span class="text-xs font-mono text-slate-400">(Grupo ${String(grp).padStart(2, '0')})</span>
+            </div>
+            <div>
+              ${statusBadge}
+            </div>
+          </div>
+          ${explanationHtml}
+        </div>
+      `;
+    }).join('');
+
+    // 3. Quadro Didático: Perguntas e Respostas da Auditoria
+    let didacticsHtml = '';
+    if (winningCount > 0) {
+      didacticsHtml = `
+        <div class="p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 space-y-2 mt-3">
+          <div class="flex items-center gap-2 font-bold text-sm text-indigo-300">
+            <span>📖</span> <span>Entenda de Onde Vieram os Bichos Desta Extração:</span>
+          </div>
+          <div class="text-xs text-slate-300 space-y-1.5 pl-1 leading-relaxed">
+            <p>
+              <strong>1. Vieram dos Palpites?</strong><br>
+              <span class="text-slate-400">
+                ✅ <strong class="text-emerald-400">Sim!</strong> O nosso motor estatístico calculou o Top 5 de Grupos para o horário <strong>${data.target_slot}</strong>. 
+                Deles, <strong class="text-amber-300">${winningCount} bicho(s)</strong> apareceram exatamente entre os 5 prêmios oficiais da banca!
+              </span>
+            </p>
+            <p>
+              <strong>2. Veio da Cruz do Dia?</strong><br>
+              <span class="text-slate-400">
+                ${winningList.some(w => w.origin.badges.some(b => b.includes('Cruz') || b.includes('Bicho do Dia')))
+                  ? `✨ <strong class="text-amber-300">Sim!</strong> Os cruzamentos da Cruz do Dia identificaram com precisão os bichos regentes da data.`
+                  : `⚪ Nesta extração, os acertos vieram prioritariamente da frequência de horário, puxadas e atraso histórico.`
+                }
+              </span>
+            </p>
+            <p>
+              <strong>3. Veio de Puxada ou Afinidade de Horário?</strong><br>
+              <span class="text-slate-400">
+                🧲 Os animais sorteados possuíam forte tração de repetição histórica comprovada para o horário <strong>${data.target_slot}</strong> e puxadas ativas do resultado anterior.
+              </span>
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    // 4. Modalidades de Dezenas, Centenas e Milhares
+    const actD1 = String(evalDetails.dezena?.actual_1st || '').padStart(2, '0');
+    const hitD1 = Boolean(evalDetails.dezena?.hit_1st);
+    const actC1 = String(evalDetails.centena?.actual_1st || '').padStart(3, '0');
+    const hitC1 = Boolean(evalDetails.centena?.hit_1st);
+    const actM1 = String(evalDetails.milhar?.actual_1st || '').padStart(4, '0');
+    const hitM1 = Boolean(evalDetails.milhar?.hit_1st);
+
+    content.innerHTML = `
+      <div class="space-y-4 text-xs">
+        <!-- Cabeçalho do Sorteio -->
+        <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <div class="font-bold text-slate-100 text-sm">${data.lottery || 'LOOK'} - ${data.target_slot}</div>
+            <div class="text-[11px] text-slate-400">Data Apurada: ${formatDateBR(data.target_date)}</div>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-bold text-slate-400">Pontuação Obtida:</span>
+            <span class="text-base font-black font-mono text-amber-400 ml-1">${Number(data.hit_rate_score || 0)} pts</span>
+          </div>
+        </div>
+
+        ${comboAwardHtml}
+
+        <!-- Seção: Conferência dos 5 Prêmios Ocorridos -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between px-1">
+            <span class="font-bold text-slate-200 text-xs uppercase tracking-wider flex items-center gap-1.5">
+              <span>🎯</span> <span>Conferência dos 5 Prêmios e Origem:</span>
+            </span>
+            <span class="text-[11px] text-slate-400">${winningCount} acerto(s) de grupo</span>
+          </div>
+          <div class="space-y-2">
+            ${prizeRowsHtml}
+          </div>
+        </div>
+
+        ${didacticsHtml}
+
+        <!-- Outras Modalidades Calculadas -->
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+          <div class="font-bold text-slate-300 text-xs uppercase tracking-wider mb-1">Outras Modalidades Conferidas:</div>
+
+          <!-- Dezenas -->
+          <div class="p-2.5 rounded-lg border ${hitD1 ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-slate-800 bg-slate-800/40'}">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-slate-200">Dezenas Analisadas:</span>
+              <span class="${hitD1 ? 'text-emerald-400 font-bold' : 'text-slate-400'} text-[11px]">
+                ${hitD1 ? '🎯 Acerto no 1º Prêmio' : 'Sem 1º prêmio'} (${evalDetails.dezena?.hits_cercado_count || 0} do 1º ao 5º)
+              </span>
+            </div>
+            <div class="text-slate-300 font-mono text-[11px]">Palpites: [ <span class="text-indigo-300 font-bold">${topD}</span> ]</div>
+            <div class="text-slate-400 text-[11px] mt-0.5">Dezena Ocorrida 1º: <b class="text-slate-100 font-mono font-bold">${actD1 || '-'}</b></div>
           </div>
 
-          <!-- Palpite de Dezenas -->
-          <div class="p-3 rounded-lg border ${hitD1 ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-slate-800 bg-slate-800/40'}">
-            <div class="flex justify-between items-start font-bold mb-1">
-              <span class="text-slate-200">Palpite de Dezenas:</span>
-              <div class="text-right">
-                <span class="${hitD1 ? 'text-emerald-400' : 'text-slate-400'} block">
-                  ${hitD1 ? '🎯 Acerto no 1º Prêmio' : 'Sem 1º prêmio'} (${evalDetails.dezena?.hits_cercado_count || 0} do 1º ao 5º)
-                </span>
-                ${dezenaOriginBadges.length > 0 ? `<div class="mt-1 flex items-center justify-end gap-1.5 flex-wrap">${dezenaOriginBadges.join('')}</div>` : ''}
-              </div>
+          <!-- Centenas -->
+          <div class="p-2.5 rounded-lg border ${hitC1 ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-slate-800 bg-slate-800/40'}">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-slate-200">Centenas Analisadas:</span>
+              <span class="${hitC1 ? 'text-emerald-400 font-bold' : 'text-slate-400'} text-[11px]">
+                ${hitC1 ? '💎 Acerto no 1º Prêmio' : 'Sem 1º prêmio'}
+              </span>
             </div>
-            <div class="text-slate-300 font-mono">Dezenas Analisadas: [ <span class="text-indigo-300 font-bold">${topD}</span> ]</div>
-            <div class="text-slate-400 mt-1">Dezena Ocorrida 1º: <b class="text-slate-100 font-mono font-bold">${evalDetails.dezena?.actual_1st || '-'}</b></div>
-
-            ${dezenaOriginDetails.length > 0 ? `
-              <div class="mt-2.5 pt-2 border-t border-emerald-500/25 bg-emerald-950/30 -mx-3 -mb-3 p-2.5 rounded-b-lg space-y-1">
-                <div class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Origem dos Pontos / Auditoria:</div>
-                ${dezenaOriginDetails.join('')}
-              </div>
-            ` : ''}
+            <div class="text-slate-300 font-mono text-[11px]">Palpites: [ <span class="text-indigo-300 font-bold">${topC}</span> ]</div>
+            <div class="text-slate-400 text-[11px] mt-0.5">Centena Ocorrida 1º: <b class="text-slate-100 font-mono font-bold">${actC1 || '-'}</b></div>
           </div>
 
-          <!-- Palpite de Centenas -->
-          <div class="p-3 rounded-lg border ${hitC1 ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-slate-800 bg-slate-800/40'}">
-            <div class="flex justify-between items-start font-bold mb-1">
-              <span class="text-slate-200">Palpite de Centenas:</span>
-              <div class="text-right">
-                <span class="${hitC1 ? 'text-emerald-400' : 'text-slate-400'} block">
-                  ${hitC1 ? '🎯 Acerto no 1º Prêmio' : 'Sem 1º prêmio'}
-                </span>
-                ${centenaOriginBadges.length > 0 ? `<div class="mt-1 flex items-center justify-end gap-1.5 flex-wrap">${centenaOriginBadges.join('')}</div>` : ''}
-              </div>
-            </div>
-            <div class="text-slate-300 font-mono">Centenas Analisadas: [ <span class="text-indigo-300 font-bold">${topC}</span> ]</div>
-            <div class="text-slate-400 mt-1">Centena Ocorrida 1º: <b class="text-slate-100 font-mono font-bold">${evalDetails.centena?.actual_1st || '-'}</b></div>
-          </div>
-
-          <!-- Palpite de Milhares -->
+          <!-- Milhares -->
           ${topM ? `
-            <div class="p-3 rounded-lg border ${hitM1 ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-slate-800 bg-slate-800/40'}">
-              <div class="flex justify-between items-start font-bold mb-1">
-                <span class="text-slate-200">Palpite de Milhares:</span>
-                <div class="text-right">
-                  <span class="${hitM1 ? 'text-emerald-400' : 'text-slate-400'} block">
-                    ${hitM1 ? '🎯 Acerto no 1º Prêmio' : 'Sem 1º prêmio'}
-                  </span>
-                  ${milharOriginBadges.length > 0 ? `<div class="mt-1 flex items-center justify-end gap-1.5 flex-wrap">${milharOriginBadges.join('')}</div>` : ''}
-                </div>
+            <div class="p-2.5 rounded-lg border ${hitM1 ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-slate-800 bg-slate-800/40'}">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-200">Milhares Analisadas:</span>
+                <span class="${hitM1 ? 'text-emerald-400 font-bold' : 'text-slate-400'} text-[11px]">
+                  ${hitM1 ? '👑 Acerto no 1º Prêmio' : 'Sem 1º prêmio'}
+                </span>
               </div>
-              <div class="text-slate-300 font-mono">Milhares Analisadas: [ <span class="text-indigo-300 font-bold">${topM}</span> ]</div>
-              <div class="text-slate-400 mt-1">Milhar Ocorrida 1º: <b class="text-slate-100 font-mono font-bold">${evalDetails.milhar?.actual_1st || '-'}</b></div>
+              <div class="text-slate-300 font-mono text-[11px]">Palpites: [ <span class="text-indigo-300 font-bold">${topM}</span> ]</div>
+              <div class="text-slate-400 text-[11px] mt-0.5">Milhar Ocorrida 1º: <b class="text-slate-100 font-mono font-bold">${actM1 || '-'}</b></div>
             </div>
           ` : ''}
         </div>
