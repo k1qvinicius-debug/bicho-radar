@@ -18,12 +18,12 @@ def get_metrics_summary(lottery: Optional[str] = None):
         cursor = conn.cursor()
 
         # Total de sorteios cadastrados
-        if lottery and isinstance(lottery, str):
+        if lottery and isinstance(lottery, str) and lottery.lower() != 'all':
             lot_code = lottery.upper()
-            cursor.execute("SELECT COUNT(*) FROM draw_results WHERE (lottery = ? OR (lottery IS NULL AND ? = 'RJ'))", (lot_code, lot_code))
+            cursor.execute("SELECT COUNT(*) FROM draw_results WHERE lottery = ?", (lot_code,))
             total_draws = cursor.fetchone()[0]
 
-            cursor.execute("SELECT COUNT(*) FROM analysis_snapshots WHERE (lottery = ? OR (lottery IS NULL AND ? = 'RJ'))", (lot_code, lot_code))
+            cursor.execute("SELECT COUNT(*) FROM analysis_snapshots WHERE lottery = ?", (lot_code,))
             total_snapshots = cursor.fetchone()[0]
 
             cursor.execute("""
@@ -40,8 +40,8 @@ def get_metrics_summary(lottery: Optional[str] = None):
                     AVG(e.hit_rate_score) as avg_score
                 FROM analysis_evaluations e
                 INNER JOIN analysis_snapshots s ON e.snapshot_id = s.id
-                WHERE (s.lottery = ? OR (s.lottery IS NULL AND ? = 'RJ'))
-            """, (lot_code, lot_code))
+                WHERE s.lottery = ?
+            """, (lot_code,))
             row = cursor.fetchone()
         else:
             cursor.execute("SELECT COUNT(*) FROM draw_results")
@@ -108,7 +108,7 @@ def get_metrics_by_lottery():
         cursor = conn.cursor()
         cursor.execute("""
             SELECT
-                COALESCE(s.lottery, 'RJ') as lottery,
+                s.lottery as lottery,
                 COUNT(e.id) as total_evals,
                 SUM(CASE WHEN e.hit_rate_score > 0 THEN 1 ELSE 0 END) as total_hits,
                 SUM(e.acerto_grupo_1) as hits_g1,
@@ -120,7 +120,8 @@ def get_metrics_by_lottery():
                 AVG(e.hit_rate_score) as avg_score
             FROM analysis_snapshots s
             INNER JOIN analysis_evaluations e ON s.id = e.snapshot_id
-            GROUP BY COALESCE(s.lottery, 'RJ')
+            WHERE s.lottery IS NOT NULL
+            GROUP BY s.lottery
             ORDER BY avg_score DESC, total_evals DESC
         """)
         rows = cursor.fetchall()
@@ -166,7 +167,7 @@ def get_metrics_by_slot(lottery: Optional[str] = None):
         cursor = conn.cursor()
         query = """
             SELECT
-                COALESCE(s.lottery, 'RJ') as lottery,
+                s.lottery as lottery,
                 s.target_slot as slot,
                 COUNT(e.id) as total_evals,
                 SUM(e.acerto_grupo_1) as hits_g1,
@@ -180,12 +181,12 @@ def get_metrics_by_slot(lottery: Optional[str] = None):
             INNER JOIN analysis_evaluations e ON s.id = e.snapshot_id
         """
         params = []
-        if lottery and isinstance(lottery, str):
+        if lottery and isinstance(lottery, str) and lottery.lower() != 'all':
             lot_code = lottery.upper()
-            query += " WHERE (s.lottery = ? OR (s.lottery IS NULL AND ? = 'RJ'))"
-            params.extend([lot_code, lot_code])
+            query += " WHERE s.lottery = ?"
+            params.append(lot_code)
 
-        query += " GROUP BY COALESCE(s.lottery, 'RJ'), s.target_slot ORDER BY total_evals DESC, avg_score DESC"
+        query += " GROUP BY s.lottery, s.target_slot ORDER BY total_evals DESC, avg_score DESC"
         cursor.execute(query, params)
         rows = cursor.fetchall()
 
