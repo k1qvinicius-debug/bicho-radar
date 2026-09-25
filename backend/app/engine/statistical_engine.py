@@ -163,20 +163,28 @@ class StatisticalEngine:
             except Exception:
                 transition_data = None
 
+        matriz_dia = None
+        try:
+            from .matriz_engine import get_matriz_dia
+            matriz_dia = get_matriz_dia(target_date)
+        except Exception:
+            matriz_dia = None
+
         # 1. Análise de Grupos
         top_groups = self._analyze_groups(
             draws, target_slot, target_day_of_week, weights, target_date,
-            strategy=strategy, transition_data=transition_data, lottery=effective_lottery
+            strategy=strategy, transition_data=transition_data, lottery=effective_lottery,
+            matriz_dia=matriz_dia
         )
 
         # 2. Análise de Dezenas
         top_tens = self._analyze_tens(draws, target_slot, target_day_of_week, weights, top_groups, target_date=target_date, strategy=strategy)
 
         # 3. Análise de Centenas
-        top_hundreds = self._analyze_hundreds(draws, target_slot, weights, top_tens)
+        top_hundreds = self._analyze_hundreds(draws, target_slot, weights, top_tens, target_date=target_date, matriz_dia=matriz_dia)
 
         # 4. Análise de Milhares
-        top_thousands = self._analyze_thousands(draws, target_slot, weights, top_hundreds, top_tens, target_date)
+        top_thousands = self._analyze_thousands(draws, target_slot, weights, top_hundreds, top_tens, target_date=target_date, matriz_dia=matriz_dia)
 
         # 5. Gerador de Combinações de Duque de Dezena (DDZ Combinado)
         ddz_combos = self._generate_ddz_combinations(top_tens)
@@ -228,6 +236,7 @@ class StatisticalEngine:
             quadrant_summary=quadrant_summary,
             transition_data=transition_data,
             pattern_break=pattern_break,
+            matriz_dia=matriz_dia,
         )
 
 
@@ -902,6 +911,7 @@ class StatisticalEngine:
         strategy: str = "hybrid",
         transition_data: Optional[Dict[str, Any]] = None,
         lottery: str = "RJ",
+        matriz_dia: Optional[Dict[str, Any]] = None,
     ) -> List[RankedItem]:
         total_draws = len(draws)
         count_1st = Counter()
@@ -1212,6 +1222,23 @@ class StatisticalEngine:
                     type="positive"
                 ))
 
+            # Matriz 3x3 da Data
+            matriz_anim = None
+            if matriz_dia and "all_animals_confluence" in matriz_dia:
+                for ma in matriz_dia["all_animals_confluence"]:
+                    if ma["group"] == g:
+                        matriz_anim = ma
+                        break
+
+            if matriz_anim and matriz_anim.get("confluence_score", 0) >= 80:
+                final_score = round(final_score + 4.0, 1)
+                factors.append(FactorItem(
+                    name="⚡ Matriz 3x3 do Dia",
+                    description=f"Animal com {int(matriz_anim['confluence_score'])}% de confluência no Grid 3x3 da Data ({target_date})",
+                    impact_points=4.0,
+                    type="positive"
+                ))
+
             window_size = min(total_draws, 30) or 1
             presence_pct = round((recent_30_count_all[g] / window_size) * 100, 1)
 
@@ -1243,6 +1270,13 @@ class StatisticalEngine:
                         "is_last_winner": stat["is_last_winner"],
                         "is_today_winner": stat["is_today_winner"],
                     },
+                    "matriz_dia": {
+                        "is_confluent": bool(matriz_anim and matriz_anim.get("confluence_score", 0) >= 50),
+                        "confluence_score": matriz_anim.get("confluence_score", 0.0) if matriz_anim else 0.0,
+                        "matching_tens": matriz_anim.get("matching_tens", []) if matriz_anim else [],
+                        "top_centenas": matriz_anim.get("top_centenas", []) if matriz_anim else [],
+                        "top_milhares": matriz_anim.get("top_milhares", []) if matriz_anim else [],
+                    } if matriz_anim else None,
                     "cruz_do_dia": {
                         "is_present": bool(cruz_item or is_bicho_dia),
                         "is_bicho_dia": is_bicho_dia,
@@ -1461,7 +1495,9 @@ class StatisticalEngine:
         draws: List[Dict[str, Any]],
         target_slot: str,
         w: WeightsConfigModel,
-        top_tens: List[RankedItem]
+        top_tens: List[RankedItem],
+        target_date: Optional[str] = None,
+        matriz_dia: Optional[Dict[str, Any]] = None,
     ) -> List[RankedItem]:
         digit_count = Counter()
         digit_slot_count = Counter()
@@ -1523,6 +1559,59 @@ class StatisticalEngine:
                     metadata={"ten": d_val, "digit": dig}
                 ))
 
+        # Incorporar e priorizar centenas da Matriz 3x3 do Dia
+        try:
+            if matriz_dia:
+                direct_centenas = set(matriz_dia.get("all_direct_centenas", []))
+                digits_dia_set = set(matriz_dia.get("digits_dia", []))
+                existing_hundreds = {c.value for c in hundreds_candidates}
+
+                for item in hundreds_candidates:
+                    c_val = item.value
+                    if c_val in direct_centenas:
+                        item.score = round(item.score + 14.0, 1)
+                        item.factors.append(FactorItem(
+                            name="⚡ Matriz 3x3 do Dia",
+                            description=f"Centena {c_val} alinhada diretamente no Grid 3x3 da Data",
+                            impact_points=14.0,
+                            type="positive"
+                        ))
+                        if item.metadata is not None:
+                            item.metadata["is_matriz"] = True
+                    elif int(c_val[0]) in digits_dia_set:
+                        item.score = round(item.score + 6.0, 1)
+                        if item.metadata is not None:
+                            item.metadata["is_matriz"] = True
+
+                top_group_nums = {t.group_number for t in top_tens[:8]}
+                for top_anim_m in matriz_dia.get("top_confluence_animals", []):
+                    grp_num = top_anim_m["group"]
+                    if grp_num in top_group_nums:
+                        anim = get_animal_info(grp_num)
+                        for c_obj in top_anim_m.get("top_centenas_details", []):
+                            c_str = c_obj["centena"]
+                            if c_str not in existing_hundreds:
+                                hundreds_candidates.append(RankedItem(
+                                    value=c_str,
+                                    display_name=f"Centena {c_str} ({anim['name']})",
+                                    score=round(75.0 + (c_obj["score"] * 0.15), 1),
+                                    group_number=grp_num,
+                                    animal_name=anim["name"],
+                                    animal_emoji=anim["emoji"],
+                                    factors=[
+                                        FactorItem(
+                                            name="⚡ Matriz 3x3 do Dia",
+                                            description=f"Centena {c_str} projetada pelo Grid 3x3 para {anim['name']} ({c_obj.get('reason', '')})",
+                                            impact_points=75.0,
+                                            type="positive"
+                                        )
+                                    ],
+                                    metadata={"ten": c_str[-2:], "digit": c_str[0], "is_matriz": True}
+                                ))
+                                existing_hundreds.add(c_str)
+        except Exception:
+            pass
+
         hundreds_candidates.sort(key=lambda x: x.score, reverse=True)
         return hundreds_candidates
 
@@ -1533,7 +1622,8 @@ class StatisticalEngine:
         w: WeightsConfigModel,
         top_hundreds: List[RankedItem],
         top_tens: List[RankedItem],
-        target_date: Optional[str] = None
+        target_date: Optional[str] = None,
+        matriz_dia: Optional[Dict[str, Any]] = None,
     ) -> List[RankedItem]:
         first_digit_count = Counter()
         last_seen_m_digit: Dict[str, int] = {}
@@ -1566,6 +1656,13 @@ class StatisticalEngine:
                 m_score = m_digit_scores[dig]
                 final_score = round((h_item.score * 0.75) + (m_score * 0.25), 1)
 
+                is_mat = False
+                if matriz_dia:
+                    digits_dia_set = set(matriz_dia.get("digits_dia", []))
+                    if int(dig) in digits_dia_set and (h_item.metadata and h_item.metadata.get("is_matriz")):
+                        is_mat = True
+                        final_score = round(final_score + 8.0, 1)
+
                 factors = [
                     FactorItem(
                         name="Centena de Alta Pontuação",
@@ -1580,6 +1677,13 @@ class StatisticalEngine:
                         type="positive"
                     )
                 ]
+                if is_mat:
+                    factors.append(FactorItem(
+                        name="⚡ Matriz 3x3 do Dia",
+                        description=f"Milhar {milhar_str} alinhada aos dígitos do Grid 3x3 da Data",
+                        impact_points=8.0,
+                        type="positive"
+                    ))
 
                 thousands_candidates.append(RankedItem(
                     value=milhar_str,
@@ -1589,7 +1693,7 @@ class StatisticalEngine:
                     animal_name=anim["name"],
                     animal_emoji=anim["emoji"],
                     factors=factors,
-                    metadata={"centena": c_val, "milhar_digit": dig}
+                    metadata={"centena": c_val, "milhar_digit": dig, "is_matriz": is_mat}
                 ))
 
         # Incorporar e priorizar milhares da Cruz do Dia
@@ -1637,6 +1741,52 @@ class StatisticalEngine:
                                 metadata={"centena": m_val[-3:], "is_cruz": True}
                             ))
                             existing_milhares.add(m_val)
+        except Exception:
+            pass
+
+        # Incorporar e priorizar milhares da Matriz 3x3 do Dia
+        try:
+            if matriz_dia:
+                existing_milhares = {m.value for m in thousands_candidates}
+                top_group_nums = {g.group_number for g in top_tens[:8]}
+
+                for top_anim_m in matriz_dia.get("top_confluence_animals", []):
+                    grp_num = top_anim_m["group"]
+                    if grp_num in top_group_nums:
+                        anim = get_animal_info(grp_num)
+                        m_score_calc = round(84.0 + (top_anim_m.get("confluence_score", 0) * 0.1), 1)
+                        for m_val in top_anim_m.get("top_milhares", []):
+                            if m_val not in existing_milhares:
+                                thousands_candidates.append(RankedItem(
+                                    value=m_val,
+                                    display_name=f"Milhar {m_val} ({anim['name']})",
+                                    score=m_score_calc,
+                                    group_number=grp_num,
+                                    animal_name=anim["name"],
+                                    animal_emoji=anim["emoji"],
+                                    factors=[
+                                        FactorItem(
+                                            name="⚡ Matriz 3x3 do Dia",
+                                            description=f"Milhar {m_val} projetada pelo Grid 3x3 para {anim['name']}",
+                                            impact_points=m_score_calc,
+                                            type="positive"
+                                        )
+                                    ],
+                                    metadata={"centena": m_val[-3:], "milhar_digit": m_val[0], "is_matriz": True}
+                                ))
+                                existing_milhares.add(m_val)
+                            else:
+                                for item in thousands_candidates:
+                                    if item.value == m_val:
+                                        item.score = round(item.score + 10.0, 1)
+                                        if item.metadata is not None:
+                                            item.metadata["is_matriz"] = True
+                                        item.factors.append(FactorItem(
+                                            name="⚡ Matriz 3x3 do Dia",
+                                            description=f"Milhar {m_val} confirmada pelo Grid 3x3 da Data",
+                                            impact_points=10.0,
+                                            type="positive"
+                                        ))
         except Exception:
             pass
 
