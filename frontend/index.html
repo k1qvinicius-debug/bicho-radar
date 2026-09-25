@@ -26,6 +26,16 @@
       }
     }
   </script>
+    <!-- PWA & Mobile Web App Meta Tags -->
+  <link rel="manifest" href="/manifest.json?v=1.0" />
+  <meta name="theme-color" content="#0B0F19" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Bicho Master" />
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png?v=1.0" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png?v=1.0" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/img/icon-192.png?v=1.0" />
   <link rel="icon" type="image/png" href="/img/favicon.png?v=87.0" />
   <link rel="stylesheet" href="/css/style.css?v=102.0" />
   <!-- Prevenção imediata de flash da tela de login para usuários autenticados -->
@@ -177,7 +187,11 @@
           
         </nav>
 
-        <button type="button" id="btn-header-plans" onclick="openPlansModal()"
+        <button type="button" id="btn-header-install" onclick="triggerPWAInstall()"
+          class="hidden px-2.5 py-1 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 text-xs font-black items-center gap-1.5 transition-transform hover:scale-105 cursor-pointer shadow-sm shrink-0">
+          <span>📲</span> <span>Instalar App</span>
+        </button>
+        <button type="button" id="btn-header-plans"  onclick="openPlansModal()"
           class="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 hover:border-amber-400 text-amber-300 text-xs font-black items-center gap-1.5 transition-transform hover:scale-105 cursor-pointer shadow-sm shrink-0">
           <span>💎</span> <span>Planos VIP</span>
         </button>
@@ -404,7 +418,16 @@
     <!-- Drawer Footer: Acesso Restrito / Logout -->
 
     <div class="pt-3 border-t border-slate-800/80 space-y-2">
-      <button type="button" onclick="closeDrawer(); openPlansModal()" id="drawer-plans-link"
+      <button type="button" id="btn-drawer-install" onclick="closeDrawer(); triggerPWAInstall();"
+        class="w-full px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 hover:from-emerald-500/25 hover:to-teal-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-black flex items-center justify-between transition-all shadow-sm cursor-pointer hidden">
+        <div class="flex items-center gap-2">
+          <span class="text-sm">📲</span>
+          <span>Instalar Aplicativo</span>
+        </div>
+        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Grátis</span>
+      </button>
+
+      <button type="button" onclick="closeDrawer(); openPlansModal()" id="drawer-plans-link" 
         class="w-full px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 hover:from-amber-500/25 hover:to-orange-500/25 border border-amber-500/40 text-amber-300 text-xs font-black flex items-center gap-2.5 transition-all shadow-sm cursor-pointer">
         <span class="text-sm">💎</span>
         <span>Planos VIP</span>
@@ -2440,6 +2463,91 @@
       </form>
     </div>
   </div>
+
+
+  <!-- PWA Floating Mobile Install Banner -->
+  <div id="pwa-install-banner" class="fixed bottom-16 md:bottom-5 left-3 right-3 md:left-auto md:right-5 z-50 max-w-sm p-3.5 rounded-2xl bg-[#0b101d]/95 border border-emerald-500/40 shadow-2xl backdrop-blur-md hidden transition-all duration-300">
+    <div class="flex items-start gap-3">
+      <img src="/img/icon-192.png?v=1.0" alt="Bicho Master" class="w-12 h-12 rounded-xl border border-emerald-500/50 shadow-md shrink-0 object-cover" />
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-black text-white flex items-center gap-1.5">
+            <span>📲</span> Instalar Aplicativo
+          </h4>
+          <button type="button" onclick="dismissPWABanner()" class="text-slate-400 hover:text-white p-1 text-xs leading-none cursor-pointer">✕</button>
+        </div>
+        <p class="text-[11px] text-slate-300 leading-tight mt-1">Abra direto da sua tela inicial em tela cheia, com máxima rapidez e sem ocupar memória!</p>
+        <div class="mt-2.5 flex items-center gap-2">
+          <button type="button" onclick="triggerPWAInstall()" class="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-md shadow-emerald-900/50 transition-all text-center cursor-pointer">
+            Instalar Agora
+          </button>
+          <button type="button" onclick="dismissPWABanner()" class="py-1 px-2 text-[11px] font-semibold text-slate-400 hover:text-slate-200 cursor-pointer">
+            Depois
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tutorial iOS Safari -->
+  <div id="ios-install-modal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-[#0b101d] border border-emerald-500/40 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center relative">
+      <button type="button" onclick="closeIOSInstallModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-sm p-1 cursor-pointer">✕</button>
+      <div class="w-16 h-16 mx-auto mb-3 rounded-2xl p-1 bg-gradient-to-b from-slate-800 to-slate-950 border border-emerald-500/50 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+        <img src="/img/icon-192.png?v=1.0" class="w-full h-full rounded-xl object-cover" />
+      </div>
+      <h3 class="text-base font-black text-white">Instalar no iPhone / iPad</h3>
+      <p class="text-xs text-slate-300 mt-1">Como o iOS não possui prompt direto da Apple, adicione em 2 passos rápidos:</p>
+      
+      <div class="my-4 space-y-2.5 text-left bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs">
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+          <span class="text-slate-200 leading-snug">Na barra inferior do Safari, toque no botão <strong>Compartilhar</strong> (ícone de um quadrado com uma seta para cima <span class="text-blue-400 font-bold">⎋</span>).</span>
+        </div>
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+          <span class="text-slate-200 leading-snug">Role as opções para baixo e toque em <strong>"Adicionar à Tela de Início"</strong> com o ícone <strong>(+)</strong>.</span>
+        </div>
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5">3</span>
+          <span class="text-slate-200 leading-snug">Pronto! Toque em <strong>"Adicionar"</strong> no canto superior direito e o app estará na sua tela inicial!</span>
+        </div>
+      </div>
+      
+      <button type="button" onclick="closeIOSInstallModal()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-900/50 transition-all cursor-pointer">
+        Entendido!
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Tutorial Genérico / Desktop -->
+  <div id="generic-install-modal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-[#0b101d] border border-emerald-500/40 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center relative">
+      <button type="button" onclick="closeGenericInstallModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-sm p-1 cursor-pointer">✕</button>
+      <div class="w-16 h-16 mx-auto mb-3 rounded-2xl p-1 bg-gradient-to-b from-slate-800 to-slate-950 border border-emerald-500/50 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+        <img src="/img/icon-192.png?v=1.0" class="w-full h-full rounded-xl object-cover" />
+      </div>
+      <h3 class="text-base font-black text-white">Instalar o Bicho Master</h3>
+      <p class="text-xs text-slate-300 mt-1">Instale como um aplicativo no seu dispositivo:</p>
+      
+      <div class="my-4 space-y-2.5 text-left bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs">
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+          <span class="text-slate-200 leading-snug">No seu navegador (Chrome/Edge/Samsung), abra o <strong>menu de opções</strong> (ícone dos 3 pontinhos no canto superior).</span>
+        </div>
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+          <span class="text-slate-200 leading-snug">Clique em <strong>"Instalar Bicho Master"</strong> ou <strong>"Adicionar à tela inicial"</strong>.</span>
+        </div>
+      </div>
+      
+      <button type="button" onclick="closeGenericInstallModal()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-900/50 transition-all cursor-pointer">
+        OK, Fechar
+      </button>
+    </div>
+  </div>
+
+  <script src="/js/pwa.js?v=1.0"></script>
 
 </body>
 </html>
