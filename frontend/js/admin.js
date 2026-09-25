@@ -514,15 +514,10 @@ window.loadTenantsTable = async function() {
         ? '<span class="text-[10px] text-slate-500 italic">Conta Master</span>'
         : `
           <div class="flex items-center gap-1 flex-wrap">
-            <button type="button" onclick="extendTenantTrial(${t.id})"
-              class="px-2 py-1 rounded-lg bg-indigo-950/80 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-800/80 font-bold text-[11px] transition-all cursor-pointer shadow-sm"
-              title="Renovar acesso para este usuário (+30 dias)">
-              <span>+30d</span>
-            </button>
-            <button type="button" onclick="activateTenantSubscription(${t.id})"
-              class="px-2 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800/80 font-bold text-[11px] transition-all cursor-pointer shadow-sm"
-              title="Ativar assinatura por 30 dias">
-              <span>⭐ Ativar</span>
+            <button type="button" onclick="openPlanActivationModal(${t.id}, '${t.name.replace(/'/g, "\\'")}', '${t.phone || ''}', '${userPass}')"
+              class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+              title="Escolher plano (Mensal, Trimestral, Semestral, Anual) para este usuário">
+              <span>⭐</span> <span>Ativar Plano</span>
             </button>
             <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${t.name.replace(/'/g, "\'")}', this, '${t.phone || ''}', '${userPass}')"
               class="px-2 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-[11px] transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
@@ -586,6 +581,134 @@ window.loadTenantsTable = async function() {
     }).join('');
   } catch (err) {
     container.innerHTML = `<p class="text-xs text-rose-400 py-6 text-center">Erro ao carregar testadores: ${err.message}</p>`;
+  }
+};
+
+// =========================================================================
+// CONTROLE DE ATIVAÇÃO DE PLANOS (MENSAL, TRIMESTRAL, SEMESTRAL, ANUAL)
+// =========================================================================
+
+let currentActivatingTenant = null;
+let selectedPlanDays = 30;
+let selectedPlanType = 'monthly';
+let selectedPlanLabel = 'Mensal (30 dias)';
+
+window.openPlanActivationModal = function(id, name, phone, password) {
+  currentActivatingTenant = { id, name, phone, password };
+  selectedPlanDays = 30;
+  selectedPlanType = 'monthly';
+  selectedPlanLabel = 'Mensal (30 dias)';
+
+  const modal = document.getElementById('modal-activate-plan');
+  const nameEl = document.getElementById('modal-act-tenant-name');
+  const infoEl = document.getElementById('modal-act-tenant-info');
+  const labelSelected = document.getElementById('act-plan-label-selected');
+  const successBox = document.getElementById('act-plan-success-actions');
+  const customInput = document.getElementById('input-custom-days');
+
+  if (nameEl) nameEl.textContent = `Ativar Plano para: ${name}`;
+  if (infoEl) infoEl.textContent = phone ? `WhatsApp: ${phone}` : 'Sem WhatsApp cadastrado';
+  if (labelSelected) labelSelected.textContent = selectedPlanLabel;
+  if (successBox) successBox.classList.add('hidden');
+  if (customInput) customInput.value = '';
+
+  resetPlanOptionButtons();
+  const defaultBtn = document.querySelector('.plan-opt-btn');
+  if (defaultBtn) {
+    defaultBtn.classList.remove('border-slate-700', 'bg-slate-950/70');
+    defaultBtn.classList.add('border-emerald-500', 'bg-emerald-950/40');
+  }
+
+  if (modal) modal.classList.remove('hidden');
+};
+
+window.closeActivatePlanModal = function() {
+  const modal = document.getElementById('modal-activate-plan');
+  if (modal) modal.classList.add('hidden');
+  currentActivatingTenant = null;
+};
+
+window.selectPlanOption = function(days, planType, label, btnEl) {
+  selectedPlanDays = days;
+  selectedPlanType = planType;
+  selectedPlanLabel = label;
+
+  const labelSelected = document.getElementById('act-plan-label-selected');
+  if (labelSelected) labelSelected.textContent = label;
+
+  const customInput = document.getElementById('input-custom-days');
+  if (customInput) customInput.value = '';
+
+  resetPlanOptionButtons();
+  if (btnEl) {
+    btnEl.classList.remove('border-slate-700', 'bg-slate-950/70');
+    btnEl.classList.add('border-emerald-500', 'bg-emerald-950/40');
+  }
+};
+
+window.handleCustomDaysInput = function(val) {
+  const num = parseInt(val);
+  if (num && num > 0) {
+    selectedPlanDays = num;
+    selectedPlanType = 'custom';
+    selectedPlanLabel = `Personalizado (${num} dias)`;
+    const labelSelected = document.getElementById('act-plan-label-selected');
+    if (labelSelected) labelSelected.textContent = selectedPlanLabel;
+    resetPlanOptionButtons();
+  }
+};
+
+function resetPlanOptionButtons() {
+  document.querySelectorAll('.plan-opt-btn').forEach(btn => {
+    btn.classList.remove('border-emerald-500', 'bg-emerald-950/40', 'border-indigo-500', 'bg-indigo-950/40', 'border-cyan-500', 'bg-cyan-950/40');
+    btn.classList.add('border-slate-700', 'bg-slate-950/70');
+  });
+}
+
+window.confirmPlanActivation = async function() {
+  if (!currentActivatingTenant) return;
+  const btn = document.getElementById('btn-confirm-plan-activation');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> <span>Ativando no banco...</span>';
+  }
+
+  try {
+    const res = await api.activateTenantSubscription(currentActivatingTenant.id, selectedPlanDays, selectedPlanType);
+    showToast(res.message || 'Assinatura ativada com sucesso!', 'success');
+    await loadTenantsTable();
+
+    // Mostra botao de enviar WhatsApp com dados completos
+    const successBox = document.getElementById('act-plan-success-actions');
+    const waBtn = document.getElementById('btn-act-plan-whatsapp');
+    if (successBox && waBtn && currentActivatingTenant.phone) {
+      successBox.classList.remove('hidden');
+      const tenant = currentActivatingTenant;
+      const expireDate = res.subscription_expires_at ? res.subscription_expires_at.split(' ')[0] : '';
+      waBtn.onclick = function() {
+        const link = `${window.location.origin}/?key=${encodeURIComponent(tenant.password || '')}`;
+        const msg = `Olá, ${tenant.name}!
+
+Sua assinatura *${selectedPlanLabel}* no BICHO MASTER PRO foi ativada com sucesso!
+
+📅 Validade: até ${expireDate}
+🔑 Sua Senha de Acesso: *${tenant.password}*
+🔗 Link Direto: ${link}
+
+Bons palpites e boas apostas!`;
+        const waUrl = `https://wa.me/55${tenant.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+        window.open(waUrl, '_blank');
+      };
+    } else {
+      setTimeout(() => closeActivatePlanModal(), 1200);
+    }
+  } catch (err) {
+    showToast('Erro ao ativar plano: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>⭐</span> <span>Confirmar e Ativar Acesso</span>';
+    }
   }
 };
 
