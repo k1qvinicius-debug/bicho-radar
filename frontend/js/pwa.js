@@ -30,6 +30,9 @@
     const homeCard = document.getElementById('home-card-install-app');
     if (homeCard) homeCard.style.display = 'none';
 
+    const authBox = document.getElementById('auth-gate-install-box');
+    if (authBox) authBox.style.display = 'none';
+
     const drawerBtn = document.getElementById('btn-drawer-install');
     if (drawerBtn) {
       drawerBtn.innerHTML = `
