@@ -2222,8 +2222,8 @@ function calculateConfidenceData(group) {
     badges.push({ icon: '📈', label: `${presencePct}% no 1º ao 5º recente`, color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' });
   }
 
-  if (bcMeta?.matriz_dia?.is_confluent || g.metadata?.matriz_dia?.is_confluent) {
-    const matMeta = bcMeta?.matriz_dia || g.metadata?.matriz_dia;
+  if (group.metadata?.matriz_dia?.is_confluent) {
+    const matMeta = group.metadata.matriz_dia;
     const confVal = Math.round(matMeta?.confluence_score || 0);
     points += 6;
     badges.push({ icon: '⚡', label: `Matriz 3x3 (${confVal}% no Grid)`, color: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm' });
