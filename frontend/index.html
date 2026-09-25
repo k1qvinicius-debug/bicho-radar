@@ -195,7 +195,7 @@
   </header>
 
   <!-- =========================================================================
-       MENU GAVETA LATERAL (SIDEBAR DRAWER)
+       MENU GAVETA LATERAL (SIDEBAR DRAWER) - VISUAL LIMPO E DIRETO AO PONTO
        ========================================================================= -->
   <div id="drawer-overlay" onclick="closeDrawer()"
     class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300 cursor-pointer">
@@ -205,8 +205,8 @@
     class="fixed top-0 left-0 bottom-0 z-[60] w-72 sm:w-80 bg-[#090D16] border-r border-slate-800/80 shadow-2xl p-4 flex flex-col justify-between transform -translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto">
     
     <!-- Conteúdo Superior -->
-    <div class="space-y-3.5">
-      <!-- Cabecalho Limpo -->
+    <div class="space-y-4">
+      <!-- Cabeçalho do Menu com Logo Oficial -->
       <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
         <div class="flex items-center gap-2.5 cursor-pointer shrink-0" onclick="navigateTo(null, 'home')">
           <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-b from-slate-800 to-slate-950 border border-amber-500/60 shadow-lg shadow-amber-500/30 flex items-center justify-center p-0.5 shrink-0 overflow-hidden">
@@ -223,25 +223,39 @@
             </div>
           </div>
         </div>
-        <button onclick="closeDrawer()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" title="Fechar Menu">
+        <button type="button" onclick="closeDrawer()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" title="Fechar Menu">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
-      <!-- Itens Principais de Navegação Rápida -->
+
+      <!-- SEÇÃO 1: NAVEGAÇÃO PRINCIPAL -->
       <div class="space-y-1">
+        <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 px-2 block mb-1">Navegação Principal</span>
+        
         <button type="button" onclick="navigateTo(null, 'home')" id="sidebar-btn-home"
           class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
           <span class="text-sm">🏠</span>
-          <span>Início (Visão Geral)</span>
+          <span>Início</span>
         </button>
+
         <button type="button" onclick="navigateTo(null, 'palpites')" id="sidebar-btn-palpites"
           class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
           <div class="flex items-center gap-2.5">
             <span class="text-sm">🎯</span>
-            <span>Palpites do Motor IA</span>
+            <span>Jogos Prontos</span>
           </div>
-          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">Motor</span>
+          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Hoje</span>
         </button>
+
+        <button type="button" onclick="navigateTo(null, 'matriz')" id="sidebar-btn-matriz"
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm">🔑</span>
+            <span>Chave Mestra</span>
+          </div>
+          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Dia & Mês</span>
+        </button>
+
         <button type="button" onclick="navigateTo(null, 'resultados')" id="sidebar-btn-resultados"
           class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
           <span class="text-sm">📋</span>
@@ -249,169 +263,85 @@
         </button>
       </div>
 
-      <!-- Seção Loterias e Subgrupos -->
-      <div class="space-y-1.5">
-        <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 px-2 block mb-0.5">🎲 Loterias & Subgrupos</span>
+      <!-- SEÇÃO 2: LOTERIAS (SELEÇÃO DIRETA) -->
+      <div class="space-y-1 pt-2 border-t border-slate-800/80">
+        <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 px-2 block mb-1">Loterias Oficiais</span>
 
-        <!-- Rio de Janeiro -->
-        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-RJ">
-          <button type="button" onclick="toggleLotteryAccordion('RJ')"
-            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
-            <div class="flex items-center gap-2">
-              <span class="text-sm">🌴</span>
-              <span>Rio de Janeiro</span>
-            </div>
-            <svg id="acc-icon-RJ" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div id="acc-content-RJ" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
-            <button type="button" onclick="navigateTo('RJ', 'palpites')" id="subnav-RJ-palpites"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🎯</span> <span>Palpites do Motor</span>
-            </button>
-            <button type="button" onclick="navigateTo('RJ', 'atrasados')" id="subnav-RJ-atrasados"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>⏱️</span> <span>Mais Atrasados</span>
-            </button>
-            <button type="button" onclick="navigateTo('RJ', 'puxadas')" id="subnav-RJ-puxadas"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🧲</span> <span>Radar de Puxadas</span>
-            </button>
+        <button type="button" onclick="navigateTo('RJ', 'palpites')" id="sidebar-lottery-RJ"
+          class="w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm">🌴</span>
+            <span>Rio de Janeiro (RJ)</span>
           </div>
-        </div>
+          <span class="text-[9px] text-slate-400">PTM / Coruja</span>
+        </button>
 
-        <!-- Look -->
-        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-LOOK">
-          <button type="button" onclick="toggleLotteryAccordion('LOOK')"
-            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
-            <div class="flex items-center gap-2">
-              <span class="text-sm">🌾</span>
-              <span>Look</span>
-            </div>
-            <svg id="acc-icon-LOOK" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div id="acc-content-LOOK" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
-            <button type="button" onclick="navigateTo('LOOK', 'palpites')" id="subnav-LOOK-palpites"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🎯</span> <span>Palpites do Motor</span>
-            </button>
-            <button type="button" onclick="navigateTo('LOOK', 'atrasados')" id="subnav-LOOK-atrasados"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>⏱️</span> <span>Mais Atrasados</span>
-            </button>
-            <button type="button" onclick="navigateTo('LOOK', 'puxadas')" id="subnav-LOOK-puxadas"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🧲</span> <span>Radar de Puxadas</span>
-            </button>
+        <button type="button" onclick="navigateTo('LOOK', 'palpites')" id="sidebar-lottery-LOOK"
+          class="w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm">🌾</span>
+            <span>Look Loterias (GO/NE)</span>
           </div>
-        </div>
+          <span class="text-[9px] text-slate-400">11h às 21h</span>
+        </button>
 
-        <!-- São Paulo -->
-        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-SP">
-          <button type="button" onclick="toggleLotteryAccordion('SP')"
-            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
-            <div class="flex items-center gap-2">
-              <span class="text-sm">🏙️</span>
-              <span>São Paulo</span>
-            </div>
-            <svg id="acc-icon-SP" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div id="acc-content-SP" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
-            <button type="button" onclick="navigateTo('SP', 'palpites')" id="subnav-SP-palpites"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🎯</span> <span>Palpites do Motor</span>
-            </button>
-            <button type="button" onclick="navigateTo('SP', 'atrasados')" id="subnav-SP-atrasados"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>⏱️</span> <span>Mais Atrasados</span>
-            </button>
-            <button type="button" onclick="navigateTo('SP', 'puxadas')" id="subnav-SP-puxadas"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🧲</span> <span>Radar de Puxadas</span>
-            </button>
+        <button type="button" onclick="navigateTo('SP', 'palpites')" id="sidebar-lottery-SP"
+          class="w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm">🏙️</span>
+            <span>São Paulo (SP)</span>
           </div>
-        </div>
+          <span class="text-[9px] text-slate-400">Bandeirantes</span>
+        </button>
 
-        <!-- Loteria Nacional -->
-        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-NACIONAL">
-          <button type="button" onclick="toggleLotteryAccordion('NACIONAL')"
-            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
-            <div class="flex items-center gap-2">
-              <span class="text-sm">🇧🇷</span>
-              <span>Loteria Nacional</span>
-            </div>
-            <svg id="acc-icon-NACIONAL" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div id="acc-content-NACIONAL" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
-            <button type="button" onclick="navigateTo('NACIONAL', 'palpites')" id="subnav-NACIONAL-palpites"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🎯</span> <span>Palpites do Motor</span>
-            </button>
-            <button type="button" onclick="navigateTo('NACIONAL', 'atrasados')" id="subnav-NACIONAL-atrasados"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>⏱️</span> <span>Mais Atrasados</span>
-            </button>
-            <button type="button" onclick="navigateTo('NACIONAL', 'puxadas')" id="subnav-NACIONAL-puxadas"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🧲</span> <span>Radar de Puxadas</span>
-            </button>
+        <button type="button" onclick="navigateTo('NACIONAL', 'palpites')" id="sidebar-lottery-NACIONAL"
+          class="w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm">🇧🇷</span>
+            <span>Nacional & Federal</span>
           </div>
-        </div>
-
-        <!-- Loteria Federal -->
-        <div class="lottery-group rounded-xl border border-slate-800/60 bg-slate-900/40 overflow-hidden transition-all" id="group-FEDERAL">
-          <button type="button" onclick="toggleLotteryAccordion('FEDERAL')"
-            class="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800/50 transition-colors cursor-pointer">
-            <div class="flex items-center gap-2">
-              <span class="text-sm">🏛️</span>
-              <span>Loteria Federal</span>
-            </div>
-            <svg id="acc-icon-FEDERAL" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div id="acc-content-FEDERAL" class="lottery-sublist pl-5 pr-2 py-1 space-y-0.5 border-t border-slate-800/40 hidden">
-            <button type="button" onclick="navigateTo('FEDERAL', 'palpites')" id="subnav-FEDERAL-palpites"
-              class="subitem-btn w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer">
-              <span>🎯</span> <span>Palpites (Qua & Dom)</span>
-            </button>
-          </div>
-        </div>
+          <span class="text-[9px] text-slate-400">Multi-Banca</span>
+        </button>
       </div>
 
+      <!-- SEÇÃO 3: FERRAMENTAS & ESTATÍSTICAS -->
+      <div class="space-y-1 pt-2 border-t border-slate-800/80">
+        <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 px-2 block mb-1">Estatísticas & Análises</span>
 
-      <!-- Cruz do Dia (Item ÚNICO e Universal!) -->
-      <div class="pt-2 border-t border-slate-800/80 space-y-1">
-        <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 px-2 block mb-0.5">⚡ Ferramentas Globais</span>
-
-                <button type="button" onclick="navigateTo(null, 'milhares-atrasadas')" id="sidebar-btn-milhares-atrasadas"
+        <button type="button" onclick="navigateTo(null, 'puxadas')" id="sidebar-btn-puxadas"
           class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
           <div class="flex items-center gap-2.5">
-            <span class="text-sm">🎯</span>
-            <span>Milhares Atrasadas</span>
+            <span class="text-sm">🧲</span>
+            <span>Radar de Puxadas</span>
           </div>
-          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Radar</span>
+          <span class="text-[9px] text-slate-500">Histórico</span>
         </button>
+
+        <button type="button" onclick="navigateTo(null, 'atrasados')" id="sidebar-btn-atrasados"
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm">⏱️</span>
+            <span>Bichos Mais Atrasados</span>
+          </div>
+          <span class="text-[9px] text-slate-500">Frequência</span>
+        </button>
+
         <button type="button" onclick="navigateTo(null, 'cruz')" id="sidebar-btn-cruz"
           class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
           <div class="flex items-center gap-2.5">
             <span class="text-sm">✖️</span>
             <span>Cruz do Dia</span>
           </div>
-          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Universal</span>
+          <span class="text-[9px] text-slate-500">Universal</span>
         </button>
+
         <button type="button" onclick="navigateTo(null, 'centena-master')" id="sidebar-btn-centena-master"
           class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
           <div class="flex items-center gap-2.5">
             <span class="text-sm">🎯</span>
             <span>Centena Master</span>
           </div>
-          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Soma da Data</span>
-        </button>
-        <button type="button" onclick="navigateTo(null, 'matriz')" id="sidebar-btn-matriz"
-          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">⚡</span>
-            <span>Matriz 3x3 do Dia</span>
-          </div>
-          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Dia & Mês</span>
+          <span class="text-[9px] text-slate-500">Soma da Data</span>
         </button>
 
         <a href="/historico" id="sidebar-btn-historico"
@@ -419,12 +349,22 @@
           <span class="text-sm">📊</span>
           <span>Histórico de Assertividade</span>
         </a>
+
+        <!-- Elementos ocultos para garantir compatibilidade 100% com rotinas JS existentes -->
+        <div class="hidden">
+          <button id="sidebar-btn-milhares-atrasadas"></button>
+          <div id="acc-content-RJ"></div>
+          <div id="acc-content-LOOK"></div>
+          <div id="acc-content-SP"></div>
+          <div id="acc-content-NACIONAL"></div>
+          <div id="acc-content-FEDERAL"></div>
+          <div id="acc-content-LOTEP"></div>
+        </div>
       </div>
     </div>
 
-    <!-- Drawer Footer: Acesso Restrito / Logout -->
-
-    <div class="pt-3 border-t border-slate-800/80 space-y-2">
+    <!-- Drawer Footer: Instalar App / Planos / Sair -->
+    <div class="pt-3 border-t border-slate-800/80 space-y-2 mt-4">
       <button type="button" id="btn-drawer-install" onclick="closeDrawer(); triggerPWAInstall();"
         class="w-full px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 hover:from-emerald-500/25 hover:to-teal-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-black flex items-center justify-between transition-all shadow-sm cursor-pointer">
         <div class="flex items-center gap-2">
@@ -443,7 +383,7 @@
       <button type="button" onclick="handleDrawerLogout()"
         class="w-full px-3 py-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer">
         <span class="text-sm">🚪</span>
-        <span>Sair / Trocar Chave</span>
+        <span>Sair da Conta</span>
       </button>
     </div>
   </aside>
@@ -501,7 +441,7 @@
           </div>
           <div class="text-left">
             <div class="text-xs font-black text-amber-300">Acesso VIP Total: 5 Dias Sem Pagar Nada</div>
-            <div class="text-[11px] text-slate-300 leading-snug">Cadastre seu WhatsApp para liberar palpites do robô, Centena Master e estatísticas em tempo real.</div>
+            <div class="text-[11px] text-slate-300 leading-snug">Cadastre seu WhatsApp para liberar Jogos Prontos e análises, Centena Master e estatísticas em tempo real.</div>
           </div>
         </div>
 
@@ -630,7 +570,7 @@
     <!-- BARRA DE CONTEXTO E HORÁRIOS (MINIMALISTA, ELEGANTE E COMPACTA) -->
     <!-- =================================================================== -->
     <!-- =================================================================== -->
-      <!-- BANNER DE DESTAQUE: BINGO DE MILHAR / CENTENA PREMIADA PELA IA      -->
+      <!-- BANNER DE DESTAQUE: BINGO DE MILHAR / CENTENA PREMIADA PELO RADAR      -->
       <!-- =================================================================== -->
       <div id="milhar-bingo-banner-container" class="hidden mb-2"></div>
 
@@ -642,7 +582,7 @@
           <div class="flex items-center gap-1.5">
             <span id="slots-lottery-name" class="text-xs sm:text-sm font-black text-slate-100 uppercase tracking-wide">Rio de Janeiro</span>
             <span class="text-slate-600 font-bold">•</span>
-            <span id="current-screen-badge" class="text-xs font-bold text-emerald-400">Palpites do Motor</span>
+            <span id="current-screen-badge" class="text-xs font-bold text-emerald-400">Jogos Prontos</span>
           </div>
         </div>
 
@@ -676,371 +616,235 @@
 
     <!-- =================================================================== -->
     <!-- TELA 1: HOME / INÍCIO (APRESENTAÇÃO, VISÃO GERAL E ATALHOS) -->
+        <!-- =================================================================== -->
+    <!-- TELA 1: HOME / INÍCIO (SIMPLIFICADA, LIMPA E FOCADA EM LOTERIAS)     -->
     <!-- =================================================================== -->
     <div id="view-home" class="space-y-4 animate-fade-in">
-      <!-- Card Hero de Boas-vindas -->
-      <div class="card-glass p-4 sm:p-5 relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 rounded-2xl shadow-lg">
-        <div class="relative z-10 space-y-3">
-          <div class="flex items-center justify-between gap-2 flex-wrap">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Sistema Operacional • 25 Grupos Mapeados
-            </span>
-            <span class="text-[11px] text-slate-400 font-mono" id="home-today-date">Hoje</span>
-          </div>
-
-          <!-- Hero com Destaque da Águia Radar -->
-          <div class="flex items-center justify-between gap-4">
-            <div class="space-y-1.5 flex-1">
-              <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Olá, <span id="home-user-name" class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-300 to-amber-300">Testador</span> 👋
-              </h2>
-              <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl">
-                Bem-vindo ao <strong>Bicho Master Pro</strong>. Equipado com o novo motor <strong>Águia Radar</strong>: visão cirúrgica para rastrear atrasos, frequências de dezenas e fechamento preditivo de milhares.
-              </p>
-              <div class="flex items-center gap-2 pt-1 flex-wrap">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px] font-black tracking-wider uppercase shadow-sm">
-                  <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-                  Radar Ativo
-                </span>
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-black tracking-wider uppercase">
-                  ⭐ Sniper Analytics
-                </span>
-              </div>
-            </div>
-
-            <!-- Emblema 3D Águia Radar em Alta Visibilidade -->
-            <div class="relative group shrink-0 flex flex-col items-center cursor-pointer" onclick="switchScreen('palpites')" title="Ver Radar Preditivo">
-              <div class="absolute -inset-2 bg-gradient-to-tr from-cyan-500/40 via-indigo-500/25 to-amber-500/30 rounded-3xl blur-lg opacity-80 group-hover:opacity-100 transition duration-500 animate-pulse"></div>
-              <div class="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden border-2 border-cyan-400/60 bg-slate-950/90 shadow-2xl shadow-cyan-500/30 flex items-center justify-center p-1 group-hover:border-cyan-300 group-hover:shadow-cyan-400/50 transition-all">
-                <img src="/img/eagle_radar_badge.png?v=87.0" alt="Bicho Master Águia Radar" class="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(6,182,212,0.7)] group-hover:scale-105 transition-transform duration-300" />
-              </div>
-              <span class="mt-1 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1">
-                <span>🎯</span> RADAR MASTER
-              </span>
-            </div>
-          </div>
-
-          <!-- Card de Destaque do Próximo Horário -->
-          <div class="pt-2">
-            <div class="p-3.5 sm:p-4 rounded-2xl bg-slate-950/70 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
-              <div>
-                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400 block mb-0.5">Próxima Extração Alvo</span>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span id="home-next-slot-name" class="text-base sm:text-lg font-black text-white">PTM - 11:20</span>
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">Automático</span>
-                  <div id="home-top-thermometer-badge" class="hidden items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold"></div>
-                </div>
-                <p id="home-analyzed-summary" class="text-[11px] text-slate-400 mt-0.5">Calculando dados históricos...</p>
-              </div>
-
-              <button type="button" onclick="switchScreen('palpites')"
-                class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer shrink-0">
-                <span>🎯 Ver Palpites Deste Horário</span>
-                <span>→</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       
-      <!-- Tópico Especial: Baixe o App Oficial Bicho Master -->
-      <div id="home-card-install-app" class="relative overflow-hidden rounded-2xl border border-emerald-500/50 bg-gradient-to-r from-emerald-950/50 via-slate-900 to-teal-950/40 p-4 sm:p-5 shadow-xl shadow-emerald-950/40 transition-all hover:border-emerald-400">
-        <div class="absolute -top-12 -right-12 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-teal-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <!-- Cabeçalho de Boas-Vindas Limpo e Elegante -->
+      <div class="card-glass p-4 sm:p-5 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 rounded-2xl shadow-lg">
+        <div class="flex items-center justify-between gap-3">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Sistema Ativo
+              </span>
+              <span class="text-[10px] text-slate-500 font-mono" id="home-today-date">Hoje</span>
+            </div>
+            <h2 class="text-lg sm:text-xl font-black text-white tracking-tight">
+              Olá, <span id="home-user-name" class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-200 to-amber-500">Apostador</span> 👋
+            </h2>
+            <p class="text-xs text-slate-300">
+              Escolha sua loteria favorita para acessar os <strong>jogos prontos</strong> de hoje:
+            </p>
+          </div>
 
-        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div class="flex items-start sm:items-center gap-3.5">
-            <div class="relative shrink-0 cursor-pointer" onclick="triggerPWAInstall()">
-              <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-emerald-400/70 bg-slate-950 shadow-lg shadow-emerald-500/30 flex items-center justify-center p-0.5 group">
-                <img src="/img/icon-192.png?v=2.0" alt="Bicho Master App" class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform" />
+          <!-- Ícone Oficial da Águia -->
+          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-950 border border-amber-500/50 shadow-lg shadow-amber-500/20 flex items-center justify-center p-1 shrink-0">
+            <img src="/img/eagle_radar_icon.png?v=87.0" alt="Bicho Master" class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+          </div>
+        </div>
+
+        <!-- Elementos ocultos para garantir que o JS continue funcionando perfeitamente -->
+        <span id="home-next-slot-name" class="hidden"></span>
+        <span id="home-analyzed-summary" class="hidden"></span>
+        <span id="home-top-thermometer-badge" class="hidden"></span>
+      </div>
+
+      <!-- SEÇÃO 1: QUAL LOTERIA VOCÊ JOGA HOJE? (GRADE 2x2 LIMPA) -->
+      <div class="space-y-2.5">
+        <div class="flex items-center justify-between px-1">
+          <span class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <span>🎲</span> Loterias Oficiais
+          </span>
+          <span class="text-[10px] text-slate-500">Toque para ver os jogos prontos</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Card 1: Rio de Janeiro -->
+          <div onclick="navigateTo('RJ', 'palpites')"
+            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-amber-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-amber-500/10 active:scale-98">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                  🌴
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Rio de Janeiro (RJ)</h3>
+                  <p class="text-[11px] text-slate-400 mt-0.5">PTM • PT • PTV • PTN • Corujinha</p>
+                </div>
               </div>
-              <span class="absolute -bottom-1 -right-1 text-[9px] font-black px-1.5 py-0.2 rounded-full bg-emerald-500 text-slate-950 border border-emerald-300 shadow">
-                APP
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                5 Sorteios/dia
               </span>
             </div>
-
-            <div class="space-y-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-1.5">
-                  <span>📲</span> Baixar Aplicativo Bicho Master
-                </h3>
-                <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-black uppercase">
-                  Oficial • Grátis
-                </span>
-              </div>
-              <p class="text-xs text-slate-300 max-w-xl leading-relaxed">
-                Tenha o Bicho Master direto na tela do seu celular! Abre em tela cheia como aplicativo nativo, não ocupa memória e atualiza automaticamente.
-              </p>
-              <div class="flex items-center gap-3 pt-0.5 text-[11px] text-slate-400 flex-wrap">
-                <span class="flex items-center gap-1 text-slate-300"><span class="text-emerald-400 font-bold">✓</span> Android & iPhone</span>
-                <span class="flex items-center gap-1 text-slate-300"><span class="text-emerald-400 font-bold">✓</span> Acesso Instantâneo</span>
-                <span class="flex items-center gap-1 text-slate-300"><span class="text-emerald-400 font-bold">✓</span> 0% de Memória gasta</span>
-              </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-amber-400">
+              <span>Ver Jogos Prontos</span>
+              <span class="group-hover:translate-x-1 transition-transform">➔</span>
             </div>
           </div>
 
-          <div class="flex flex-col sm:items-end gap-1.5 shrink-0">
-            <button type="button" onclick="triggerPWAInstall()"
-              class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
-              <span>📲</span>
-              <span>Baixar / Instalar Agora</span>
-            </button>
-            <span class="text-[10px] text-slate-400 text-center sm:text-right">Clique para adicionar à sua tela inicial</span>
+          <!-- Card 2: Look Loterias -->
+          <div onclick="navigateTo('LOOK', 'palpites')"
+            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-emerald-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-emerald-500/10 active:scale-98">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                  🌾
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white group-hover:text-emerald-300 transition-colors">Look Loterias (GO/Nordeste)</h3>
+                  <p class="text-[11px] text-slate-400 mt-0.5">11h • 14h • 16h • 18h • 21h</p>
+                </div>
+              </div>
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                5 Sorteios/dia
+              </span>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-emerald-400">
+              <span>Ver Jogos Prontos</span>
+              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+            </div>
+          </div>
+
+          <!-- Card 3: São Paulo -->
+          <div onclick="navigateTo('SP', 'palpites')"
+            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-cyan-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-cyan-500/10 active:scale-98">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                  🏙️
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white group-hover:text-cyan-300 transition-colors">São Paulo (SP)</h3>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Bandeirantes & Extrações Diárias</p>
+                </div>
+              </div>
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
+                Diário
+              </span>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-cyan-400">
+              <span>Ver Jogos Prontos</span>
+              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+            </div>
+          </div>
+
+          <!-- Card 4: Nacional & Federal -->
+          <div onclick="navigateTo('NACIONAL', 'palpites')"
+            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-indigo-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-indigo-500/10 active:scale-98">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                  🇧🇷
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white group-hover:text-indigo-300 transition-colors">Nacional & Federal</h3>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Nacional Diária • Federal Quarta e Sábado</p>
+                </div>
+              </div>
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                Multi-Banca
+              </span>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-indigo-400">
+              <span>Ver Jogos Prontos</span>
+              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Grade de Acesso Rápido às Telas Principais -->
-      <div>
-        <div class="flex items-center justify-between mb-2.5 px-1">
+      <!-- SEÇÃO 2: DESTAQUES DO DIA (CHAVE MESTRA & RESULTADOS) -->
+      <div class="space-y-2.5">
+        <div class="flex items-center justify-between px-1">
           <span class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-            <span>⚡</span> Acesso Rápido às Ferramentas
+            <span>⚡</span> Destaques do Dia
           </span>
-          <span class="text-[10px] text-slate-500">Clique para abrir diretamente</span>
+          <span class="text-[10px] text-slate-500">Cálculos matemáticos e conferência</span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <!-- Card 1: Palpites por Tópicos -->
-          <div onclick="switchScreen('palpites')"
-            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
-                🎯
-              </div>
-              <div>
-                <h3 class="text-sm font-black text-white group-hover:text-indigo-300 transition-colors">Palpites do Horário</h3>
-                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Fichas completas por bicho, duques de dezena combinados e gerador personalizado.
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-indigo-400">
-              <span>Acessar Palpites</span>
-              <span class="group-hover:translate-x-1 transition-transform">→</span>
-            </div>
-          </div>
-
-          <!-- Card 2: Cruz do Dia -->
-          <div onclick="switchScreen('cruz')"
-            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-lg bg-cyan-600/20 border border-cyan-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
-                ✖️
-              </div>
-              <div>
-                <div class="flex items-center gap-1.5">
-                  <h3 class="text-sm font-black text-white group-hover:text-cyan-300 transition-colors">Cruz do Dia</h3>
-                  <span class="text-[9px] font-bold px-1 rounded bg-amber-500/20 text-amber-300">Bicho do Dia</span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Card Chave Mestra (Ex-Chave Mestra) -->
+          <div onclick="navigateTo(null, 'matriz')"
+            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-amber-500/40 hover:border-amber-400 bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-900 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-amber-500/15 active:scale-98">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform shadow-[0_0_12px_rgba(245,158,11,0.3)]">
+                  🔑
                 </div>
-                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Cálculo tradicional da regra do +3 com os 4 dígitos cardeais e milhares formadas.
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-cyan-400">
-              <span>Abrir Cruz do Dia</span>
-              <span class="group-hover:translate-x-1 transition-transform">→</span>
-            </div>
-          </div>
-
-          
-          <!-- Card: Centena Master -->
-          <div onclick="switchScreen('centena-master')"
-            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
-                🎯
-              </div>
-              <div>
-                <div class="flex items-center gap-1.5">
-                  <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Centena Master</h3>
-                  <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Soma da Data</span>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Chave Mestra</h3>
+                    <span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">Data de Hoje</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                    Grade matemática que cruza dia e mês para extrair centenas e milhares quentes.
+                  </p>
                 </div>
-                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  4 Milhares e Centenas de alta assertividade calculadas pela matemática da data do dia.
-                </p>
               </div>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-amber-400">
-              <span>Abrir Centena Master</span>
-              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-amber-400">
+              <span>Abrir Chave Mestra</span>
+              <span class="group-hover:translate-x-1 transition-transform">➔</span>
             </div>
           </div>
 
-          <!-- Card: Matriz 3x3 do Dia -->
-          <div onclick="switchScreen('matriz')"
-            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
-                ⚡
-              </div>
-              <div>
-                <div class="flex items-center gap-1.5">
-                  <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Matriz 3x3 do Dia</h3>
-                  <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Dia & Mês</span>
+          <!-- Card Resultados dos Sorteios -->
+          <div onclick="navigateTo(null, 'resultados')"
+            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-emerald-500/10 active:scale-98">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                  📋
                 </div>
-                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Grade geométrica que cruza a data do dia e mês para extrair centenas e milhares de alta precisão.
-                </p>
+                <div>
+                  <h3 class="text-sm font-black text-white group-hover:text-emerald-300 transition-colors">Resultados dos Sorteios</h3>
+                  <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                    Confira as apurações em tempo real de hoje e dos últimos dias de todas as bancas.
+                  </p>
+                </div>
               </div>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-amber-400">
-              <span>Abrir Matriz 3x3</span>
-              <span class="group-hover:translate-x-1 transition-transform">→</span>
-            </div>
-          </div>
-<!-- Card 3: Radar de Puxadas -->
-          <div onclick="switchScreen('puxadas')"
-            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-violet-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-lg bg-violet-600/20 border border-violet-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
-                🧲
-              </div>
-              <div>
-                <h3 class="text-sm font-black text-white group-hover:text-violet-300 transition-colors">Radar de Puxadas</h3>
-                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Identifica quais animais são atraídos após a última apuração, com centenas quentes.
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-violet-400">
-              <span>Ver Puxadas</span>
-              <span class="group-hover:translate-x-1 transition-transform">→</span>
-            </div>
-          </div>
-
-          <!-- Card 4: Bichos Atrasados -->
-          <div onclick="switchScreen('atrasados')"
-            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-lg bg-amber-600/20 border border-amber-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
-                ⏱️
-              </div>
-              <div>
-                <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Bichos Atrasados</h3>
-                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Ranking dos 25 animais do mais atrasado ao mais frequente nas apurações.
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-amber-400">
-              <span>Ver Ranking Completo</span>
-              <span class="group-hover:translate-x-1 transition-transform">→</span>
-            </div>
-          </div>
-
-          <!-- Card 5: Resultados das Extrações -->
-          <div onclick="switchScreen('resultados')"
-            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-lg bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
-                📋
-              </div>
-              <div>
-                <h3 class="text-sm font-black text-white group-hover:text-emerald-300 transition-colors">Resultados das Extrações</h3>
-                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Resultados oficiais de hoje e dos últimos 7 dias com sincronização direta.
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-emerald-400">
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-emerald-400">
               <span>Conferir Resultados</span>
-              <span class="group-hover:translate-x-1 transition-transform">→</span>
+              <span class="group-hover:translate-x-1 transition-transform">➔</span>
             </div>
-          </div>
-
-          <!-- Card 6: Meu Bicho Fixo -->
-          <div onclick="switchScreen('palpites'); switchPalpitesTopic('fixed');"
-            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-pink-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-lg bg-pink-600/20 border border-pink-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
-                🎲
-              </div>
-              <div>
-                <h3 class="text-sm font-black text-white group-hover:text-pink-300 transition-colors">Meu Bicho Fixo</h3>
-                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Escolha qualquer bicho e gere o fechamento de dezenas complementares para jogar do 1º ao 5º prêmio.
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-pink-400">
-              <span>Gerar Fechamento</span>
-              <span class="group-hover:translate-x-1 transition-transform">→</span>
-            </div>
-          </div>
-          <!-- Card 7: Milhares Atrasadas & Frequentes -->
-          <div onclick="switchScreen('milhares-atrasadas')"
-            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-lg bg-amber-600/20 border border-amber-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
-                🎯
-              </div>
-              <div>
-                <div class="flex items-center gap-1.5">
-                  <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Milhares Atrasadas</h3>
-                  <span class="text-[9px] font-bold px-1 rounded bg-amber-500/20 text-amber-300">Radar Pro</span>
-                </div>
-                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Ranking das milhares mais atrasadas (secas) e frequentes do Rio e Federal, além de rastreador individual de 0000 a 9999.
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-amber-400">
-              <span>Rastrear Milhares</span>
-              <span class="group-hover:translate-x-1 transition-transform">→</span>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Seção Educativa: Como Funciona o Bicho Master Pro -->
-      <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-slate-800 space-y-2.5">
-        <div class="flex items-center gap-2">
-          <span class="text-indigo-400 text-lg">💡</span>
-          <h3 class="text-sm font-black uppercase tracking-wider text-slate-100">Como Funciona o Bicho Master Pro</h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1.5">
-            <div class="flex items-center gap-2 text-indigo-400 font-bold text-xs">
-              <span>📡 1.</span> <span>Monitoramento Multi-Loterias</span>
-            </div>
-            <p class="text-[11px] text-slate-400 leading-relaxed">
-              O sistema lê e armazena em tempo real as extrações oficiais de todas as principais bancas: Rio de Janeiro (RJ), Federal, Look, Loteria Nacional e São Paulo (SP), mantendo históricos auditados e prontos para o motor estatístico.
-            </p>
-          </div>
-
-          <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1.5">
-            <div class="flex items-center gap-2 text-cyan-400 font-bold text-xs">
-              <span>🧠 2.</span> <span>Motor Anti-Aleatoriedade</span>
-            </div>
-            <p class="text-[11px] text-slate-400 leading-relaxed">
-              Cruzamos 5 fatores: Atrasos críticos, repetições históricas, puxadas do 1º prêmio, a Cruz do Dia e equilíbrio de quadrantes.
-            </p>
-          </div>
-
-          <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1.5">
-            <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs">
-              <span>🛡️ 3.</span> <span>Jogos Estruturados</span>
-            </div>
-            <p class="text-[11px] text-slate-400 leading-relaxed">
-              Em vez de apostar às cegas, você recebe jogos organizados por fichas de bicho e duques combinados com foco em cercado (1º ao 5º).
-            </p>
           </div>
         </div>
       </div>
 
-      <!-- Dica e Aviso Legal -->
-      <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 flex items-start gap-2.5">
-        <span class="text-amber-400 text-base shrink-0 mt-0.5">⚠️</span>
-        <p class="text-xs text-amber-200/90 leading-relaxed">
-          <strong>Aviso Importante:</strong> O Bicho Master Pro é uma ferramenta analítica baseada em estatística e probabilidades. O Jogo do Bicho é uma modalidade tradicional com fator de risco. Nunca aposte valores que possam comprometer seu orçamento. Jogue com responsabilidade.
-        </p>
+      <!-- SEÇÃO 3: BAIXAR O APP (CARD COMPACTO E ELEGANTE) -->
+      <div id="home-card-install-app" class="relative overflow-hidden rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-teal-950/30 p-3.5 sm:p-4 shadow-xl shadow-emerald-950/30 transition-all">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl overflow-hidden border border-emerald-400/60 bg-slate-950 p-0.5 shrink-0 shadow">
+              <img src="/img/icon-192.png?v=2.0" alt="App Águia" class="w-full h-full object-cover rounded-lg" />
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h4 class="text-xs sm:text-sm font-black text-white">Baixar Aplicativo Bicho Master</h4>
+                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Grátis</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">Acesso instantâneo com 1 toque no celular • Android & iPhone</p>
+            </div>
+          </div>
+          <button type="button" onclick="triggerPWAInstall()"
+            class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-900/50 active:scale-95 transition-all text-center cursor-pointer shrink-0">
+            📲 Instalar Agora
+          </button>
+        </div>
       </div>
+
+      <!-- Rodapé Discreto -->
+      <div class="pt-3 border-t border-slate-900 flex items-center justify-between text-[10px] text-slate-500 px-1">
+        <span>Bicho Master Pro © 2026</span>
+        <span>Estatísticas & Fechamentos Matemáticos</span>
+      </div>
+
     </div>
+
 
     <!-- =================================================================== -->
     <!-- TELA 2: PALPITES DO HORÁRIO (ORGANIZADA POR 3 TÓPICOS LIMPOS) -->
@@ -1582,7 +1386,7 @@
     </div>
 
     <!-- ============================================================== -->
-    <!-- TELA: MATRIZ 3X3 DO DIA (BASE DIA & MÊS) -->
+    <!-- TELA: CHAVE MESTRA DO DIA (BASE DIA & MÊS) -->
     <!-- ============================================================== -->
     <div id="view-matriz" class="space-y-4 animate-fade-in hidden">
       <!-- Barra Superior: Voltar + Ações -->
@@ -1610,7 +1414,7 @@
         </div>
       </div>
 
-      <!-- Card Principal da Matriz 3x3 -->
+      <!-- Card Principal da Chave Mestra -->
       <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-amber-500/30 space-y-4">
         <!-- Header: Título, Badge e Seletor de Data -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
@@ -1621,7 +1425,7 @@
             <div>
               <div class="flex items-center gap-2 flex-wrap">
                 <h2 class="text-base sm:text-lg font-black uppercase tracking-wider text-slate-100 flex items-center gap-1.5">
-                  MATRIZ 3X3 DO DIA
+                  CHAVE MESTRA DO DIA
                 </h2>
                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/30 text-amber-300 text-[10px] font-bold shadow-sm whitespace-nowrap">
                   <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
@@ -1760,10 +1564,10 @@
         <!-- Box Educativo / Metodologia Neutra -->
         <div class="p-3 rounded-xl bg-indigo-950/20 border border-indigo-500/20 text-[11px] text-slate-400 space-y-1.5 leading-relaxed">
           <div class="flex items-center gap-1.5 font-bold text-indigo-300">
-            <span>💡</span> <span>Como Funciona a Matriz 3x3 do Dia & Mês:</span>
+            <span>💡</span> <span>Como Funciona a Chave Mestra & Mês:</span>
           </div>
           <p>
-            A Matriz 3x3 organiza a data em uma grade matemática de 9 quadrantes onde a coluna esquerda e a coluna direita avançam em progressão modular, e a coluna central calcula os pontos focais de distância harmônica. Quando os animais recomendados pelo motor estatístico possuem suas dezenas e vértices confluentes com esta grade, a dispersão de palpites cai drasticamente e as centenas e milhares ganham máxima probabilidade matemática.
+            A Chave Mestra organiza a data em uma grade matemática de 9 quadrantes onde a coluna esquerda e a coluna direita avançam em progressão modular, e a coluna central calcula os pontos focais de distância harmônica. Quando os animais recomendados pelo motor estatístico possuem suas dezenas e vértices confluentes com esta grade, a dispersão de palpites cai drasticamente e as centenas e milhares ganham máxima probabilidade matemática.
           </p>
         </div>
       </div>
