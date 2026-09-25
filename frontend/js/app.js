@@ -1964,6 +1964,158 @@ async function loadAtrasadosModalList() {
 
 
 let currentReadyBetsData = null;
+let readyBetsDrawerState = {
+  main: false,
+  duques: true
+};
+
+window.toggleReadyBetsDetails = function(targetKey) {
+  const key = targetKey || 'main';
+  readyBetsDrawerState[key] = !readyBetsDrawerState[key];
+  
+  const drawer = document.getElementById(`ready-bets-drawer-${key}`);
+  const btnText = document.getElementById(`ready-bets-toggle-text-${key}`);
+  const btnIcon = document.getElementById(`ready-bets-toggle-icon-${key}`);
+  
+  if (drawer) {
+    if (readyBetsDrawerState[key]) {
+      drawer.classList.remove('hidden');
+      if (btnText) btnText.textContent = 'Recolher';
+      if (btnIcon) btnIcon.textContent = '▲';
+    } else {
+      drawer.classList.add('hidden');
+      if (btnText) btnText.textContent = 'Ver Detalhes';
+      if (btnIcon) btnIcon.textContent = '▼';
+    }
+  }
+};
+
+function buildReadyBetsHtml(g0, g1, g2, key, defaultOpen) {
+  const isOpen = defaultOpen || false;
+  return `
+    <div class="card-glass p-2.5 sm:p-3 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-900/90 to-indigo-950/40 shadow-md animate-fade-in mb-3">
+      <!-- Linha 1: Resumo Inline Compacto & Acoes -->
+      <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+        <div class="flex items-center gap-2 min-w-0 flex-wrap">
+          <span class="text-base sm:text-lg shrink-0">👑</span>
+          <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+            <span class="text-xs font-black text-amber-300 uppercase tracking-tight">Jogos Prontos</span>
+            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">1º ao 5º</span>
+
+            <!-- Resumo Terno em Chips Compactos -->
+            <div class="inline-flex items-center gap-1 bg-slate-950/90 px-2 py-0.5 rounded-lg border border-amber-500/25 text-xs">
+              <span class="text-slate-400 font-bold text-[10px]">Terno:</span>
+              <span class="font-bold text-amber-200">${g0.animal_emoji || '🐾'} ${g0.value}</span>
+              <span class="text-slate-600">+</span>
+              <span class="font-bold text-amber-200">${g1.animal_emoji || '🐾'} ${g1.value}</span>
+              <span class="text-slate-600">+</span>
+              <span class="font-bold text-amber-200">${g2.animal_emoji || '🐾'} ${g2.value}</span>
+            </div>
+
+            <!-- Resumo Passes em Chips Compactos -->
+            <div class="hidden sm:inline-flex items-center gap-1 bg-slate-950/90 px-2 py-0.5 rounded-lg border border-indigo-500/25 text-[11px]">
+              <span class="text-slate-400 font-bold text-[10px]">Passes:</span>
+              <span class="font-mono text-indigo-200 font-bold">${g0.value}+${g1.value}</span>
+              <span class="text-slate-600">•</span>
+              <span class="font-mono text-indigo-200 font-bold">${g0.value}+${g2.value}</span>
+              <span class="text-slate-600">•</span>
+              <span class="font-mono text-indigo-200 font-bold">${g1.value}+${g2.value}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botoes de Acao: Copiar e Expandir -->
+        <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+          <button type="button" onclick="copyReadyBetsToClipboard()"
+            class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm">
+            <span>📋</span> <span>Copiar</span>
+          </button>
+          <button type="button" onclick="toggleReadyBetsDetails('${key}')" id="btn-toggle-ready-bets-${key}"
+            class="px-2 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer">
+            <span id="ready-bets-toggle-text-${key}">${isOpen ? 'Recolher' : 'Ver Detalhes'}</span>
+            <span id="ready-bets-toggle-icon-${key}">${isOpen ? '▲' : '▼'}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Gaveta de Detalhes (Expansivel) -->
+      <div id="ready-bets-drawer-${key}" class="${isOpen ? '' : 'hidden'} pt-2.5 mt-2 border-t border-amber-500/20 space-y-2 animate-fade-in">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <!-- Coluna 1: Terno de Grupo de Ouro -->
+          <div class="bg-slate-950/70 p-2.5 rounded-lg border border-amber-500/25 space-y-1.5">
+            <div class="flex items-center justify-between text-[11px] font-bold">
+              <span class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                <span>🏆</span> Terno de Ouro (1º ao 5º)
+              </span>
+              <span class="text-[10px] text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30">
+                Maior Probabilidade
+              </span>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-1.5 text-center my-1">
+              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30 flex flex-col items-center justify-center">
+                <span class="text-xl mb-0.5">${g0.animal_emoji || '🐾'}</span>
+                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Gr. ${g0.value}</span>
+                <span class="text-xs font-black text-amber-200 truncate w-full">${g0.animal_name}</span>
+              </div>
+              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30 flex flex-col items-center justify-center">
+                <span class="text-xl mb-0.5">${g1.animal_emoji || '🐾'}</span>
+                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Gr. ${g1.value}</span>
+                <span class="text-xs font-black text-amber-200 truncate w-full">${g1.animal_name}</span>
+              </div>
+              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30 flex flex-col items-center justify-center">
+                <span class="text-xl mb-0.5">${g2.animal_emoji || '🐾'}</span>
+                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Gr. ${g2.value}</span>
+                <span class="text-xs font-black text-amber-200 truncate w-full">${g2.animal_name}</span>
+              </div>
+            </div>
+
+            <p class="text-[10px] text-slate-400 text-center pt-0.5">💡 Cercado 1º ao 5º: Bancas pagam ate <strong class="text-amber-300">1.500x</strong> se os 3 sairem!</p>
+          </div>
+
+          <!-- Coluna 2: Passes / Duques de Grupo -->
+          <div class="bg-slate-950/70 p-2.5 rounded-lg border border-indigo-500/25 space-y-1.5">
+            <div class="flex items-center justify-between text-[11px] font-bold">
+              <span class="text-xs font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1">
+                <span>🤝</span> Passes / Duques (1º ao 5º)
+              </span>
+              <span class="text-[10px] text-slate-400 font-semibold">Top 3 Duplas</span>
+            </div>
+
+            <div class="space-y-1.5">
+              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-sm">${g0.animal_emoji || '🐾'} ${g1.animal_emoji || '🐾'}</span>
+                  <span class="font-bold text-slate-200">${g0.animal_name} + ${g1.animal_name}</span>
+                  <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g0.value}+${g1.value})</span>
+                </div>
+                <span class="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">Top 1</span>
+              </div>
+
+              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-sm">${g0.animal_emoji || '🐾'} ${g2.animal_emoji || '🐾'}</span>
+                  <span class="font-bold text-slate-200">${g0.animal_name} + ${g2.animal_name}</span>
+                  <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g0.value}+${g2.value})</span>
+                </div>
+                <span class="text-[9px] font-bold text-slate-400 bg-slate-800 px-1.5 py-0.2 rounded">Top 2</span>
+              </div>
+
+              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-sm">${g1.animal_emoji || '🐾'} ${g2.animal_emoji || '🐾'}</span>
+                  <span class="font-bold text-slate-200">${g1.animal_name} + ${g2.animal_name}</span>
+                  <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g1.value}+${g2.value})</span>
+                </div>
+                <span class="text-[9px] font-bold text-slate-400 bg-slate-800 px-1.5 py-0.2 rounded">Top 3</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 function renderReadyBetsCard(groups, targetSlot, targetDate) {
   const container = document.getElementById('ready-bets-container');
@@ -1987,112 +2139,15 @@ function renderReadyBetsCard(groups, targetSlot, targetDate) {
     g2
   };
 
-  const cardHtml = `
-    <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-slate-900/90 to-indigo-950/40 shadow-lg animate-fade-in mb-3">
-      <div class="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-amber-500/20 flex-wrap">
-        <div class="flex items-center gap-2">
-          <span class="text-xl sm:text-2xl animate-pulse">👑</span>
-          <div>
-            <h3 class="font-black text-amber-300 text-sm sm:text-base flex items-center gap-1.5">
-              <span>Jogos Prontos de Grupos</span>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">1º ao 5º</span>
-            </h3>
-            <p class="text-[11px] text-slate-300">Terno de Grupo e Duques (Passes) calculados pelo Radar para apostar</p>
-          </div>
-        </div>
-        <button type="button" onclick="copyReadyBetsToClipboard()"
-          class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm">
-          <span>📋</span> <span>Copiar Jogo</span>
-        </button>
-      </div>
+  // Na aba principal 'Por Bicho': comeca recolhido para manter a tela limpa e focar nas fichas dos animais
+  if (container) {
+    container.innerHTML = buildReadyBetsHtml(g0, g1, g2, 'main', readyBetsDrawerState.main);
+  }
 
-      <!-- 1. Terno de Grupo de Ouro -->
-      <div class="bg-slate-950/70 p-3 rounded-xl border border-amber-500/30 mb-3">
-        <div class="flex items-center justify-between mb-2 flex-wrap gap-1">
-          <span class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
-            <span>🏆</span> Terno de Grupo de Ouro (Cercado 1º ao 5º)
-          </span>
-          <span class="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30">
-            Maior Probabilidade Conjunta
-          </span>
-        </div>
-        
-        <div class="grid grid-cols-3 gap-2 my-2">
-          <div class="p-2 rounded-lg bg-slate-900 border border-amber-500/30 text-center flex flex-col items-center justify-center">
-            <span class="text-2xl mb-1">${g0.animal_emoji || '🐾'}</span>
-            <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Grupo ${g0.value}</span>
-            <span class="text-xs font-black text-amber-200 truncate w-full">${g0.animal_name}</span>
-          </div>
-          <div class="p-2 rounded-lg bg-slate-900 border border-amber-500/30 text-center flex flex-col items-center justify-center">
-            <span class="text-2xl mb-1">${g1.animal_emoji || '🐾'}</span>
-            <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Grupo ${g1.value}</span>
-            <span class="text-xs font-black text-amber-200 truncate w-full">${g1.animal_name}</span>
-          </div>
-          <div class="p-2 rounded-lg bg-slate-900 border border-amber-500/30 text-center flex flex-col items-center justify-center">
-            <span class="text-2xl mb-1">${g2.animal_emoji || '🐾'}</span>
-            <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Grupo ${g2.value}</span>
-            <span class="text-xs font-black text-amber-200 truncate w-full">${g2.animal_name}</span>
-          </div>
-        </div>
-
-        <div class="text-[11px] text-slate-300 pt-1.5 border-t border-slate-800/80 flex items-center justify-between flex-wrap gap-1">
-          <span>💡 Jogue cercando do 1º ao 5º prêmio.</span>
-          <span class="text-amber-300/90 font-semibold">Bancas pagam de <strong>1.000x a 1.500x</strong> se os 3 saírem!</span>
-        </div>
-      </div>
-
-      <!-- 2. Duques de Grupo / Passes Prontos -->
-      <div class="bg-slate-950/70 p-3 rounded-xl border border-indigo-500/30">
-        <div class="flex items-center justify-between mb-2 flex-wrap gap-1">
-          <span class="text-xs font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1">
-            <span>🤝</span> Passes / Duques de Grupo (1º ao 5º)
-          </span>
-          <span class="text-[10px] text-slate-400">Top 3 Duplas Cercadas</span>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <!-- Dupla 1 -->
-          <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-indigo-500/40 transition-all flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-base">${g0.animal_emoji || '🐾'} ${g1.animal_emoji || '🐾'}</span>
-              <div>
-                <div class="text-xs font-bold text-slate-100">${g0.animal_name} + ${g1.animal_name}</div>
-                <div class="text-[10px] text-indigo-300 font-mono">Grupos ${g0.value} + ${g1.value}</div>
-              </div>
-            </div>
-            <span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">Top 1</span>
-          </div>
-
-          <!-- Dupla 2 -->
-          <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-indigo-500/40 transition-all flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-base">${g0.animal_emoji || '🐾'} ${g2.animal_emoji || '🐾'}</span>
-              <div>
-                <div class="text-xs font-bold text-slate-100">${g0.animal_name} + ${g2.animal_name}</div>
-                <div class="text-[10px] text-indigo-300 font-mono">Grupos ${g0.value} + ${g2.value}</div>
-              </div>
-            </div>
-            <span class="text-[10px] font-bold text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded">Top 2</span>
-          </div>
-
-          <!-- Dupla 3 -->
-          <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-indigo-500/40 transition-all flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-base">${g1.animal_emoji || '🐾'} ${g2.animal_emoji || '🐾'}</span>
-              <div>
-                <div class="text-xs font-bold text-slate-100">${g1.animal_name} + ${g2.animal_name}</div>
-                <div class="text-[10px] text-indigo-300 font-mono">Grupos ${g1.value} + ${g2.value}</div>
-              </div>
-            </div>
-            <span class="text-[10px] font-bold text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded">Top 3</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  if (container) container.innerHTML = cardHtml;
-  if (duquesTabContainer) duquesTabContainer.innerHTML = cardHtml;
+  // Na aba 'Duques': comeca aberto por ser a aba especializada em combinacoes
+  if (duquesTabContainer) {
+    duquesTabContainer.innerHTML = buildReadyBetsHtml(g0, g1, g2, 'duques', readyBetsDrawerState.duques);
+  }
 }
 
 window.copyReadyBetsToClipboard = function () {
