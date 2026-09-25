@@ -103,6 +103,22 @@ def serve_admin():
 def serve_preview():
     return FileResponse(os.path.join(FRONTEND_DIR, "preview.html"))
 
+@app.get("/manifest.json")
+def serve_manifest():
+    return FileResponse(
+        os.path.join(FRONTEND_DIR, "manifest.json"),
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "no-cache"}
+    )
+
+@app.get("/sw.js")
+def serve_sw():
+    return FileResponse(
+        os.path.join(FRONTEND_DIR, "sw.js"),
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache"}
+    )
+
 # Montagem de assets estáticos (CSS, JS, imagens)
 if os.path.exists(os.path.join(FRONTEND_DIR, "css")):
     app.mount("/css", StaticFiles(directory=os.path.join(FRONTEND_DIR, "css")), name="css")
