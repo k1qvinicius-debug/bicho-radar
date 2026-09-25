@@ -1,4 +1,6 @@
 window.API = window.api || (typeof api !== 'undefined' ? api : null);
+let currentScreen = 'home';
+window.currentScreen = currentScreen;
 window.API_BASE = window.API_BASE || '/api';
 var API_BASE = window.API_BASE;
 
@@ -153,6 +155,8 @@ window.addEventListener('hashchange', () => {
 window.switchScreen = function(screenName, updateHash = true) {
   const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   if (!screens.includes(screenName)) screenName = 'home';
+  currentScreen = screenName;
+  window.currentScreen = screenName;
 
   // Persiste a tela ativa no localStorage para manter a mesma tela ao recarregar a página
   try {
@@ -815,14 +819,15 @@ window.selectSlotFromPill = async function(slotCode) {
   }
   updateSlotPillsUI(slotCode);
 
+  const activeScr = window.currentScreen || currentScreen || 'home';
   // Se o usuário estiver na Home e clicar em um horário, leva diretamente para os palpites desse horário
-  if (currentScreen === 'home') {
+  if (activeScr === 'home') {
     switchScreen('palpites');
   }
 
   // Apenas busca resultados de apuração se a tela de resultados estiver atualmente visível
   const promises = [loadPrediction()];
-  if (currentScreen === 'resultados') {
+  if (activeScr === 'resultados') {
     promises.push(loadDrawResults());
   }
   await Promise.all(promises);
