@@ -30,6 +30,11 @@ def sync_results_from_web(lottery: Optional[str] = Query(None)):
     """
     try:
         res = fetch_and_sync_results(lottery)
+        try:
+            from .analysis import invalidate_prediction_cache
+            invalidate_prediction_cache()
+        except Exception:
+            pass
         return res
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao sincronizar com os sites: {e}")
