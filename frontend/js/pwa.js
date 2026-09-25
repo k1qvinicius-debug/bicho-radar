@@ -1,4 +1,4 @@
-// Bicho Master Pro - Gerenciamento de PWA e Instalação Mobile
+// Bicho Master Pro - Gerenciamento de PWA e Instalação Mobile v2.5
 (function() {
   let deferredPrompt = null;
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -17,13 +17,18 @@
     });
   }
 
-  // 2. Estado de instalação
+  // 2. Estado de instalação: esconde chamadas para instalar SOMENTE se já estiver dentro do app instalado
   function updateUIForInstalledState() {
+    if (!isStandalone) return;
+
     const banner = document.getElementById('pwa-install-banner');
     if (banner) banner.style.display = 'none';
 
     const headerBtn = document.getElementById('btn-header-install');
     if (headerBtn) headerBtn.style.display = 'none';
+
+    const homeCard = document.getElementById('home-card-install-app');
+    if (homeCard) homeCard.style.display = 'none';
 
     const drawerBtn = document.getElementById('btn-drawer-install');
     if (drawerBtn) {
@@ -41,24 +46,16 @@
 
   // 3. Captura do prompt nativo de instalação (Android / Chrome / Edge)
   window.addEventListener('beforeinstallprompt', (e) => {
-    // Previne a barra padrão do Chrome
     e.preventDefault();
     deferredPrompt = e;
-    console.log('[PWA] Evento beforeinstallprompt capturado!');
+    console.log('[PWA] Evento beforeinstallprompt capturado com sucesso!');
 
     if (isStandalone) {
       updateUIForInstalledState();
       return;
     }
 
-    // Exibe botões no header e drawer
-    const headerBtn = document.getElementById('btn-header-install');
-    if (headerBtn) headerBtn.classList.remove('hidden');
-
-    const drawerBtn = document.getElementById('btn-drawer-install');
-    if (drawerBtn) drawerBtn.classList.remove('hidden');
-
-    // Exibe banner flutuante se não tiver sido dispensado nas últimas 24h
+    // Exibe banner flutuante apenas se não tiver sido dispensado nas últimas 24h
     const dismissedTime = localStorage.getItem('bicho_pwa_dismissed');
     const now = Date.now();
     if (!dismissedTime || (now - parseInt(dismissedTime, 10)) > 24 * 60 * 60 * 1000) {
@@ -74,7 +71,10 @@
 
   // 4. Executa a ação de instalar
   window.triggerPWAInstall = async function() {
-    // Se o navegador disparou o deferredPrompt (Android Chrome/Samsung/Edge)
+    // Limpa qualquer bloqueio anterior
+    localStorage.removeItem('bicho_pwa_dismissed');
+
+    // Se o navegador disparou o deferredPrompt (Android Chrome/Samsung/Edge nativo)
     if (deferredPrompt) {
       try {
         deferredPrompt.prompt();
@@ -85,13 +85,13 @@
           updateUIForInstalledState();
         }
       } catch (err) {
-        console.warn('[PWA] Erro ao disparar prompt:', err);
+        console.warn('[PWA] Erro ao disparar prompt nativo:', err);
       }
       deferredPrompt = null;
       return;
     }
 
-    // Se estiver no iOS (iPhone / iPad Safari)
+    // Se for iPhone / iPad (Safari)
     if (isIOS) {
       const modal = document.getElementById('ios-install-modal');
       if (modal) {
@@ -101,17 +101,14 @@
       return;
     }
 
-    // Se for Desktop ou navegador sem deferredPrompt direto
+    // Se for Android/Chrome/Desktop onde o prompt nativo precisa de orientação visual
     const modalGeneric = document.getElementById('generic-install-modal');
     if (modalGeneric) {
       modalGeneric.classList.remove('hidden');
       modalGeneric.classList.add('flex');
-    } else {
-      alert('Para instalar o Bicho Master no seu aparelho, abra o menu do navegador (3 pontinhos no canto superior) e toque em "Instalar aplicativo" ou "Adicionar à tela inicial".');
     }
   };
 
-  // 5. Fechar banner e salvar dispensa
   window.dismissPWABanner = function() {
     const banner = document.getElementById('pwa-install-banner');
     if (banner) {
@@ -121,7 +118,6 @@
     localStorage.setItem('bicho_pwa_dismissed', Date.now().toString());
   };
 
-  // 6. Fechar modal do iOS
   window.closeIOSInstallModal = function() {
     const modal = document.getElementById('ios-install-modal');
     if (modal) {
@@ -130,7 +126,6 @@
     }
   };
 
-  // 7. Fechar modal genérico
   window.closeGenericInstallModal = function() {
     const modal = document.getElementById('generic-install-modal');
     if (modal) {
@@ -139,25 +134,15 @@
     }
   };
 
-  // 8. Evento pós-instalação
   window.addEventListener('appinstalled', () => {
     console.log('[PWA] Aplicativo Bicho Master instalado com sucesso!');
     updateUIForInstalledState();
     dismissPWABanner();
   });
 
-  // Inicialização na carga da página
   document.addEventListener('DOMContentLoaded', () => {
     if (isStandalone) {
       updateUIForInstalledState();
-    } else {
-      // No iOS Safari, sempre deixa o botão do drawer visível para instruções
-      if (isIOS) {
-        const drawerBtn = document.getElementById('btn-drawer-install');
-        if (drawerBtn) drawerBtn.classList.remove('hidden');
-        const headerBtn = document.getElementById('btn-header-install');
-        if (headerBtn) headerBtn.classList.remove('hidden');
-      }
     }
   });
 })();
