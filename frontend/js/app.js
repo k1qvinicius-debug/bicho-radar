@@ -5735,10 +5735,9 @@ window.closePlansModal = function() {
 window.subscribePlan = async function(planKey) {
   const planNames = {
     'monthly': 'Plano Mensal (R$ 14,90)',
-    'quarterly': 'Plano Trimestral (R$ 41,90)',
-    'semiannual': 'Plano Semestral (R$ 79,90)',
-    'yearly': 'Plano Anual (R$ 159,90)',
-    'lifetime': 'Acesso Vitalício VIP (R$ 297,00)',
+    'quarterly': 'Plano Trimestral (R$ 37,00)',
+    'semiannual': 'Plano Semestral (R$ 67,00)',
+    'yearly': 'Plano Anual (R$ 97,00)',
     'whatsapp': 'Assinatura VIP'
   };
 
