@@ -558,10 +558,10 @@ def get_recent_bingos():
             hit_number = p1
             if m1:
                 b_type = "MILHAR_1ST"
-                badge = "💥 MILHAR CRAVADA NA CABEÇA!"
+                badge = "💥 1º PRÊMIO NA CABEÇA!"
                 hit_number = p1
                 prize_desc = "1º Prêmio (Cabeça Seca)"
-                title = f"BINGO HISTÓRICO! MILHAR {p1} NA CABEÇA!"
+                title = f"Nosso aplicativo acertou mais uma vez! Milhar {p1} cravada no 1º Prêmio!"
             elif mc > 0:
                 b_type = "MILHAR_CERCADO"
                 badge = f"🎯 MILHAR NO CERCADO ({mc}x)!"
@@ -575,13 +575,13 @@ def get_recent_bingos():
                 except Exception:
                     pass
                 prize_desc = "Cercado (1º ao 5º Prêmio)"
-                title = f"BINGO! MILHAR {hit_number} PREMIADA NO CERCADO!"
+                title = f"Nosso aplicativo acertou mais uma vez! Milhar {hit_number} no cercado!"
             elif c1:
                 b_type = "CENTENA_1ST"
-                badge = "⭐ CENTENA NA CABEÇA!"
+                badge = "⭐ CENTENA NO 1º PRÊMIO!"
                 hit_number = p1[-3:]
                 prize_desc = "1º Prêmio (Cabeça)"
-                title = f"BINGO! CENTENA {hit_number} NA CABEÇA!"
+                title = f"Nosso aplicativo acertou mais uma vez! Centena {hit_number} no 1º Prêmio!"
             else:
                 continue
 
