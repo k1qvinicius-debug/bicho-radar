@@ -2290,8 +2290,8 @@
         </button>
       </div>
 
-      <!-- Grid dos 5 Planos -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-left">
+      <!-- Grid dos 4 Planos Estratégicos -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-left">
         
         <!-- 1. Mensal -->
         <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 flex flex-col justify-between space-y-3 transition-all relative">
@@ -2353,45 +2353,24 @@
           </button>
         </div>
 
-        <!-- 4. Anual -->
-        <div class="p-4 rounded-2xl bg-slate-900/90 border border-emerald-500/40 hover:border-emerald-500 flex flex-col justify-between space-y-3 transition-all relative shadow-lg shadow-emerald-500/5">
-          <div class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider">
-            Mais Econômico
+        <!-- 4. Anual (Melhor Custo-Benefício & Campeão de Vendas) -->
+        <div class="p-4 rounded-2xl bg-gradient-to-b from-emerald-500/15 via-slate-900/95 to-slate-900 border-2 border-emerald-500 shadow-xl shadow-emerald-500/10 flex flex-col justify-between space-y-3 transition-all relative">
+          <div class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[9px] font-black uppercase tracking-wider">
+            ⭐ Mais Econômico
           </div>
           <div>
             <div class="text-[10px] font-black uppercase tracking-wider text-emerald-400">Anual</div>
             <div class="mt-1">
               <span class="text-2xl font-black text-white">R$ 159,90</span>
             </div>
-            <div class="text-[10px] text-emerald-300 font-bold">R$ 0,44 por dia!</div>
-            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              1 ano inteiro de palpites sem se preocupar.
+            <div class="text-[10px] text-emerald-300 font-bold">R$ 13,32 / mês (R$ 0,44 por dia!)</div>
+            <p class="text-[11px] text-slate-300 mt-2 leading-relaxed">
+              1 ano inteiro de palpites sem se preocupar. A melhor escolha para quem joga diariamente.
             </p>
           </div>
           <button type="button" onclick="subscribePlan('yearly')"
-            class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all active:scale-95 cursor-pointer">
+            class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all active:scale-95 cursor-pointer shadow-md shadow-emerald-500/20">
             Assinar Anual
-          </button>
-        </div>
-
-        <!-- 5. Vitalício VIP -->
-        <div class="p-4 rounded-2xl bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-900 border-2 border-amber-500 shadow-xl shadow-amber-500/10 flex flex-col justify-between space-y-3 transition-all relative">
-          <div class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black uppercase tracking-wider">
-            VIP Vitalício
-          </div>
-          <div>
-            <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">Vitalício</div>
-            <div class="mt-1">
-              <span class="text-2xl font-black text-amber-300">R$ 297,00</span>
-            </div>
-            <div class="text-[10px] text-amber-400 font-bold">Pagamento Único • Para Sempre</div>
-            <p class="text-[11px] text-slate-300 mt-2 leading-relaxed">
-              Acesso permanente sem mensalidades nunca mais!
-            </p>
-          </div>
-          <button type="button" onclick="subscribePlan('lifetime')"
-            class="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all active:scale-95 cursor-pointer shadow-md shadow-amber-500/20">
-            Garantir Vitalício
           </button>
         </div>
       </div>
@@ -2408,7 +2387,7 @@
   </div>
 
 <script src="/js/api.js?v=104.0"></script>
-  <script src="/js/app.js?v=105.0"></script>
+  <script src="/js/app.js?v=106.0"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
