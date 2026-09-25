@@ -492,5 +492,88 @@ def post_pattern_breaks_backfill(
     return {"status": "ok", "total_breaks_in_database": total}
 
 
+@router.get("/recent-bingos", response_model=Dict[str, Any])
+def get_recent_bingos():
+    """
+    Retorna os maiores acertos da IA (Milhar na Cabeça, Milhar Cercado e Centena na Cabeça),
+    para exibição de Banner de Celebração / Destaque na tela principal.
+    """
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        query = """
+            SELECT s.id, s.target_date, s.target_slot, COALESCE(s.lottery, 'RJ') as lottery,
+                   e.acerto_milhar_1, e.acertos_milhar_cercado,
+                   e.acerto_centena_1, e.acertos_centena_cercado,
+                   e.hit_rate_score, e.evaluated_at, e.details_json,
+                   d.prize_1, d.prize_2, d.prize_3, d.prize_4, d.prize_5
+            FROM analysis_snapshots s
+            INNER JOIN analysis_evaluations e ON s.id = e.snapshot_id
+            LEFT JOIN draw_results d ON e.draw_id = d.id
+            WHERE (e.acerto_milhar_1 = 1 OR e.acertos_milhar_cercado > 0 OR e.acerto_centena_1 = 1)
+            ORDER BY s.target_date DESC, s.id DESC
+            LIMIT 10
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
 
+        bingos = []
+        for r in rows:
+            d = dict(r)
+            m1 = bool(d.get("acerto_milhar_1"))
+            mc = int(d.get("acertos_milhar_cercado") or 0)
+            c1 = bool(d.get("acerto_centena_1"))
 
+            p1 = str(d.get("prize_1") or "").zfill(4)
+            prizes = [str(d.get(f"prize_{i}") or "").zfill(4) for i in range(1, 6)]
+
+            hit_number = p1
+            if m1:
+                b_type = "MILHAR_1ST"
+                badge = "💥 MILHAR CRAVADA NA CABEÇA!"
+                hit_number = p1
+                prize_desc = "1º Prêmio (Cabeça Seca)"
+                title = f"BINGO HISTÓRICO! MILHAR {p1} NA CABEÇA!"
+            elif mc > 0:
+                b_type = "MILHAR_CERCADO"
+                badge = f"🎯 MILHAR NO CERCADO ({mc}x)!"
+                try:
+                    det = json.loads(d.get("details_json") or "{}")
+                    pred_m = det.get("milhar", {}).get("predicted", [])
+                    for pz in prizes:
+                        if pz in pred_m:
+                            hit_number = pz
+                            break
+                except Exception:
+                    pass
+                prize_desc = "Cercado (1º ao 5º Prêmio)"
+                title = f"BINGO! MILHAR {hit_number} PREMIADA NO CERCADO!"
+            elif c1:
+                b_type = "CENTENA_1ST"
+                badge = "⭐ CENTENA NA CABEÇA!"
+                hit_number = p1[-3:]
+                prize_desc = "1º Prêmio (Cabeça)"
+                title = f"BINGO! CENTENA {hit_number} NA CABEÇA!"
+            else:
+                continue
+
+            bingos.append({
+                "id": d["id"],
+                "type": b_type,
+                "badge": badge,
+                "title": title,
+                "hit_number": hit_number,
+                "prize_1": p1,
+                "prize_desc": prize_desc,
+                "lottery": d["lottery"],
+                "slot": d["target_slot"],
+                "date": d["target_date"],
+                "score": d["hit_rate_score"],
+                "evaluated_at": str(d["evaluated_at"]) if d.get("evaluated_at") else None
+            })
+
+    latest = bingos[0] if bingos else None
+    return {
+        "has_bingo": bool(latest),
+        "latest": latest,
+        "recent_bingos": bingos
+    }
