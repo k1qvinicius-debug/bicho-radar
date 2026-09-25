@@ -1,17 +1,18 @@
-// Bicho Master Pro - Service Worker v1.0
-const CACHE_NAME = 'bicho-master-pwa-v1';
+// Bicho Master Pro - Service Worker v2.0 (Ícone Águia Oficial)
+const CACHE_NAME = 'bicho-master-pwa-v2';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
+  '/manifest.json?v=2.0',
   '/css/style.css',
-  '/img/favicon.png',
+  '/img/favicon.png?v=108.0',
+  '/img/eagle_radar_badge.png',
   '/img/eagle_radar_icon.png',
-  '/img/icon-192.png',
-  '/img/icon-512.png',
-  '/img/icon-maskable-192.png',
-  '/img/icon-maskable-512.png',
-  '/img/apple-touch-icon.png'
+  '/img/icon-192.png?v=2.0',
+  '/img/icon-512.png?v=2.0',
+  '/img/icon-maskable-192.png?v=2.0',
+  '/img/icon-maskable-512.png?v=2.0',
+  '/img/apple-touch-icon.png?v=2.0'
 ];
 
 self.addEventListener('install', (event) => {
@@ -47,7 +48,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navegação de páginas HTML: Network First com fallback suave para Cache
+  // Navegação de páginas HTML: Network First com fallback para cache
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
