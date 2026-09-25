@@ -1186,7 +1186,7 @@ window.inspectSnapshot = async function (id) {
       } else {
         explanationHtml = `
           <div class="mt-1 text-[11px] text-slate-500 italic">
-            ⚪ Não constava entre as recomendações desta apuração.
+            ⚪ Não constava entre os 5 principais recomendados para esta apuração.
           </div>
         `;
       }
@@ -1215,11 +1215,11 @@ window.inspectSnapshot = async function (id) {
       didacticsHtml = `
         <div class="p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 space-y-2 mt-3">
           <div class="flex items-center gap-2 font-bold text-sm text-indigo-300">
-            <span>💡</span> <span>Entenda de Onde Vieram os Bichos Desta Extração:</span>
+            <span>📖</span> <span>Entenda de Onde Vieram os Bichos Desta Extração:</span>
           </div>
-          <div class="text-xs text-slate-300 space-y-2 pl-1 leading-relaxed">
+          <div class="text-xs text-slate-300 space-y-1.5 pl-1 leading-relaxed">
             ${isMilhar1stHit ? `
-            <div class="p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/40">
+            <div class="p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/40 mb-2">
               <strong class="text-amber-300 font-bold flex items-center gap-1">⚡ Veio da Chave Mestra (Matriz 3x3)?</strong>
               <div class="text-slate-200 mt-1">
                 • <strong class="text-yellow-300">SIM, CRAVADO!</strong> A Matriz 3x3 da Data calculou os dígitos regentes e gerou a confluência da <strong>Cobra (Grupo 09)</strong>, indicando com precisão a Milhar <strong class="text-yellow-300 font-mono">${p1}</strong> no 1º Prêmio!
@@ -1229,20 +1229,23 @@ window.inspectSnapshot = async function (id) {
             <p>
               <strong>1. Vieram dos Palpites?</strong><br>
               <span class="text-slate-400">
-                • <strong class="text-emerald-400">Sim!</strong> O nosso radar calculou as probabilidades estatísticas para o horário <strong>${data.target_slot}</strong>.
-                ${winningCount > 0 ? `Deles, <strong class="text-amber-300">${winningCount} bicho(s)</strong> apareceram entre os 5 prêmios oficiais da banca!` : `O palpite principal da Chave Mestra acertou o 1º prêmio na cabeça.`}
+                ✅ <strong class="text-emerald-400">Sim!</strong> O nosso motor estatístico calculou o Top 5 de Grupos para o horário <strong>${data.target_slot}</strong>. 
+                Deles, <strong class="text-amber-300">${winningCount} bicho(s)</strong> apareceram exatamente entre os 5 prêmios oficiais da banca!
               </span>
             </p>
             <p>
-              <strong>2. Veio da Cruz do Dia ou Matriz 3x3?</strong><br>
+              <strong>2. Veio da Cruz do Dia?</strong><br>
               <span class="text-slate-400">
-                • Os cruzamentos dos dígitos regentes identificaram com exatidão a confluência dos animais premiados.
+                ${winningList.some(w => (w.origin?.badges || []).some(b => b.includes('Cruz') || b.includes('Bicho do Dia')))
+                  ? `✨ <strong class="text-amber-300">Sim!</strong> Os cruzamentos da Cruz do Dia identificaram com precisão os bichos regentes da data.`
+                  : `⚪ Nesta extração, os acertos vieram prioritariamente da frequência de horário, puxadas e atraso histórico.`
+                }
               </span>
             </p>
             <p>
               <strong>3. Veio de Puxada ou Afinidade de Horário?</strong><br>
               <span class="text-slate-400">
-                • Os animais sorteados possuíam forte tração de repetição histórica comprovada para o horário <strong>${data.target_slot}</strong> e puxadas ativas do resultado anterior.
+                🧲 Os animais sorteados possuíam forte tração de repetição histórica comprovada para o horário <strong>${data.target_slot}</strong> e puxadas ativas do resultado anterior.
               </span>
             </p>
           </div>
@@ -1378,7 +1381,7 @@ window.inspectSnapshot = async function (id) {
             <div class="text-slate-400 text-[11px] mt-0.5">Centena Ocorrida 1º: <b class="text-slate-100 font-mono font-bold">${actC1 || '-'}</b></div>
           </div>
 
-          <!-- Milhares -->
+<!-- Milhares -->
           <div class="p-2.5 rounded-lg border ${(hitM1 || isMilhar1stHit) ? 'border-amber-500/60 bg-amber-950/30 shadow-md shadow-amber-500/10' : 'border-slate-800 bg-slate-800/40'}">
             <div class="flex justify-between items-center mb-1">
               <span class="font-bold text-slate-200">Milhares Analisadas:</span>
@@ -1389,7 +1392,295 @@ window.inspectSnapshot = async function (id) {
             <div class="text-slate-300 font-mono text-[11px]">Palpites Indicados: [ <span class="text-yellow-300 font-bold">${topM ? (topM.includes(p1) ? topM : topM + ', ' + p1) : (p1 || '-')}</span> ]</div>
             <div class="text-slate-400 text-[11px] mt-0.5">Milhar Ocorrida 1º: <b class="text-yellow-300 font-mono font-bold">${actM1 || p1 || '-'}</b></div>
           </div>
-</div>
+        </div>
+      </div>
+    `;
+
+    modal.classList.remove('hidden');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.closeSnapshotModal = function () {
+  const modal = document.getElementById('snapshot-modal');
+  if (modal) modal.classList.add('hidden');
+};
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function showToast(msg, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-2xl bg-indigo-600 text-white animate-fade-in`;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+
+/* ==========================================================================
+   BANNER DE DESTAQUE: BINGO DE MILHAR / CENTENA PREMIADA PELA IA
+   ========================================================================== */
+// =========================================================================
+// BANNER DE DESTAQUE: ACERTO COMPROVADO DE MILHAR / CENTENA
+// =========================================================================
+
+window._latestBingoData = null;
+
+window.openBingoCelebrationModal = function(b) {
+  if (!b) b = window._latestBingoData;
+  if (!b) return;
+
+  const modal = document.getElementById('modal-bingo-celebration');
+  if (!modal) return;
+
+  const numEl = document.getElementById('bingo-modal-number');
+  const lotEl = document.getElementById('bingo-modal-lottery');
+  const slotEl = document.getElementById('bingo-modal-slot');
+  const dateEl = document.getElementById('bingo-modal-date');
+  const badgeEl = document.getElementById('bingo-modal-badge');
+  const descEl = document.getElementById('bingo-modal-prize-desc');
+
+  if (numEl) numEl.textContent = b.hit_number || b.prize_1 || '----';
+  if (lotEl) lotEl.textContent = b.lottery || 'Loteria';
+  if (slotEl) slotEl.textContent = b.slot || '';
+  if (dateEl) dateEl.textContent = b.date ? b.date.split('-').reverse().slice(0, 2).join('/') : 'Hoje';
+  if (badgeEl) {
+    badgeEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> ${b.badge || '💥 1º PRÊMIO NA CABEÇA!'}`;
+  }
+  if (descEl) {
+    descEl.textContent = b.prize_desc || 'Número Premiado no 1º Prêmio';
+  }
+
+  modal.classList.remove('hidden');
+};
+
+window.closeBingoCelebrationModal = function() {
+  const modal = document.getElementById('modal-bingo-celebration');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+  if (window._latestBingoData && window._latestBingoData.id) {
+    try {
+      localStorage.setItem('bicho_seen_bingo_modal_' + window._latestBingoData.id, '1');
+    } catch(e) {}
+  }
+};
+
+window.goToBingoDetails = function() {
+  const b = window._latestBingoData;
+  if (typeof closeBingoCelebrationModal === 'function') {
+    closeBingoCelebrationModal();
+  }
+  if (!b) return;
+
+  // 1. Aplica filtros de loteria e data do acerto
+  if (b.lottery && typeof setHistoryLotteryFilter === 'function') {
+    setHistoryLotteryFilter(b.lottery.toUpperCase());
+  }
+  if (b.date) {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (b.date === todayStr) {
+      if (typeof setHistoryDateFilter === 'function') setHistoryDateFilter('today');
+    } else {
+      if (typeof setHistoryCustomDate === 'function') setHistoryCustomDate(b.date);
+    }
+  }
+
+  // 2. Rola suavemente até o card premiado, destaca em ouro e abre a auditoria
+  setTimeout(() => {
+    scrollToAndHighlightBingoCard(b);
+  }, 350);
+};
+
+window.scrollToAndHighlightBingoCard = function(b) {
+  if (!b) return;
+  const targetSnapId = b.snapshot_id;
+  const targetDrawId = b.draw_id;
+  const targetGenId = b.id;
+  const hitNum = String(b.hit_number || b.prize_1 || '').trim();
+  const slot = String(b.slot || '').toUpperCase().trim();
+  const lot = String(b.lottery || '').toUpperCase().trim();
+
+  let targetEl = null;
+
+  // Tentativa 1: por snapshot_id
+  if (targetSnapId) {
+    targetEl = document.getElementById(`snapshot-card-${targetSnapId}`) ||
+               document.querySelector(`[data-snapshot-id="${targetSnapId}"]`);
+  }
+
+  // Tentativa 2: por highlight genérico / draw_id
+  if (!targetEl && targetGenId) {
+    targetEl = document.getElementById(`snapshot-card-${targetGenId}`) ||
+               document.querySelector(`[data-snapshot-id="${targetGenId}"]`) ||
+               document.querySelector(`[data-draw-id="${targetGenId}"]`);
+  }
+  if (!targetEl && targetDrawId) {
+    targetEl = document.querySelector(`[data-draw-id="${targetDrawId}"]`);
+  }
+
+  // Tentativa 3: por slot e loteria
+  if (!targetEl && slot) {
+    targetEl = document.querySelector(`[data-slot="${slot}"][data-lottery="${lot}"]`) ||
+               document.querySelector(`[data-slot="${slot}"]`);
+  }
+
+  // Tentativa 4: por número premiado contido no card
+  if (!targetEl && hitNum) {
+    const allCards = document.querySelectorAll('[id^="snapshot-card-"]');
+    for (const card of allCards) {
+      if (card.textContent.includes(hitNum)) {
+        targetEl = card;
+        break;
+      }
+    }
+  }
+
+  if (targetEl) {
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    targetEl.classList.remove('ring-4', 'ring-amber-400', 'ring-offset-2', 'ring-offset-slate-900', 'shadow-[0_0_35px_rgba(245,158,11,0.5)]');
+    void targetEl.offsetWidth; // Reflow para reiniciar a animação
+    targetEl.classList.add('ring-4', 'ring-amber-400', 'ring-offset-2', 'ring-offset-slate-900', 'shadow-[0_0_35px_rgba(245,158,11,0.5)]');
+
+    // Abre o modal de auditoria detalhada do card
+    const snapIdToOpen = targetEl.getAttribute('data-snapshot-id') || targetSnapId || targetGenId;
+    if (snapIdToOpen && typeof inspectSnapshot === 'function') {
+      setTimeout(() => {
+        inspectSnapshot(snapIdToOpen);
+      }, 400);
+    }
+  } else {
+    // Se o card ainda não foi renderizado na listagem, abre o modal de auditoria diretamente
+    const snapIdToOpen = targetSnapId || targetGenId;
+    if (snapIdToOpen && typeof inspectSnapshot === 'function') {
+      inspectSnapshot(snapIdToOpen);
+    }
+  }
+};
+
+window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
+  const container = document.getElementById('milhar-bingo-banner-container');
+  if (!container) return;
+
+  try {
+    const data = await api.getRecentBingos();
+    if (!data || !data.has_bingo || !data.latest) {
+      container.classList.add('hidden');
+      container.innerHTML = '';
+      return;
+    }
+
+    const b = data.latest;
+    window._latestBingoData = b;
+
+    const dismissedKey = 'bicho_dismissed_bingo_' + b.id;
+    const seenModalKey = 'bicho_seen_bingo_modal_' + b.id;
+
+    // REGRA RÍGIDA: Apenas para Centena e Milhar!
+    const isAllowedType = (b.type === 'MILHAR_1ST' || b.type === 'CENTENA_1ST' || b.type === 'MILHAR_CERCADO');
+    if (!isAllowedType) {
+      container.classList.add('hidden');
+      return;
+    }
+
+    // REGRA RÍGIDA: Pop-up de celebração aparece SOMENTE UMA VEZ SÓ por acerto!
+    if (!forceShow) {
+      if (localStorage.getItem(seenModalKey) !== '1') {
+        try { localStorage.setItem(seenModalKey, '1'); } catch(e) {}
+        setTimeout(() => {
+          openBingoCelebrationModal(b);
+        }, 800);
+      }
+    }
+
+    // Se usuário fechou o banner fixo, respeita
+    if (!forceShow && localStorage.getItem(dismissedKey) === '1') {
+      container.classList.add('hidden');
+      container.innerHTML = '';
+      return;
+    }
+
+    let gradientBg = 'from-amber-500/25 via-yellow-500/15 to-amber-600/25 border-amber-500/50 shadow-amber-500/10';
+    let badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+    let icon = '🏆';
+    let badgeLabel = b.badge;
+
+    if (b.type === 'MILHAR_1ST') {
+      gradientBg = 'from-amber-500/35 via-yellow-400/25 to-amber-600/35 border-amber-400/80 shadow-amber-400/20';
+      badgeColor = 'bg-gradient-to-r from-amber-500/30 to-yellow-400/30 text-yellow-200 border-yellow-400/60';
+      icon = '💥';
+    } else if (b.type === 'MILHAR_CERCADO') {
+      gradientBg = 'from-indigo-600/25 via-purple-600/15 to-indigo-700/25 border-indigo-500/50 shadow-indigo-500/10';
+      badgeColor = 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40';
+      icon = '🎯';
+    } else if (b.type === 'CENTENA_1ST') {
+      gradientBg = 'from-emerald-600/25 via-teal-600/15 to-emerald-700/25 border-emerald-500/50 shadow-emerald-500/10';
+      badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+      icon = '⭐';
+    }
+
+    const formattedDate = b.date ? b.date.split('-').reverse().slice(0, 2).join('/') : '';
+
+    container.className = 'w-full transition-all duration-300 transform';
+    container.innerHTML = `
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r ${gradientBg} border backdrop-blur-md p-3.5 sm:p-4 shadow-xl">
+        <!-- Brilho animado de fundo -->
+        <div class="absolute -top-12 -right-12 w-36 h-36 bg-yellow-400/15 rounded-full blur-2xl pointer-events-none animate-pulse"></div>
+
+        <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <!-- Lado Esquerdo: Ícone + Título + Info -->
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-slate-950/80 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner shrink-0 cursor-pointer" onclick="openBingoCelebrationModal()">
+              ${icon}
+            </div>
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${badgeColor} shadow-sm flex items-center gap-1">
+                  <span>${badgeLabel}</span>
+                </span>
+                <span class="text-xs sm:text-sm font-black text-white">
+                  Nosso aplicativo acertou mais uma vez!
+                </span>
+              </div>
+              <div class="flex items-baseline gap-2 pt-0.5 flex-wrap">
+                <span class="text-[11px] text-slate-300 font-semibold">
+                  Extração: <b class="text-amber-200">${b.lottery}</b> (${b.slot}) - ${formattedDate}
+                </span>
+                <span class="text-slate-500 text-xs">•</span>
+                <span class="text-xs font-medium text-slate-300">${b.prize_desc}</span>
+                <span class="text-slate-500 text-xs">•</span>
+                <span class="text-xs text-amber-300 font-mono font-semibold">${b.score} pts auditados</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Centro/Destaque: O Número Cravado -->
+          <div class="flex items-center gap-3 self-end sm:self-center">
+            <div class="flex flex-col items-center bg-slate-950/85 border border-amber-500/40 rounded-xl px-3.5 py-1 shadow-lg cursor-pointer" onclick="openBingoCelebrationModal()">
+              <span class="text-[9px] uppercase tracking-widest text-amber-400 font-bold">Número Premiado</span>
+              <span class="font-mono text-xl sm:text-2xl font-black text-yellow-300 tracking-wider drop-shadow-[0_2px_8px_rgba(253,224,71,0.6)]">
+                ${b.hit_number}
+              </span>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="goToBingoDetails()" title="Ver detalhes do acerto"
+                class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shrink-0">
+                <span>Ver Detalhes</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button type="button" onclick="dismissMilharBingoBanner(${b.id})" title="Fechar este aviso"
+                class="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60 active:scale-95 transition-all cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     `;
