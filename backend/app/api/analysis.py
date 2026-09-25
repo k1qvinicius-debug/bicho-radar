@@ -524,28 +524,35 @@ def post_pattern_breaks_backfill(
 @router.get("/recent-bingos", response_model=Dict[str, Any])
 def get_recent_bingos():
     """
-    Retorna os maiores acertos da IA (Milhar na Cabeça, Milhar Cercado e Centena na Cabeça),
-    para exibição de Banner de Celebração / Destaque na tela principal.
+    Retorna os maiores acertos comprovados (Milhar na Cabeça, Centena na Cabeça e Milhar Cercado),
+    auditando tanto os Snapshots do sistema quanto as projeções da Chave Mestra (3x3 do Dia e do Animal).
     """
+    from ..engine.matriz_engine import get_matriz_dia, get_animal_matriz_centenas
+    from ..domain import get_group_for_number, extract_centena, extract_milhar, get_animal_info
+
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        query = """
+
+        bingos = []
+        seen_keys = set()
+
+        # 1. Acertos nos Snapshots auditados (Milhar e Centena)
+        query_evals = """
             SELECT s.id, s.target_date, s.target_slot, COALESCE(s.lottery, 'RJ') as lottery,
                    e.acerto_milhar_1, e.acertos_milhar_cercado,
                    e.acerto_centena_1, e.acertos_centena_cercado,
                    e.hit_rate_score, e.evaluated_at, e.details_json,
-                   d.prize_1, d.prize_2, d.prize_3, d.prize_4, d.prize_5
+                   d.id as draw_id, d.prize_1, d.prize_2, d.prize_3, d.prize_4, d.prize_5
             FROM analysis_snapshots s
             INNER JOIN analysis_evaluations e ON s.id = e.snapshot_id
             LEFT JOIN draw_results d ON e.draw_id = d.id
             WHERE (e.acerto_milhar_1 = 1 OR e.acertos_milhar_cercado > 0 OR e.acerto_centena_1 = 1)
             ORDER BY s.target_date DESC, s.id DESC
-            LIMIT 10
+            LIMIT 25
         """
-        cursor.execute(query)
+        cursor.execute(query_evals)
         rows = cursor.fetchall()
 
-        bingos = []
         for r in rows:
             d = dict(r)
             m1 = bool(d.get("acerto_milhar_1"))
@@ -585,8 +592,14 @@ def get_recent_bingos():
             else:
                 continue
 
+            unique_key = (d["lottery"], d["target_slot"], d["target_date"], hit_number)
+            if unique_key in seen_keys:
+                continue
+            seen_keys.add(unique_key)
+
             bingos.append({
                 "id": d["id"],
+                "draw_id": d.get("draw_id") or d["id"],
                 "type": b_type,
                 "badge": badge,
                 "title": title,
@@ -596,9 +609,98 @@ def get_recent_bingos():
                 "lottery": d["lottery"],
                 "slot": d["target_slot"],
                 "date": d["target_date"],
-                "score": d["hit_rate_score"],
+                "score": d["hit_rate_score"] or 200.0,
                 "evaluated_at": str(d["evaluated_at"]) if d.get("evaluated_at") else None
             })
+
+        # 2. Acertos da Chave Mestra (Matriz 3x3) nos sorteios mais recentes
+        cursor.execute("""
+            SELECT id, draw_date, slot, COALESCE(lottery, 'RJ') as lottery,
+                   prize_1, prize_2, prize_3, prize_4, prize_5, created_at
+            FROM draw_results
+            WHERE prize_1 IS NOT NULL AND length(prize_1) >= 3
+            ORDER BY draw_date DESC, id DESC
+            LIMIT 50
+        """)
+        recent_draws = cursor.fetchall()
+
+        cache_dia = {}
+        cache_anim = {}
+
+        for dr in recent_draws:
+            d = dict(dr)
+            p1 = str(d["prize_1"]).zfill(4)
+            m1 = extract_milhar(p1)
+            c1 = extract_centena(p1)
+            grp = get_group_for_number(p1)
+            dt = d["draw_date"]
+            lot = d["lottery"]
+            slot = d["slot"]
+            anim = get_animal_info(grp)
+
+            if dt not in cache_dia:
+                try:
+                    cache_dia[dt] = get_matriz_dia(dt)
+                except Exception:
+                    cache_dia[dt] = {}
+            m_dia = cache_dia[dt]
+
+            key_anim = (dt, grp)
+            if key_anim not in cache_anim:
+                try:
+                    cache_anim[key_anim] = get_animal_matriz_centenas(grp, dt)
+                except Exception:
+                    cache_anim[key_anim] = {}
+            m_anim = cache_anim[key_anim]
+
+            top_m = m_anim.get("top_milhares") or []
+            top_c = m_anim.get("top_centenas") or []
+            dir_c = m_dia.get("all_direct_centenas") or []
+
+            hit_m1 = m1 in top_m
+            hit_c1 = c1 in top_c or c1 in dir_c
+
+            if hit_m1:
+                unique_key = (lot, slot, dt, m1)
+                if unique_key not in seen_keys:
+                    seen_keys.add(unique_key)
+                    bingos.append({
+                        "id": f"matriz_m_{d['id']}",
+                        "draw_id": d["id"],
+                        "type": "MILHAR_1ST",
+                        "badge": "💥 1º PRÊMIO NA CABEÇA!",
+                        "title": f"Nosso aplicativo acertou mais uma vez! Milhar {m1} cravada no 1º Prêmio!",
+                        "hit_number": m1,
+                        "prize_1": p1,
+                        "prize_desc": f"1º Prêmio ({anim['name']} - Chave Mestra)",
+                        "lottery": lot,
+                        "slot": slot,
+                        "date": dt,
+                        "score": 350.0,
+                        "evaluated_at": str(d.get("created_at") or dt)
+                    })
+            elif hit_c1:
+                unique_key = (lot, slot, dt, c1)
+                if unique_key not in seen_keys:
+                    seen_keys.add(unique_key)
+                    bingos.append({
+                        "id": f"matriz_c_{d['id']}",
+                        "draw_id": d["id"],
+                        "type": "CENTENA_1ST",
+                        "badge": "⭐ CENTENA NO 1º PRÊMIO!",
+                        "title": f"Nosso aplicativo acertou mais uma vez! Centena {c1} no 1º Prêmio!",
+                        "hit_number": c1,
+                        "prize_1": p1,
+                        "prize_desc": f"1º Prêmio ({anim['name']} - Chave Mestra)",
+                        "lottery": lot,
+                        "slot": slot,
+                        "date": dt,
+                        "score": 250.0,
+                        "evaluated_at": str(d.get("created_at") or dt)
+                    })
+
+        # Ordena sempre por data mais recente e pontuação mais alta
+        bingos.sort(key=lambda b: (b["date"], b["score"]), reverse=True)
 
     latest = bingos[0] if bingos else None
     return {
