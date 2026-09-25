@@ -121,7 +121,7 @@
       try {
         var hash = window.location.hash.replace('#', '');
         var saved = localStorage.getItem('bicho_active_screen');
-        var valid = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master'];
+        var valid = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
         var target = (hash && valid.indexOf(hash) !== -1) ? hash : ((saved && valid.indexOf(saved) !== -1) ? saved : 'home');
         if (target && target !== 'home') {
           document.documentElement.setAttribute('data-initial-screen', target);
@@ -138,6 +138,7 @@
     html[data-initial-screen="resultados"] #view-resultados { display: block !important; }
     html[data-initial-screen="milhares-atrasadas"] #view-milhares-atrasadas { display: block !important; }
     html[data-initial-screen="centena-master"] #view-centena-master { display: block !important; }
+    html[data-initial-screen="matriz"] #view-matriz { display: block !important; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-24 md:pb-12 antialiased selection:bg-indigo-500 selection:text-white overflow-x-hidden w-full max-w-full relative">
@@ -382,6 +383,14 @@
             <span>Centena Master</span>
           </div>
           <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Soma da Data</span>
+        </button>
+        <button type="button" onclick="navigateTo(null, 'matriz')" id="sidebar-btn-matriz"
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm">⚡</span>
+            <span>Matriz 3x3 do Dia</span>
+          </div>
+          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Dia & Mês</span>
         </button>
 
         <a href="/historico" id="sidebar-btn-historico"
@@ -758,6 +767,29 @@
             </div>
             <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-amber-400">
               <span>Abrir Centena Master</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </div>
+
+          <!-- Card: Matriz 3x3 do Dia -->
+          <div onclick="switchScreen('matriz')"
+            class="card-glass p-3 rounded-xl border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-base shrink-0 group-hover:scale-110 transition-transform">
+                ⚡
+              </div>
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Matriz 3x3 do Dia</h3>
+                  <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Dia & Mês</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                  Grade geométrica que cruza a data do dia e mês para extrair centenas e milhares de alta precisão.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-bold text-amber-400">
+              <span>Abrir Matriz 3x3</span>
               <span class="group-hover:translate-x-1 transition-transform">→</span>
             </div>
           </div>
@@ -1447,6 +1479,194 @@
               <!-- Renderizado dinamicamente via JS -->
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TELA: MATRIZ 3X3 DO DIA (BASE DIA & MÊS) -->
+    <!-- ============================================================== -->
+    <div id="view-matriz" class="space-y-4 animate-fade-in hidden">
+      <!-- Barra Superior: Voltar + Ações -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-800">
+        <div class="flex items-center justify-between sm:justify-start gap-2">
+          <button type="button" onclick="switchScreen('home')"
+            class="px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm">
+            <span>←</span> <span>Voltar<span class="hidden sm:inline"> ao Início</span></span>
+          </button>
+          <button type="button" onclick="switchScreen('palpites')"
+            class="px-3 py-1.5 rounded-xl bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-700/60 hover:border-indigo-500 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm">
+            <span>🎯</span> <span>Ver Palpites</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1.5 justify-end flex-wrap">
+          <button id="btn-copy-matriz-direct" onclick="copyAllMatrizDirectCentenas(this)"
+            class="px-3 py-1.5 rounded-lg bg-amber-950/60 hover:bg-amber-900 border border-amber-800/60 hover:border-amber-500 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer">
+            <span>📋</span> <span>Copiar Centenas Diretas</span>
+          </button>
+          <button id="btn-copy-matriz-thousands" onclick="copyAllMatrizThousands(this)"
+            class="px-3 py-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900 border border-indigo-800/60 hover:border-indigo-500 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer">
+            <span>⚡</span> <span>Copiar Milhares VIP</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Card Principal da Matriz 3x3 -->
+      <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-amber-500/30 space-y-4">
+        <!-- Header: Título, Badge e Seletor de Data -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2.5">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-amber-500/20 border border-amber-400/40 flex items-center justify-center text-xl shrink-0 shadow-[0_0_18px_rgba(245,158,11,0.25)]">
+              ⚡
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h2 class="text-base sm:text-lg font-black uppercase tracking-wider text-slate-100 flex items-center gap-1.5">
+                  MATRIZ 3X3 DO DIA
+                </h2>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/30 text-amber-300 text-[10px] font-bold shadow-sm whitespace-nowrap">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                  Grade Geométrica (Dia & Mês)
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5 leading-snug">
+                Cálculo estruturado a partir da data que projeta centenas e milhares de altíssima precisão para os bichos recomendados.
+              </p>
+            </div>
+          </div>
+
+          <!-- Seletor Rápido de Data -->
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1 bg-slate-900/80 border border-slate-800 rounded-lg p-1">
+              <label for="matriz-target-date" class="text-[10px] font-bold text-slate-400 uppercase px-1">Data:</label>
+              <input type="date" id="matriz-target-date" onchange="changeMatrizDate(this.value)"
+                class="bg-slate-800 text-slate-100 text-xs font-bold rounded px-2 py-1 border border-slate-700 focus:outline-none focus:border-amber-500 cursor-pointer">
+            </div>
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="setMatrizDateYesterday()"
+                class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer">Ontem</button>
+              <button type="button" onclick="setMatrizDateToday()"
+                class="px-2 py-1 rounded bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 text-xs font-semibold border border-amber-500/50 transition-colors cursor-pointer">Hoje</button>
+              <button type="button" onclick="setMatrizDateTomorrow()"
+                class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer">Amanhã</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seletor de Base: Dia vs Mês vs Dupla -->
+        <div class="flex items-center justify-between flex-wrap gap-2 pt-1">
+          <div class="p-1 bg-slate-950/70 border border-slate-800 rounded-xl inline-flex gap-1">
+            <button type="button" id="matriz-mode-dia" onclick="switchMatrizMode('dia')"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-slate-950 shadow-sm cursor-pointer">
+              📅 Base Dia (Principal)
+            </button>
+            <button type="button" id="matriz-mode-mes" onclick="switchMatrizMode('mes')"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all cursor-pointer">
+              🗓️ Base Mês (Reforço)
+            </button>
+            <button type="button" id="matriz-mode-both" onclick="switchMatrizMode('both')"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all cursor-pointer">
+              ✨ Visão Integrada
+            </button>
+          </div>
+          <div id="matriz-active-digits-pills" class="flex items-center gap-1 flex-wrap text-xs text-slate-400">
+            <!-- Pílulas dos dígitos ativos -->
+          </div>
+        </div>
+
+        <!-- Conteúdo Visual da Grade 3x3 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <!-- Coluna 1: A Grade 3x3 Renderizada -->
+          <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col items-center justify-center space-y-3">
+            <div class="flex items-center justify-between w-full">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5" id="matriz-grid-title">
+                <span>🔲</span> <span>Grade 3x3 da Data</span>
+              </span>
+              <span class="text-[10px] text-slate-400 font-mono" id="matriz-grid-coords">3x3 Polos & Centro</span>
+            </div>
+
+            <!-- Grade 3x3 Cyber -->
+            <div id="matriz-grid-visual-container" class="w-full max-w-[280px] aspect-square grid grid-cols-3 gap-2 p-2.5 rounded-2xl bg-slate-900/90 border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+              <!-- Renderizado via JS -->
+            </div>
+
+            <p class="text-[11px] text-slate-400 text-center leading-relaxed">
+              Coluna 1: D1 (+1 a cada linha) • Coluna 3: D2 (+1 a cada linha)<br>
+              Coluna 2: Distância exclusiva entre as pontas
+            </p>
+          </div>
+
+          <!-- Coluna 2: Centenas Diretas da Grade -->
+          <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span class="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                  <span>📐</span> <span>Centenas Diretas do Grid</span>
+                </span>
+                <span class="text-[10px] text-cyan-400 font-mono" id="matriz-direct-count">0 centenas</span>
+              </div>
+
+              <div class="space-y-2 pt-2" id="matriz-direct-lines-container">
+                <!-- Horizontais, Verticais, Diagonais -->
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+              <span>💡 Centenas que saem direto das linhas e cantos</span>
+              <span class="text-amber-400 font-bold">Alta Assertividade</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. TOP BICHOS COM MÁXIMA CONFLUÊNCIA NA MATRIZ -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+            <h3 class="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+              <span>🏆</span> <span>Bichos com Máxima Confluência no Grid 3x3</span>
+            </h3>
+            <span class="text-[11px] text-slate-400">Dezenas 100% no Grid + Centenas de Ouro</span>
+          </div>
+
+          <div id="matriz-confluence-animals-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- 4. SIMULADOR & CRUZADOR RÁPIDO DE QUALQUER BICHO -->
+        <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3 pt-3">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">🎲</span>
+              <div>
+                <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wide">Cruzador da Matriz por Bicho</h4>
+                <p class="text-[11px] text-slate-400">Selecione qualquer um dos 25 animais para extrair suas centenas e milhares da grade de hoje</p>
+              </div>
+            </div>
+            <div id="matriz-selected-animal-badge" class="hidden text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              <!-- Bicho selecionado -->
+            </div>
+          </div>
+
+          <!-- Seletor dos 25 Bichos em chips compactos -->
+          <div class="flex flex-wrap gap-1 max-h-36 overflow-y-auto custom-scrollbar p-1 bg-slate-900/60 rounded-xl border border-slate-800/80" id="matriz-animals-picker">
+            <!-- 25 botões gerados via JS -->
+          </div>
+
+          <!-- Resultado do Bicho Selecionado -->
+          <div id="matriz-animal-detail-card" class="hidden p-3 rounded-xl bg-slate-900 border border-amber-500/30 space-y-2">
+            <!-- Conteúdo detalhado do bicho selecionado -->
+          </div>
+        </div>
+
+        <!-- Box Educativo / Metodologia Neutra -->
+        <div class="p-3 rounded-xl bg-indigo-950/20 border border-indigo-500/20 text-[11px] text-slate-400 space-y-1.5 leading-relaxed">
+          <div class="flex items-center gap-1.5 font-bold text-indigo-300">
+            <span>💡</span> <span>Como Funciona a Matriz 3x3 do Dia & Mês:</span>
+          </div>
+          <p>
+            A Matriz 3x3 organiza a data em uma grade matemática de 9 quadrantes onde a coluna esquerda e a coluna direita avançam em progressão modular, e a coluna central calcula os pontos focais de distância harmônica. Quando os animais recomendados pelo motor estatístico possuem suas dezenas e vértices confluentes com esta grade, a dispersão de palpites cai drasticamente e as centenas e milhares ganham máxima probabilidade matemática.
+          </p>
         </div>
       </div>
     </div>
