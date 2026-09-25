@@ -1029,6 +1029,21 @@ window.inspectSnapshot = async function (id) {
     const p3 = data.prize_3;
     const p4 = data.prize_4;
     const p5 = data.prize_5;
+
+    const isMilhar1stHit = Boolean(
+      data.acerto_milhar_1 ||
+      evalDetails?.milhar?.hit_1st ||
+      evalDetails?.milhar?.matriz_hit ||
+      evalDetails?.chave_mestra?.hit_milhar_1st ||
+      String(p1) === '3734'
+    );
+    const isCentena1stHit = Boolean(
+      data.acerto_centena_1 ||
+      evalDetails?.centena?.hit_1st ||
+      evalDetails?.centena?.matriz_hit ||
+      evalDetails?.chave_mestra?.hit_centena_1st ||
+      String(p1).slice(-3) === '734'
+    );
     const prizes = [
       { label: '1º Prêmio', val: p1, isHead: true },
       { label: '2º Prêmio', val: p2, isHead: false },
@@ -1261,20 +1276,7 @@ window.inspectSnapshot = async function (id) {
     const actM1 = String(evalDetails.milhar?.actual_1st || '').padStart(4, '0');
     const hitM1 = Boolean(evalDetails.milhar?.hit_1st);
 
-    const isMilhar1stHit = Boolean(
-      data.acerto_milhar_1 ||
-      evalDetails?.milhar?.hit_1st ||
-      evalDetails?.milhar?.matriz_hit ||
-      evalDetails?.chave_mestra?.hit_milhar_1st ||
-      String(p1) === '3734'
-    );
-    const isCentena1stHit = Boolean(
-      data.acerto_centena_1 ||
-      evalDetails?.centena?.hit_1st ||
-      evalDetails?.centena?.matriz_hit ||
-      evalDetails?.chave_mestra?.hit_centena_1st ||
-      String(p1).slice(-3) === '734'
-    );
+
 
     let topCelebrationBanner = '';
     if (isMilhar1stHit) {
