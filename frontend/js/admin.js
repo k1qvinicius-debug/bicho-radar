@@ -492,73 +492,93 @@ window.loadTenantsTable = async function() {
       const isGoogle = t.auth_provider === 'google';
       const isSubscriber = t.subscription_status === 'active' && t.plan_type === 'subscriber';
       const isExpired = !isAdmin && (t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining <= 0));
+      const userPass = t.password || t.tenant_key || '---';
 
       const roleBadge = isAdmin
-        ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">👑 MASTER ADMIN</span>'
+        ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">👑 MASTER ADMIN</span>'
         : isSubscriber
-        ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">⭐ ASSINANTE</span>'
-        : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">DEGUSTAÇÃO</span>';
+        ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">⭐ ASSINANTE</span>'
+        : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">DEGUSTAÇÃO</span>';
 
       const statusBadge = isActive
         ? (isExpired
-            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">🔒 TESTE EXPIRADO (0d)</span>'
-            : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">${isAdmin ? 'ATIVO' : `ATIVO (${t.trial_days_remaining !== undefined ? t.trial_days_remaining : 7}d restantes)`}</span>`)
-        : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">SUSPENSO</span>';
+            ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">🔒 EXPIRADO</span>'
+            : `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">${isAdmin ? 'ATIVO' : `ATIVO (${t.trial_days_remaining !== undefined ? t.trial_days_remaining : 7}d)`}</span>`)
+        : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">SUSPENSO</span>';
 
       const providerBadge = isGoogle
-        ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30 flex items-center gap-1">🌐 Gmail / Google</span>'
-        : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Chave / Manual</span>';
+        ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30">🌐 Google</span>'
+        : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Manual</span>';
 
       const actionsHtml = isAdmin
-        ? '<span class="text-[11px] text-slate-500 italic">Conta Principal de Acesso</span>'
+        ? '<span class="text-[10px] text-slate-500 italic">Conta Master</span>'
         : `
-          <div class="flex items-center gap-1.5 flex-wrap">
+          <div class="flex items-center gap-1 flex-wrap">
             <button type="button" onclick="extendTenantTrial(${t.id})"
-              class="px-2.5 py-1.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-800/80 font-bold text-xs transition-all cursor-pointer shadow-sm"
+              class="px-2 py-1 rounded-lg bg-indigo-950/80 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-800/80 font-bold text-[11px] transition-all cursor-pointer shadow-sm"
               title="Renovar acesso para este usuário (+30 dias)">
-              <span>+30 Dias</span>
+              <span>+30d</span>
             </button>
             <button type="button" onclick="activateTenantSubscription(${t.id})"
-              class="px-2.5 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800/80 font-bold text-xs transition-all cursor-pointer shadow-sm"
+              class="px-2 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800/80 font-bold text-[11px] transition-all cursor-pointer shadow-sm"
               title="Ativar assinatura por 30 dias">
               <span>⭐ Ativar</span>
             </button>
-            <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${t.name.replace(/'/g, "\\'")}', this, '${t.phone || ''}')"
-              class="px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+            <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${t.name.replace(/'/g, "\'")}', this, '${t.phone || ''}', '${userPass}')"
+              class="px-2 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-[11px] transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
               title="${t.phone ? 'Abrir conversa direta no WhatsApp do usuário' : 'Copiar link e senha para envio no WhatsApp'}">
               <span>📲</span> <span>WhatsApp</span>
             </button>
             <button type="button" onclick="toggleTenantStatus(${t.id}, '${t.status}')"
-              class="px-2 py-1.5 rounded-lg ${isActive ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60 hover:bg-amber-900/60' : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60'} font-bold text-xs transition-all cursor-pointer">
+              class="px-2 py-1 rounded-lg ${isActive ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60 hover:bg-amber-900/60' : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60'} font-bold text-[11px] transition-all cursor-pointer" title="${isActive ? 'Suspender' : 'Reativar'}">
               ${isActive ? '⏸️' : '▶️'}
             </button>
-            <button type="button" onclick="deleteTenantAccount(${t.id}, '${t.name.replace(/'/g, "\\'")}')"
-              class="px-2 py-1.5 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 font-bold text-xs transition-all cursor-pointer" title="Excluir">
+            <button type="button" onclick="deleteTenantAccount(${t.id}, '${t.name.replace(/'/g, "\'")}')"
+              class="px-2 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 font-bold text-[11px] transition-all cursor-pointer" title="Excluir">
               🗑️
             </button>
           </div>
         `;
 
       return `
-        <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div class="space-y-1.5">
-            <div class="flex items-center gap-2 flex-wrap">
-              <h4 class="font-black text-sm text-white">${t.name}</h4>
-              ${t.email ? `<span class="text-xs text-indigo-300 font-mono bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-900/50">${t.email}</span>` : ''}
-              ${t.phone ? `<a href="https://wa.me/55${t.phone.replace(/\D/g, '')}" target="_blank" class="text-xs text-emerald-400 font-mono bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/80 hover:bg-emerald-900/60 transition-colors inline-flex items-center gap-1 font-bold" title="Conversar no WhatsApp">📱 ${t.phone}</a>` : '<span class="text-[10px] text-slate-500 font-mono italic">Sem telefone</span>'}
+        <div class="p-2 sm:p-2.5 rounded-xl bg-slate-900/85 border border-slate-800 hover:border-slate-700 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 transition-all">
+          <div class="space-y-1 min-w-0">
+            <!-- Linha 1: Nome, Contatos e Badges -->
+            <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+              <h4 class="font-black text-xs sm:text-sm text-white truncate max-w-[200px]">${t.name}</h4>
+              ${t.email ? `<span class="text-[11px] text-indigo-300 font-mono bg-indigo-950/40 px-1.5 py-0.2 rounded border border-indigo-900/50 truncate max-w-[220px]">${t.email}</span>` : ''}
+              ${t.phone ? `<a href="https://wa.me/55${t.phone.replace(/\D/g, '')}" target="_blank" class="text-[11px] text-emerald-400 font-mono bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-800/80 hover:bg-emerald-900/60 transition-colors inline-flex items-center gap-0.5 font-bold" title="Conversar no WhatsApp">📱 ${t.phone}</a>` : '<span class="text-[10px] text-slate-500 font-mono italic">Sem tel</span>'}
               ${providerBadge}
               ${roleBadge}
               ${statusBadge}
             </div>
-            <div class="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
-              <span>Chave: <button type="button" onclick="copySimpleText('${t.tenant_key}', 'Chave')" title="Copiar chave" class="font-mono font-bold text-amber-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-800 hover:border-amber-400 transition-colors">${t.tenant_key} 📋</button></span>
-              <span>Análises salvas: <strong class="text-indigo-300 font-mono">${t.snapshots_count}</strong></span>
-              <span>Último acesso: <span class="font-mono text-slate-300">${t.last_active_at || 'Nunca'}</span></span>
+
+            <!-- Linha 2: Senha Real, Análises, Último Acesso e Notas -->
+            <div class="flex items-center gap-2 text-[11px] text-slate-400 flex-wrap">
+              <span class="inline-flex items-center gap-1">
+                <span class="text-amber-400 font-bold">🔑 Senha:</span>
+                <button type="button" onclick="copySimpleText('${userPass}', 'Senha')" title="Clique para copiar a senha deste usuário"
+                  class="font-mono font-black text-amber-200 bg-slate-950 px-2 py-0.5 rounded border border-amber-500/40 hover:border-amber-300 hover:text-white transition-colors cursor-pointer text-xs shadow-sm">
+                  ${userPass} 📋
+                </button>
+              </span>
+              ${(t.tenant_key && t.password && t.tenant_key !== t.password) ? `<span class="text-[10px] text-slate-600 font-mono hidden sm:inline" title="Chave Técnica">(${t.tenant_key})</span>` : ''}
+
+              <span class="text-slate-700">•</span>
+              <span>Análises: <strong class="text-indigo-300 font-mono">${t.snapshots_count}</strong></span>
+
+              <span class="text-slate-700">•</span>
+              <span>Acesso: <span class="font-mono text-slate-300">${t.last_active_at ? t.last_active_at.replace(/^2026-/, '') : 'Nunca'}</span></span>
+
+              ${t.notes ? `
+                <span class="text-slate-700">•</span>
+                <span class="text-[10px] text-slate-500 italic truncate max-w-[200px]" title="${t.notes}">📝 ${t.notes}</span>
+              ` : ''}
             </div>
-            ${t.notes ? `<p class="text-[11px] text-slate-400 italic">Notas: ${t.notes}</p>` : ''}
           </div>
 
-          <div class="pt-2 md:pt-0 border-t md:border-t-0 border-slate-800 shrink-0">
+          <!-- Ações Compactas -->
+          <div class="pt-1.5 lg:pt-0 border-t lg:border-t-0 border-slate-800 shrink-0">
             ${actionsHtml}
           </div>
         </div>
@@ -619,9 +639,10 @@ window.handleCreateTenant = async function(event) {
   }
 };
 
-window.copyTenantWhatsApp = async function(key, name, btn, phone = '') {
+window.copyTenantWhatsApp = async function(key, name, btn, phone = '', password = '') {
+  const effectivePass = password || key;
   const link = `${window.location.origin}/?key=${encodeURIComponent(key)}`;
-  const text = `Olá, ${name}!\n\nSegue seu link e dados de acesso exclusivo ao BICHO MASTER PRO:\n${link}\n\nSua Senha / Chave de Acesso: ${key}\n\nBasta clicar no link para entrar automaticamente no sistema. Bons palpites!`;
+  const text = `Olá, ${name}!\n\nSegue seu link e dados de acesso exclusivo ao BICHO MASTER PRO:\n${link}\n\nSua Senha de Acesso: ${effectivePass}\n\nBasta clicar no link para entrar automaticamente no sistema. Bons palpites!`;
 
   if (phone) {
     const cleanPhone = phone.replace(/\D/g, '');
