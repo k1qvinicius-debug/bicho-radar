@@ -5843,11 +5843,19 @@ window.closeBingoCelebrationModal = function() {
 };
 
 window.goToBingoDetails = function() {
+  const b = window._latestBingoData;
   if (typeof closeBingoCelebrationModal === 'function') {
     closeBingoCelebrationModal();
   }
-  // Direciona para a tela de histórico / auditoria comprovada
-  window.location.href = '/historico';
+  if (b) {
+    const lot = b.lottery || 'RJ';
+    const dt = b.date || '';
+    const slot = b.slot || '';
+    const hId = b.draw_id || b.id || '';
+    window.location.href = `/historico?lottery=${encodeURIComponent(lot)}&date=${encodeURIComponent(dt)}&slot=${encodeURIComponent(slot)}&highlight=${encodeURIComponent(hId)}&type=${encodeURIComponent(b.type || '')}`;
+  } else {
+    window.location.href = '/historico';
+  }
 };
 
 window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
@@ -5868,9 +5876,18 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
     const dismissedKey = 'bicho_dismissed_bingo_' + b.id;
     const seenModalKey = 'bicho_seen_bingo_modal_' + b.id;
 
-    // Se é acerto no 1º Prêmio (MILHAR ou CENTENA na cabeça) e ainda não viu o pop-up na tela:
-    if (!forceShow && (b.type === 'MILHAR_1ST' || b.type === 'CENTENA_1ST')) {
+    // REGRA: Apenas para Centena e Milhar!
+    const isAllowedType = (b.type === 'MILHAR_1ST' || b.type === 'CENTENA_1ST' || b.type === 'MILHAR_CERCADO');
+    if (!isAllowedType) {
+      container.classList.add('hidden');
+      return;
+    }
+
+    // REGRA: Aparecer SOMENTE UMA VEZ por acerto!
+    if (!forceShow) {
       if (localStorage.getItem(seenModalKey) !== '1') {
+        // Marca IMEDIATAMENTE para garantir que NUNCA reabra na mesma sessão ou navegação
+        try { localStorage.setItem(seenModalKey, '1'); } catch(e) {}
         setTimeout(() => {
           openBingoCelebrationModal(b);
         }, 800);
