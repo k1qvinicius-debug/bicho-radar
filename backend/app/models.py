@@ -234,6 +234,7 @@ class TenantModel(BaseModel):
     id: int
     name: str
     tenant_key: str
+    password: Optional[str] = None
     role: str = "tester"
     status: str = "active"
     notes: Optional[str] = None
