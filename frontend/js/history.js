@@ -182,6 +182,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Erro ao carregar lista de análises:', e);
   }
 
+  // Processa links diretos do Pop-up / Notificação para rolar ao acerto exato
+  handleDeepLinkParams();
+
   setupHistoryEvents();
 });
 
@@ -825,7 +828,7 @@ function renderFilteredSnapshots() {
       }
 
       return `
-      <div class="card-glass p-3 sm:p-3.5 rounded-xl transition-all animate-fade-in mb-2.5 border ${cardBorderClasses}">
+      <div id="snapshot-card-${s.id}" data-snapshot-id="${s.id}" data-draw-id="${s.draw_id || ''}" data-slot="${s.target_slot}" data-date="${s.target_date}" data-lottery="${getCanonicalLottery(s)}" class="card-glass p-3 sm:p-3.5 rounded-xl transition-all animate-fade-in mb-2.5 border ${cardBorderClasses}">
         <div class="flex items-center justify-between gap-3 mb-2">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-sm font-bold text-slate-100">${formatDateBR(s.target_date)}</span>
@@ -1428,5 +1431,60 @@ window.dismissMilharBingoBanner = function(bingoId) {
     try {
       localStorage.setItem('bicho_dismissed_bingo_' + bingoId, '1');
     } catch(e) {}
+  }
+};
+
+
+
+window.handleDeepLinkParams = function() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const paramLottery = params.get('lottery');
+    const paramDate = params.get('date');
+    const paramHighlight = params.get('highlight');
+    const paramSlot = params.get('slot');
+
+    if (paramLottery) {
+      if (typeof setHistoryLotteryFilter === 'function') {
+        setHistoryLotteryFilter(paramLottery.toUpperCase());
+      }
+    }
+
+    if (paramDate) {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      if (paramDate === todayStr) {
+        if (typeof setHistoryDateFilter === 'function') setHistoryDateFilter('today');
+      } else {
+        if (typeof setHistoryCustomDate === 'function') setHistoryCustomDate(paramDate);
+      }
+    }
+
+    if (paramHighlight || paramSlot) {
+      setTimeout(() => {
+        let targetEl = null;
+        if (paramHighlight) {
+          targetEl = document.getElementById(`snapshot-card-${paramHighlight}`) ||
+                     document.querySelector(`[data-snapshot-id="${paramHighlight}"]`) ||
+                     document.querySelector(`[data-draw-id="${paramHighlight}"]`);
+        }
+        if (!targetEl && paramSlot) {
+          targetEl = document.querySelector(`[data-slot="${paramSlot}"]`);
+        }
+
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetEl.classList.add('ring-4', 'ring-amber-400', 'ring-offset-2', 'ring-offset-slate-900', 'shadow-[0_0_35px_rgba(245,158,11,0.5)]');
+          
+          // Se tiver botão de detalhes, abre a conferência
+          const btnDetails = targetEl.querySelector('button[onclick*="inspectSnapshot"]');
+          if (btnDetails) {
+            btnDetails.click();
+          }
+        }
+      }, 700);
+    }
+  } catch (err) {
+    console.warn('Erro ao processar parâmetros da URL em historico:', err);
   }
 };
