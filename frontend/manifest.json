@@ -1,0 +1,43 @@
+{
+  "name": "Bicho Master Pro - Inteligência em Resultados",
+  "short_name": "Bicho Master",
+  "description": "Plataforma profissional de estatísticas, atrasados, puxadas e palpites precisos do Jogo do Bicho.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0F19",
+  "theme_color": "#0B0F19",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/img/icon-192.png?v=1.0",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/icon-512.png?v=1.0",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/icon-maskable-192.png?v=1.0",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/img/icon-maskable-512.png?v=1.0",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": [
+    "utilities",
+    "entertainment",
+    "sports"
+  ]
+}
