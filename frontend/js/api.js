@@ -416,6 +416,14 @@ const api = {
     return await res.json();
   },
 
+    async getRecentBingos() {
+    const res = await fetch(`${API_BASE}/analysis/recent-bingos`, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao carregar bingos recentes.');
+    return await res.json();
+  },
+
   async getPatternBreaks(lottery = 'RJ', limit = 30) {
     let url = `${API_BASE}/analysis/pattern-breaks?lottery=${encodeURIComponent(lottery || 'RJ')}&limit=${limit}`;
     const res = await fetch(url, {
