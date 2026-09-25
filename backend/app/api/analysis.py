@@ -331,6 +331,35 @@ def get_cruz_do_dia_endpoint(
     return get_cruz_do_dia(effective_date)
 
 
+@router.get("/matriz-dia", response_model=Dict[str, Any])
+def get_matriz_dia_endpoint(
+    target_date: Optional[str] = Query(None, description="Data da Matriz 3x3 (YYYY-MM-DD). Padrão: hoje"),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
+):
+    """
+    Retorna a Matriz 3x3 da Data (Base Dia e Base Mês) com dígitos ativos,
+    linhas horizontais, verticais e diagonais e o ranking de confluência dos animais.
+    """
+    from ..engine.matriz_engine import get_matriz_dia
+    effective_date = target_date or datetime.now().strftime("%Y-%m-%d")
+    return get_matriz_dia(effective_date)
+
+
+@router.get("/matriz-animal", response_model=Dict[str, Any])
+def get_matriz_animal_endpoint(
+    group: int = Query(..., ge=1, le=25, description="Número do grupo do bicho (1 a 25)"),
+    target_date: Optional[str] = Query(None, description="Data da Matriz (YYYY-MM-DD). Padrão: hoje"),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
+):
+    """
+    Retorna as Centenas e Milhares prioritárias de um bicho filtradas
+    e ordenadas pela confluência da Matriz 3x3 da Data.
+    """
+    from ..engine.matriz_engine import get_animal_matriz_centenas
+    effective_date = target_date or datetime.now().strftime("%Y-%m-%d")
+    return get_animal_matriz_centenas(group, effective_date)
+
+
 @router.get("/transition-matrix", response_model=Dict[str, Any])
 def get_transition_matrix_endpoint(
     lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
