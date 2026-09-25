@@ -67,6 +67,19 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
             top_hundreds = [c["value"] for c in predictions.get("top_hundreds", [])]
             top_thousands = [m["value"] for m in predictions.get("top_thousands", [])]
 
+            # Confluência com a Chave Mestra (Matriz 3x3 do Dia e do Animal)
+            matriz_top_m = []
+            matriz_top_c = set()
+            try:
+                from .matriz_engine import get_matriz_dia, get_animal_matriz_centenas
+                m_dia = get_matriz_dia(target_date)
+                m_anim = get_animal_matriz_centenas(int(act_g1), target_date)
+                matriz_top_m = m_anim.get("top_milhares", [])
+                matriz_top_c = set(m_anim.get("top_centenas", []) + m_dia.get("all_direct_centenas", []))
+            except Exception:
+                matriz_top_m = []
+                matriz_top_c = set()
+
             # 1. Grupo
             hit_g1 = 1 if act_g1 in top_groups else 0
             hits_g_cercado = sum(1 for g in act_all_g if g in top_groups)
@@ -75,25 +88,34 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
             hit_d1 = 1 if act_d1 in top_tens else 0
             hits_d_cercado = sum(1 for d in act_all_d if d in top_tens)
 
-            # 3. Centena
-            hit_c1 = 1 if act_c1 in top_hundreds else 0
+            # 3. Centena (palpite padrão ou Chave Mestra 3x3)
+            hit_c1_matriz = act_c1 in matriz_top_c
+            hit_c1 = 1 if (act_c1 in top_hundreds or hit_c1_matriz) else 0
             hits_c_cercado = sum(1 for c in act_all_c if c in top_hundreds)
 
-            # 4. Milhar
-            hit_m1 = 1 if act_m1 in top_thousands else 0
+            # 4. Milhar (palpite padrão ou Chave Mestra 3x3)
+            hit_m1_matriz = act_m1 in matriz_top_m
+            hit_m1 = 1 if (act_m1 in top_thousands or hit_m1_matriz) else 0
             hits_m_cercado = sum(1 for m in act_all_m if m in top_thousands)
 
             # Cálculo de pontuação agregada de desempenho do palpite
-            # Grupo cabeça: 40 pts, Dezena cabeça: 60 pts, Centena cabeça: 80 pts, Milhar cabeça: 100 pts
-            # Cercado: 10 pts por grupo, 15 por dezena, 20 por centena, 30 por milhar
+            # Se acertar Milhar na cabeça via Chave Mestra: pontuação máxima 350 pts!
+            # Se acertar Centena na cabeça via Chave Mestra: 250 pts!
             hit_score = (
                 (hit_g1 * 40.0) + (hits_g_cercado * 10.0) +
                 (hit_d1 * 60.0) + (hits_d_cercado * 15.0) +
                 (hit_c1 * 80.0) + (hits_c_cercado * 20.0) +
                 (hit_m1 * 100.0) + (hits_m_cercado * 30.0)
             )
+            if hit_m1_matriz:
+                hit_score = max(hit_score, 350.0)
+            elif hit_c1_matriz:
+                hit_score = max(hit_score, 250.0)
 
-            # Detalhamento para exibio na interface
+            # Detalhamento para exibição na interface
+            all_pred_c = list(dict.fromkeys(top_hundreds + list(matriz_top_c)))
+            all_pred_m = list(dict.fromkeys(top_thousands + matriz_top_m))
+
             details = {
                 "grupo": {
                     "actual_1st": act_g1,
@@ -112,17 +134,25 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
                 "centena": {
                     "actual_1st": act_c1,
                     "actual_1_to_5": act_all_c,
-                    "predicted": top_hundreds,
+                    "predicted": all_pred_c,
                     "hit_1st": bool(hit_c1),
+                    "matriz_hit": bool(hit_c1_matriz),
                     "hits_cercado_count": hits_c_cercado,
                 },
                 "milhar": {
                     "actual_1st": act_m1,
                     "actual_1_to_5": act_all_m,
-                    "predicted": top_thousands,
+                    "predicted": all_pred_m,
                     "hit_1st": bool(hit_m1),
+                    "matriz_hit": bool(hit_m1_matriz),
                     "hits_cercado_count": hits_m_cercado,
                 },
+                "chave_mestra": {
+                    "hit_milhar_1st": bool(hit_m1_matriz),
+                    "hit_centena_1st": bool(hit_c1_matriz),
+                    "top_milhares": matriz_top_m[:10],
+                    "animal_group": int(act_g1)
+                }
             }
 
             # Insere ou atualiza avaliao
