@@ -280,8 +280,8 @@ def add_trial_days(tenant_id: int, days: int = 7):
 
 
 @router.post("/tenants/{tenant_id}/activate-subscription")
-def activate_subscription(tenant_id: int, days: int = 30):
-    """Ativa a assinatura do usuário por X dias (padrão: 30 dias)."""
+def activate_subscription(tenant_id: int, days: int = 30, plan_type: str = "monthly"):
+    """Ativa a assinatura do usuário por X dias (Mensal: 30d, Trimestral: 90d, Semestral: 180d, Anual: 365d, etc.)."""
     import time
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -290,18 +290,40 @@ def activate_subscription(tenant_id: int, days: int = 30):
         if not row:
             raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
-        new_expire_ts = time.time() + (days * 86400)
+        now_ts = time.time()
+        start_ts = now_ts
+        current_expire_str = row["trial_expires_at"]
+        if current_expire_str and row.get("subscription_status") == "active":
+            try:
+                cur_ts = time.mktime(time.strptime(current_expire_str, "%Y-%m-%d %H:%M:%S"))
+                if cur_ts > now_ts:
+                    start_ts = cur_ts
+            except Exception:
+                pass
+
+        new_expire_ts = start_ts + (days * 86400)
         new_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(new_expire_ts))
 
         cursor.execute("""
             UPDATE tenants 
-            SET trial_expires_at = ?, subscription_status = 'active', plan_type = 'monthly', status = 'active'
+            SET trial_expires_at = ?, subscription_status = 'active', plan_type = ?, status = 'active'
             WHERE id = ?
-        """, (new_expire_str, tenant_id))
+        """, (new_expire_str, plan_type, tenant_id))
+
+        plan_labels = {
+            "monthly": "Mensal (30 dias)",
+            "quarterly": "Trimestral (90 dias)",
+            "semiannual": "Semestral (180 dias)",
+            "yearly": "Anual (365 dias)",
+            "custom": f"{days} dias"
+        }
+        label = plan_labels.get(plan_type, f"{days} dias")
 
         return {
-            "message": f"Assinatura de 30 dias ativada com sucesso para '{row['name']}'.",
-            "subscription_expires_at": new_expire_str
+            "message": f"Assinatura {label} ativada com sucesso para '{row['name']}'.",
+            "subscription_expires_at": new_expire_str,
+            "days_added": days,
+            "plan_type": plan_type
         }
 
 
