@@ -64,6 +64,51 @@ def get_default_next_slot(lottery: str = "RJ") -> str:
     return slots[0]["code"]
 
 
+import time
+
+_PREDICTION_CACHE: Dict[str, Any] = {}
+_FIXED_ANIMAL_CACHE: Dict[str, Any] = {}
+_PREDICTION_CACHE_TTL = 180.0  # 3 minutos de TTL
+
+
+def get_cached_prediction(key: str) -> Optional[PredictionOutput]:
+    entry = _PREDICTION_CACHE.get(key)
+    if entry:
+        ts, val = entry
+        if time.time() - ts < _PREDICTION_CACHE_TTL:
+            return val
+        del _PREDICTION_CACHE[key]
+    return None
+
+
+def set_cached_prediction(key: str, val: PredictionOutput) -> None:
+    if len(_PREDICTION_CACHE) > 200:
+        _PREDICTION_CACHE.clear()
+    _PREDICTION_CACHE[key] = (time.time(), val)
+
+
+def get_cached_fixed_animal(key: str) -> Optional[Dict[str, Any]]:
+    entry = _FIXED_ANIMAL_CACHE.get(key)
+    if entry:
+        ts, val = entry
+        if time.time() - ts < _PREDICTION_CACHE_TTL:
+            return val
+        del _FIXED_ANIMAL_CACHE[key]
+    return None
+
+
+def set_cached_fixed_animal(key: str, val: Dict[str, Any]) -> None:
+    if len(_FIXED_ANIMAL_CACHE) > 200:
+        _FIXED_ANIMAL_CACHE.clear()
+    _FIXED_ANIMAL_CACHE[key] = (time.time(), val)
+
+
+def invalidate_prediction_cache() -> None:
+    """Limpa todo o cache de análises em memória (chamado após novas apurações serem sincronizadas)."""
+    _PREDICTION_CACHE.clear()
+    _FIXED_ANIMAL_CACHE.clear()
+
+
 @router.get("/predict", response_model=PredictionOutput)
 def get_prediction(
     target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD). Padrão: hoje"),
@@ -75,11 +120,17 @@ def get_prediction(
     """
     Gera análise estatística multi-fatorial detalhada para o próximo horário da loteria selecionada.
     Retorna Grupos, Dezenas, Centenas e Milhares mais fortes com suas pontuações e fatores.
+    Utiliza cache em memória de alta velocidade para resposta sub-milisegundo ao alternar horários.
     """
     effective_date = target_date or datetime.now().strftime("%Y-%m-%d")
     effective_lottery = (lottery or "RJ").upper()
     effective_slot = (target_slot or get_default_next_slot(effective_lottery)).upper()
     effective_strat = (strategy or "hybrid").lower()
+
+    cache_key = f"{effective_lottery}_{effective_date}_{effective_slot}_{effective_strat}"
+    cached = get_cached_prediction(cache_key)
+    if cached is not None:
+        return cached
 
     engine = StatisticalEngine()
     prediction = engine.analyze(
@@ -88,6 +139,7 @@ def get_prediction(
         strategy=effective_strat,
         lottery=effective_lottery
     )
+    set_cached_prediction(cache_key, prediction)
     return prediction
 
 
@@ -107,13 +159,20 @@ def get_fixed_animal_closure(
     effective_lottery = (lottery or "RJ").upper()
     effective_slot = (target_slot or get_default_next_slot(effective_lottery)).upper()
 
+    cache_key = f"{effective_lottery}_{effective_date}_{effective_slot}_{group}"
+    cached = get_cached_fixed_animal(cache_key)
+    if cached is not None:
+        return cached
+
     engine = StatisticalEngine()
-    return engine.generate_fixed_animal_combo(
+    res = engine.generate_fixed_animal_combo(
         group_number=group,
         target_date=effective_date,
         target_slot=effective_slot,
         lottery=effective_lottery
     )
+    set_cached_fixed_animal(cache_key, res)
+    return res
 
 
 @router.post("/snapshot", response_model=Dict[str, Any])
