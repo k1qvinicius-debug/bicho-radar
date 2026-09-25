@@ -214,6 +214,8 @@ window.switchScreen = function(screenName, updateHash = true) {
   if (navBtnPalpites) navBtnPalpites.className = (screenName === 'palpites') ? activeDesktopClass : inactiveDesktopClass;
   if (navBtnCruz) navBtnCruz.className = (screenName === 'cruz') ? activeDesktopClass : inactiveDesktopClass;
   if (navBtnResultados) navBtnResultados.className = (screenName === 'resultados') ? activeDesktopClass : inactiveDesktopClass;
+    const navBtnMilhares = document.getElementById('nav-btn-milhares-atrasadas');
+    if (navBtnMilhares) navBtnMilhares.className = (screenName === 'milhares-atrasadas') ? activeDesktopClass : inactiveDesktopClass;
 
   // Atualiza botões do Mobile Bottom Nav (Dock Glassmorphism)
   const mobBtnHome = document.getElementById('mob-btn-home');
