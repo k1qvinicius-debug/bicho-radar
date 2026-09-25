@@ -150,7 +150,7 @@ window.addEventListener('hashchange', () => {
    Telas: 'home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados'
    ========================================================================== */
 window.switchScreen = function(screenName, updateHash = true) {
-  const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master'];
+  const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   if (!screens.includes(screenName)) screenName = 'home';
 
   // Persiste a tela ativa no localStorage para manter a mesma tela ao recarregar a página
@@ -174,7 +174,7 @@ window.switchScreen = function(screenName, updateHash = true) {
   // Oculta a barra de loterias na tela da Cruz do Dia e no Início
   const globalLotteryBar = document.getElementById('global-lottery-bar-container');
   if (globalLotteryBar) {
-    if (screenName === 'cruz' || screenName === 'home' || screenName === 'milhares-atrasadas' || screenName === 'centena-master') {
+    if (screenName === 'cruz' || screenName === 'home' || screenName === 'milhares-atrasadas' || screenName === 'centena-master' || screenName === 'matriz') {
       globalLotteryBar.classList.add('hidden');
     } else {
       globalLotteryBar.classList.remove('hidden');
@@ -241,7 +241,9 @@ window.switchScreen = function(screenName, updateHash = true) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   // Dispara carregamentos sob demanda se necessário
-  if (screenName === 'centena-master') {
+  if (screenName === 'matriz') {
+    loadMatrizContent();
+  } else if (screenName === 'centena-master') {
     loadCentenaMasterContent();
   } else if (screenName === 'cruz') {
     loadCruzModalContent();
@@ -2220,6 +2222,13 @@ function calculateConfidenceData(group) {
     badges.push({ icon: '📈', label: `${presencePct}% no 1º ao 5º recente`, color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' });
   }
 
+  if (bcMeta?.matriz_dia?.is_confluent || g.metadata?.matriz_dia?.is_confluent) {
+    const matMeta = bcMeta?.matriz_dia || g.metadata?.matriz_dia;
+    const confVal = Math.round(matMeta?.confluence_score || 0);
+    points += 6;
+    badges.push({ icon: '⚡', label: `Matriz 3x3 (${confVal}% no Grid)`, color: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm' });
+  }
+
   const confidence = Math.min(Math.max(Math.round(points), 68), 98);
 
   let level = 'Alta';
@@ -2284,9 +2293,18 @@ function renderAnimalCards(data) {
     animalTens = Array.from(new Set(animalTens));
 
     // 2. Centenas deste animal
+    const matrizMeta = g.metadata?.matriz_dia;
+    const matrizCentenas = matrizMeta?.top_centenas || [];
+    const matrizMilhares = matrizMeta?.top_milhares || [];
+
     let animalHundreds = allHundreds
       .filter(h => h.group_number === grpNum || animalTens.includes(h.value.slice(-2)))
       .map(h => h.value);
+
+    // Prioriza centenas da Matriz 3x3 no topo
+    if (matrizCentenas.length > 0) {
+      animalHundreds = Array.from(new Set([...matrizCentenas, ...animalHundreds]));
+    }
 
     if (animalHundreds.length === 0 && animalTens.length > 0) {
       animalTens.forEach(t => {
@@ -2303,6 +2321,10 @@ function renderAnimalCards(data) {
       .filter(m => m.group_number === grpNum || animalTens.includes(m.value.slice(-2)))
       .map(m => m.value);
 
+    // Prioriza milhares da Matriz 3x3 e da Cruz no topo
+    if (matrizMilhares.length > 0) {
+      animalThousands = Array.from(new Set([...matrizMilhares, ...animalThousands]));
+    }
     if (cruzMeta?.thousands && cruzMeta.thousands.length > 0) {
       animalThousands = Array.from(new Set([...cruzMeta.thousands, ...animalThousands]));
     }
@@ -2320,13 +2342,29 @@ function renderAnimalCards(data) {
       : '<span class="text-xs text-slate-500">-</span>';
 
     const hundredsHtml = animalHundreds.length > 0
-      ? animalHundreds.map(h => `<button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')" title="Clique para copiar a centena ${h}" class="px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">${h}</button>`).join(' ')
+      ? animalHundreds.map(h => {
+          const isMatrizCentena = matrizCentenas.includes(h);
+          const btnCls = isMatrizCentena
+            ? 'bg-amber-950/90 border border-amber-500/80 text-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30'
+            : 'bg-cyan-950/80 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200';
+          return `<button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')" title="Clique para copiar a centena ${h}${isMatrizCentena ? ' (⚡ Matriz 3x3)' : ''}" class="px-2 py-0.5 rounded ${btnCls} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${h}${isMatrizCentena ? '<span class="text-[9px] text-amber-300 ml-0.5" title="Matriz 3x3">⚡</span>' : ''}</button>`;
+        }).join(' ')
       : '<span class="text-xs text-slate-500">-</span>';
 
     const thousandsHtml = animalThousands.length > 0
       ? animalThousands.map(m => {
+          const isMatrizMilhar = matrizMilhares.includes(m);
           const isCruzMilhar = cruzMeta?.thousands?.includes(m);
-          return `<button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Clique para copiar o milhar ${m}${isCruzMilhar ? ' (Cruz do Dia)' : ''}" class="px-2 py-0.5 rounded ${isCruzMilhar ? 'bg-cyan-950/80 border border-cyan-500/70 text-cyan-200' : 'bg-amber-950/80 border border-amber-600/60 text-amber-200'} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${m}${isCruzMilhar ? '<span class="text-[9px] text-cyan-300 ml-0.5">✨</span>' : ''}</button>`;
+          let btnClass = 'bg-amber-950/80 border border-amber-600/60 text-amber-200';
+          let badgeIcon = '';
+          if (isMatrizMilhar) {
+            btnClass = 'bg-amber-950/90 border border-amber-500/80 text-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30';
+            badgeIcon = '<span class="text-[9px] text-amber-300 ml-0.5" title="Matriz 3x3">⚡</span>';
+          } else if (isCruzMilhar) {
+            btnClass = 'bg-cyan-950/80 border border-cyan-500/70 text-cyan-200';
+            badgeIcon = '<span class="text-[9px] text-cyan-300 ml-0.5">✨</span>';
+          }
+          return `<button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Clique para copiar o milhar ${m}${isMatrizMilhar ? ' (⚡ Matriz 3x3)' : (isCruzMilhar ? ' (Cruz do Dia)' : '')}" class="px-2 py-0.5 rounded ${btnClass} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${m}${badgeIcon}</button>`;
         }).join(' ')
       : '<span class="text-xs text-slate-500">-</span>';
 
@@ -5800,4 +5838,434 @@ window.dismissMilharBingoBanner = function(bingoId) {
       localStorage.setItem('bicho_dismissed_bingo_' + bingoId, '1');
     } catch(e) {}
   }
+};
+
+
+/* ==========================================================================
+   MÓDULO: MATRIZ 3X3 DO DIA (BASE DIA & MÊS)
+   ========================================================================== */
+window._currentMatrizData = null;
+window._currentMatrizMode = 'dia'; // 'dia', 'mes', 'both'
+window._currentMatrizSelectedGroup = null;
+
+window.loadMatrizContent = async function(forceDate = null, forceMode = null) {
+  const dateInput = document.getElementById('matriz-target-date');
+  const mainDateInput = document.getElementById('target-date');
+
+  let dateVal = forceDate;
+  if (!dateVal && dateInput && dateInput.value) {
+    dateVal = dateInput.value;
+  }
+  if (!dateVal && mainDateInput && mainDateInput.value) {
+    dateVal = mainDateInput.value;
+  }
+  if (!dateVal) {
+    dateVal = new Date().toISOString().split('T')[0];
+  }
+
+  if (dateInput && dateInput.value !== dateVal) {
+    dateInput.value = dateVal;
+  }
+
+  if (forceMode) {
+    window._currentMatrizMode = forceMode;
+  }
+
+  const gridContainer = document.getElementById('matriz-grid-visual-container');
+  if (gridContainer) {
+    gridContainer.innerHTML = `
+      <div class="col-span-3 py-10 flex flex-col items-center justify-center text-center space-y-2">
+        <div class="w-7 h-7 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+        <span class="text-[11px] text-slate-400 font-medium">Calculando Matriz 3x3 da Data...</span>
+      </div>`;
+  }
+
+  try {
+    const data = await api.getMatrizDia(dateVal);
+    window._currentMatrizData = data;
+    renderMatrizView(data, window._currentMatrizMode);
+  } catch (err) {
+    console.error('Erro ao carregar Matriz 3x3:', err);
+    if (gridContainer) {
+      gridContainer.innerHTML = `<div class="col-span-3 py-6 text-center text-rose-400 text-xs font-semibold">Falha ao carregar Matriz: ${err.message || 'Erro de conexão'}</div>`;
+    }
+  }
+};
+
+window.changeMatrizDate = function(val) {
+  if (!val) return;
+  loadMatrizContent(val);
+};
+
+window.setMatrizDateToday = function() {
+  const today = new Date().toISOString().split('T')[0];
+  loadMatrizContent(today);
+};
+
+window.setMatrizDateYesterday = function() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const yesterday = d.toISOString().split('T')[0];
+  loadMatrizContent(yesterday);
+};
+
+window.setMatrizDateTomorrow = function() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const tomorrow = d.toISOString().split('T')[0];
+  loadMatrizContent(tomorrow);
+};
+
+window.switchMatrizMode = function(mode) {
+  window._currentMatrizMode = mode;
+  ['dia', 'mes', 'both'].forEach(m => {
+    const btn = document.getElementById(`matriz-mode-${m}`);
+    if (btn) {
+      if (m === mode) {
+        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-slate-950 shadow-sm cursor-pointer';
+      } else {
+        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all cursor-pointer';
+      }
+    }
+  });
+
+  if (window._currentMatrizData) {
+    renderMatrizView(window._currentMatrizData, mode);
+  }
+};
+
+function renderMatrizView(data, mode) {
+  if (!data) return;
+
+  // 1. Pílulas de Dígitos Ativos
+  const pillsContainer = document.getElementById('matriz-active-digits-pills');
+  if (pillsContainer) {
+    const activeDigits = (mode === 'mes') ? data.digits_mes : ((mode === 'both') ? data.all_digits : data.digits_dia);
+    pillsContainer.innerHTML = `
+      <span class="font-bold text-slate-300">Dígitos Ativos:</span>
+      ${activeDigits.map(d => `<span class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono font-bold text-xs flex items-center justify-center">${d}</span>`).join('')}
+    `;
+  }
+
+  // 2. Grade 3x3 Visual
+  const gridContainer = document.getElementById('matriz-grid-visual-container');
+  const gridTitle = document.getElementById('matriz-grid-title');
+  const gridCoords = document.getElementById('matriz-grid-coords');
+
+  const activeGrid = (mode === 'mes') ? data.grid_mes : data.grid_dia;
+
+  if (gridTitle) {
+    gridTitle.innerHTML = (mode === 'mes')
+      ? '<span>🗓️</span> <span>Grade 3x3 - Base Mês (' + String(data.month).padStart(2, '0') + ')</span>'
+      : (mode === 'both' ? '<span>✨</span> <span>Grade 3x3 - Base Dia (' + String(data.day).padStart(2, '0') + ') & Mês</span>' : '<span>📅</span> <span>Grade 3x3 - Base Dia (' + String(data.day).padStart(2, '0') + ')</span>');
+  }
+
+  if (gridCoords) {
+    gridCoords.textContent = (mode === 'mes') ? `Mês ${data.month}` : `Dia ${data.day}`;
+  }
+
+  if (gridContainer && activeGrid) {
+    let cellsHtml = '';
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const val = activeGrid[r][c];
+        const isCorner = (r === 0 && c === 0) || (r === 0 && c === 2) || (r === 2 && c === 0) || (r === 2 && c === 2);
+        const isCenter = (r === 1 && c === 1);
+        
+        let cellCls = 'bg-slate-950/90 border-slate-700/60 text-slate-100';
+        let badge = '';
+        if (isCorner) {
+          cellCls = 'bg-amber-950/80 border-amber-500/80 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30';
+          badge = '<span class="absolute top-1 right-1 text-[8px] font-mono text-amber-400/80">V</span>';
+        } else if (isCenter) {
+          cellCls = 'bg-cyan-950/80 border-cyan-500/70 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] ring-1 ring-cyan-400/30';
+          badge = '<span class="absolute top-1 right-1 text-[8px] font-mono text-cyan-400/80">C</span>';
+        }
+
+        cellsHtml += `
+          <div class="relative rounded-xl border flex flex-col items-center justify-center font-mono font-black text-2xl sm:text-3xl transition-all hover:scale-105 select-none ${cellCls}">
+            ${badge}
+            <span>${val}</span>
+          </div>
+        `;
+      }
+    }
+    gridContainer.innerHTML = cellsHtml;
+  }
+
+  // 3. Centenas Diretas da Grade
+  const linesContainer = document.getElementById('matriz-direct-lines-container');
+  const directCountEl = document.getElementById('matriz-direct-count');
+  const linesData = (mode === 'mes') ? data.lines_mes : data.lines_dia;
+
+  if (linesContainer && linesData) {
+    const totalLines = (linesData.horizontais || []).length + (linesData.verticais || []).length + (linesData.diagonais || []).length;
+    if (directCountEl) {
+      directCountEl.textContent = `${totalLines} centenas`;
+    }
+
+    linesContainer.innerHTML = `
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase">
+          <span>↔️</span> <span>Horizontais (Diretas & Inversas):</span>
+        </div>
+        <div class="flex flex-wrap gap-1">
+          ${(linesData.horizontais || []).map(num => `
+            <button type="button" onclick="copySingleNumber(event, '${num}', 'Centena')" title="Copiar centena ${num}"
+              class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-400 text-cyan-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+              ${num}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="space-y-1.5 pt-1">
+        <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase">
+          <span>↕️</span> <span>Verticais (Colunas):</span>
+        </div>
+        <div class="flex flex-wrap gap-1">
+          ${(linesData.verticais || []).map(num => `
+            <button type="button" onclick="copySingleNumber(event, '${num}', 'Centena')" title="Copiar centena ${num}"
+              class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-400 text-amber-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+              ${num}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="space-y-1.5 pt-1">
+        <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase">
+          <span>↗️</span> <span>Diagonais (Cruzamentos):</span>
+        </div>
+        <div class="flex flex-wrap gap-1">
+          ${(linesData.diagonais || []).map(num => `
+            <button type="button" onclick="copySingleNumber(event, '${num}', 'Centena')" title="Copiar centena ${num}"
+              class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-400 text-indigo-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+              ${num}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // 4. Top Animais com Confluência
+  const confContainer = document.getElementById('matriz-confluence-animals-container');
+  if (confContainer && data.top_confluence_animals) {
+    confContainer.innerHTML = data.top_confluence_animals.slice(0, 6).map(anim => {
+      const matchTensStr = (anim.matching_tens && anim.matching_tens.length > 0)
+        ? anim.matching_tens.map(t => `<span class="px-1.5 py-0.2 rounded bg-indigo-950/80 border border-indigo-700/50 text-indigo-200 font-mono font-bold text-[11px]">${t}</span>`).join(' ')
+        : '<span class="text-slate-500 text-xs">-</span>';
+
+      const centenasHtml = (anim.top_centenas || []).slice(0, 4).map(c => `
+        <button type="button" onclick="copySingleNumber(event, '${c}', 'Centena')" title="Copiar centena ${c}"
+          class="px-2 py-0.5 rounded bg-amber-950/90 border border-amber-500/80 text-amber-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+          ${c}
+        </button>
+      `).join(' ');
+
+      const milharesHtml = (anim.top_milhares || []).slice(0, 4).map(m => `
+        <button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Copiar milhar ${m}"
+          class="px-2 py-0.5 rounded bg-indigo-950/90 border border-indigo-500/80 text-indigo-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+          ${m}
+        </button>
+      `).join(' ');
+
+      return `
+        <div class="card-glass p-3 rounded-xl border border-slate-800 hover:border-amber-500/40 transition-all space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">${anim.emoji || '🐾'}</span>
+              <div>
+                <h4 class="text-xs font-black text-white">${anim.animal}</h4>
+                <span class="text-[10px] text-slate-400 font-mono">Grupo ${String(anim.group).padStart(2, '0')}</span>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+              ⚡ ${Math.round(anim.confluence_score)}% no Grid
+            </span>
+          </div>
+
+          <div class="space-y-1 pt-1 border-t border-slate-800/80">
+            <div class="flex items-center justify-between text-[10px] text-slate-400">
+              <span>Dezenas no Grid:</span>
+              <div class="flex items-center gap-1">${matchTensStr}</div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+              <span>Centenas VIP:</span>
+              <div class="flex items-center gap-1">${centenasHtml}</div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+              <span>Milhares VIP:</span>
+              <div class="flex items-center gap-1">${milharesHtml}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 5. Renderiza Seletor de Animais (25 bichos)
+  renderMatrizAnimalsPicker(data);
+}
+
+function renderMatrizAnimalsPicker(data) {
+  const picker = document.getElementById('matriz-animals-picker');
+  if (!picker) return;
+
+  const animalsList = [
+    { g: 1, name: 'Avestruz', emoji: '🐦' }, { g: 2, name: 'Águia', emoji: '🦅' }, { g: 3, name: 'Burro', emoji: '🫏' },
+    { g: 4, name: 'Borboleta', emoji: '🦋' }, { g: 5, name: 'Cachorro', emoji: '🐕' }, { g: 6, name: 'Cabra', emoji: '🐐' },
+    { g: 7, name: 'Carneiro', emoji: '🐏' }, { g: 8, name: 'Camelo', emoji: '🐪' }, { g: 9, name: 'Cobra', emoji: '🐍' },
+    { g: 10, name: 'Coelho', emoji: '🐇' }, { g: 11, name: 'Cavalo', emoji: '🐎' }, { g: 12, name: 'Elefante', emoji: '🐘' },
+    { g: 13, name: 'Galo', emoji: '🐓' }, { g: 14, name: 'Gato', emoji: '🐈' }, { g: 15, name: 'Jacaré', emoji: '🐊' },
+    { g: 16, name: 'Leão', emoji: '🦁' }, { g: 17, name: 'Macaco', emoji: '🐒' }, { g: 18, name: 'Porco', emoji: '🐖' },
+    { g: 19, name: 'Pavão', emoji: '🦚' }, { g: 20, name: 'Peru', emoji: '🦃' }, { g: 21, name: 'Touro', emoji: '🐂' },
+    { g: 22, name: 'Tigre', emoji: '🐅' }, { g: 23, name: 'Urso', emoji: '🐻' }, { g: 24, name: 'Veado', emoji: '🦌' },
+    { g: 25, name: 'Vaca', emoji: '🐄' }
+  ];
+
+  picker.innerHTML = animalsList.map(a => {
+    const isSelected = window._currentMatrizSelectedGroup === a.g;
+    const btnCls = isSelected
+      ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-sm'
+      : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700/60';
+
+    return `
+      <button type="button" onclick="selectMatrizAnimal(${a.g})"
+        class="px-2 py-1 rounded-lg text-xs flex items-center gap-1 border transition-all cursor-pointer active:scale-95 ${btnCls}">
+        <span>${a.emoji}</span>
+        <span>${a.name}</span>
+        <span class="text-[9px] opacity-75">(${String(a.g).padStart(2, '0')})</span>
+      </button>
+    `;
+  }).join('');
+}
+
+window.selectMatrizAnimal = async function(groupNum) {
+  window._currentMatrizSelectedGroup = groupNum;
+  if (window._currentMatrizData) {
+    renderMatrizAnimalsPicker(window._currentMatrizData);
+  }
+
+  const detailCard = document.getElementById('matriz-animal-detail-card');
+  const badgeEl = document.getElementById('matriz-selected-animal-badge');
+  const dateInput = document.getElementById('matriz-target-date');
+  const dateVal = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().split('T')[0];
+
+  if (detailCard) {
+    detailCard.classList.remove('hidden');
+    detailCard.innerHTML = '<div class="py-6 flex justify-center"><div class="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div></div>';
+  }
+
+  try {
+    const animData = await api.getMatrizAnimal(groupNum, dateVal);
+    if (badgeEl) {
+      badgeEl.classList.remove('hidden');
+      badgeEl.textContent = `${animData.emoji || '🐾'} ${animData.animal} (Gr ${String(animData.group).padStart(2, '0')})`;
+    }
+
+    if (detailCard) {
+      const centenasHtml = (animData.top_centenas || []).map(c => `
+        <button type="button" onclick="copySingleNumber(event, '${c}', 'Centena')" title="Copiar centena ${c}"
+          class="px-2.5 py-1 rounded-lg bg-amber-950/90 border border-amber-500/80 text-amber-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+          ${c}
+        </button>
+      `).join(' ');
+
+      const milharesHtml = (animData.top_milhares || []).map(m => `
+        <button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Copiar milhar ${m}"
+          class="px-2.5 py-1 rounded-lg bg-indigo-950/90 border border-indigo-500/80 text-indigo-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+          ${m}
+        </button>
+      `).join(' ');
+
+      const matchingStr = (animData.matching_tens && animData.matching_tens.length > 0)
+        ? animData.matching_tens.map(t => `<span class="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-700/60 text-indigo-200 font-mono font-bold text-xs">${t}</span>`).join(' ')
+        : '<span class="text-xs text-slate-500">Nenhuma dezena 100% contida</span>';
+
+      detailCard.innerHTML = `
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">${animData.emoji || '🐾'}</span>
+            <div>
+              <h4 class="text-sm font-bold text-white">${animData.animal} (Grupo ${String(animData.group).padStart(2, '0')})</h4>
+              <span class="text-[11px] text-slate-400">Confluência: ${Math.round(animData.confluence_score || 0)}% no Grid 3x3</span>
+            </div>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold">
+            ⚡ Matriz 3x3
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          <div class="space-y-1.5 p-2 rounded-lg bg-slate-950/60 border border-slate-800">
+            <span class="text-[11px] font-bold text-slate-400 uppercase block">Dezenas no Grid:</span>
+            <div class="flex flex-wrap gap-1">${matchingStr}</div>
+          </div>
+
+          <div class="space-y-1.5 p-2 rounded-lg bg-slate-950/60 border border-slate-800">
+            <span class="text-[11px] font-bold text-amber-400 uppercase block">Centenas de Ouro:</span>
+            <div class="flex flex-wrap gap-1">${centenasHtml}</div>
+          </div>
+
+          <div class="space-y-1.5 p-2 rounded-lg bg-slate-950/60 border border-slate-800">
+            <span class="text-[11px] font-bold text-indigo-400 uppercase block">Milhares VIP:</span>
+            <div class="flex flex-wrap gap-1">${milharesHtml}</div>
+          </div>
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.error('Erro ao cruzar bicho na matriz:', err);
+    if (detailCard) {
+      detailCard.innerHTML = `<p class="text-xs text-rose-400 py-2 text-center">Falha ao cruzar bicho: ${err.message || 'Erro'}</p>`;
+    }
+  }
+};
+
+window.copyAllMatrizDirectCentenas = function(btn) {
+  if (!window._currentMatrizData) return;
+  const mode = window._currentMatrizMode || 'dia';
+  const lines = (mode === 'mes') ? window._currentMatrizData.lines_mes : window._currentMatrizData.lines_dia;
+  if (!lines) return;
+
+  const allC = Array.from(new Set([
+    ...(lines.horizontais || []),
+    ...(lines.verticais || []),
+    ...(lines.diagonais || [])
+  ]));
+
+  if (allC.length === 0) return;
+  const text = allC.join(', ');
+
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn ? btn.innerHTML : '';
+    if (btn) btn.innerHTML = '<span>✅</span> <span>Copiadas!</span>';
+    showToast(`${allC.length} centenas diretas copiadas!`);
+    setTimeout(() => { if (btn) btn.innerHTML = orig; }, 2000);
+  }).catch(() => {
+    showToast('Erro ao copiar');
+  });
+};
+
+window.copyAllMatrizThousands = function(btn) {
+  if (!window._currentMatrizData || !window._currentMatrizData.top_confluence_animals) return;
+  const mList = [];
+  window._currentMatrizData.top_confluence_animals.slice(0, 4).forEach(a => {
+    (a.top_milhares || []).slice(0, 2).forEach(m => mList.push(m));
+  });
+
+  const uniqueM = Array.from(new Set(mList));
+  if (uniqueM.length === 0) return;
+  const text = uniqueM.join(', ');
+
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn ? btn.innerHTML : '';
+    if (btn) btn.innerHTML = '<span>✅</span> <span>Copiadas!</span>';
+    showToast(`${uniqueM.length} milhares VIP copiadas!`);
+    setTimeout(() => { if (btn) btn.innerHTML = orig; }, 2000);
+  }).catch(() => {
+    showToast('Erro ao copiar');
+  });
 };
