@@ -341,8 +341,8 @@ const api = {
     return await res.json();
   },
 
-  async activateTenantSubscription(tenantId) {
-    const res = await fetch(`${API_BASE}/admin/tenants/${tenantId}/activate-subscription`, {
+  async activateTenantSubscription(tenantId, days = 30, planType = 'monthly') {
+    const res = await fetch(`${API_BASE}/admin/tenants/${tenantId}/activate-subscription?days=${encodeURIComponent(days)}&plan_type=${encodeURIComponent(planType)}`, {
       method: 'POST',
       headers: { ...getAuthHeaders() },
     });
