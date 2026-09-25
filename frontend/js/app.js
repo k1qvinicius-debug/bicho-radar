@@ -257,6 +257,7 @@ window.switchScreen = function(screenName, updateHash = true) {
     loadDrawResults();
   } else if (screenName === 'home') {
     updateHomeScreenData();
+        checkAndRenderMilharBingoBanner(true);
   } else if (screenName === 'milhares-atrasadas') {
     loadMilharesAtrasadas();
   }
@@ -5778,8 +5779,77 @@ window.subscribePlan = async function(planKey) {
 
 
 /* ==========================================================================
-   BANNER DE DESTAQUE: BINGO DE MILHAR / CENTENA PREMIADA PELA IA
+   POP-UP E BANNER DE CELEBRAÇÃO: ACERTO COMPROVADO NO 1º PRÊMIO
+   Texto e layout otimizados para alta credibilidade ("Nosso aplicativo acertou mais uma vez")
    ========================================================================== */
+window._latestBingoData = null;
+
+window.openBingoCelebrationModal = function(b) {
+  if (!b) b = window._latestBingoData;
+  if (!b) return;
+
+  const modal = document.getElementById('modal-bingo-celebration');
+  if (!modal) return;
+
+  const numEl = document.getElementById('bingo-modal-number');
+  const lotEl = document.getElementById('bingo-modal-lottery');
+  const slotEl = document.getElementById('bingo-modal-slot');
+  const dateEl = document.getElementById('bingo-modal-date');
+  const badgeEl = document.getElementById('bingo-modal-badge');
+  const descEl = document.getElementById('bingo-modal-prize-desc');
+
+  if (numEl) numEl.textContent = b.hit_number || b.prize_1 || '----';
+  if (lotEl) lotEl.textContent = b.lottery || 'Loteria Oficial';
+  if (slotEl) slotEl.textContent = b.slot || 'Sorteio';
+  if (dateEl) {
+    const formattedDate = b.date ? b.date.split('-').reverse().slice(0, 2).join('/') : 'Hoje';
+    dateEl.textContent = formattedDate;
+  }
+  if (badgeEl) {
+    if (b.type === 'MILHAR_1ST') {
+      badgeEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-yellow-400 animate-ping"></span> 💥 MILHAR NO 1º PRÊMIO!';
+    } else if (b.type === 'CENTENA_1ST') {
+      badgeEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> ⭐ CENTENA NO 1º PRÊMIO!';
+    } else {
+      badgeEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span> 🎯 MILHAR NO CERCADO!';
+    }
+  }
+  if (descEl) {
+    descEl.textContent = b.prize_desc || '1º Prêmio (Cabeça)';
+  }
+
+  // Vibração tátil no celular para marcar a vitória
+  try {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([100, 50, 100]);
+    }
+  } catch(e) {}
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+};
+
+window.closeBingoCelebrationModal = function() {
+  const modal = document.getElementById('modal-bingo-celebration');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+  if (window._latestBingoData && window._latestBingoData.id) {
+    try {
+      localStorage.setItem('bicho_seen_bingo_modal_' + window._latestBingoData.id, '1');
+    } catch(e) {}
+  }
+};
+
+window.goToBingoDetails = function() {
+  if (typeof closeBingoCelebrationModal === 'function') {
+    closeBingoCelebrationModal();
+  }
+  // Direciona para a tela de histórico / auditoria comprovada
+  window.location.href = '/historico';
+};
+
 window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
   const container = document.getElementById('milhar-bingo-banner-container');
   if (!container) return;
@@ -5793,7 +5863,21 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
     }
 
     const b = data.latest;
+    window._latestBingoData = b;
+
     const dismissedKey = 'bicho_dismissed_bingo_' + b.id;
+    const seenModalKey = 'bicho_seen_bingo_modal_' + b.id;
+
+    // Se é acerto no 1º Prêmio (MILHAR ou CENTENA na cabeça) e ainda não viu o pop-up na tela:
+    if (!forceShow && (b.type === 'MILHAR_1ST' || b.type === 'CENTENA_1ST')) {
+      if (localStorage.getItem(seenModalKey) !== '1') {
+        setTimeout(() => {
+          openBingoCelebrationModal(b);
+        }, 800);
+      }
+    }
+
+    // Se usuário já fechou o banner fixo nesta versão, respeita e não exibe o banner fixo
     if (!forceShow && localStorage.getItem(dismissedKey) === '1') {
       container.classList.add('hidden');
       container.innerHTML = '';
@@ -5803,20 +5887,23 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
     let gradientBg = 'from-amber-500/25 via-yellow-500/15 to-amber-600/25 border-amber-500/50 shadow-amber-500/10';
     let badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
     let icon = '🏆';
-    let title = b.badge;
+    let badgeLabel = '💥 1º PRÊMIO NA CABEÇA!';
 
     if (b.type === 'MILHAR_1ST') {
       gradientBg = 'from-amber-500/35 via-yellow-400/25 to-amber-600/35 border-amber-400/80 shadow-amber-400/20';
       badgeColor = 'bg-gradient-to-r from-amber-500/30 to-yellow-400/30 text-yellow-200 border-yellow-400/60';
       icon = '💥';
+      badgeLabel = '💥 1º PRÊMIO NA CABEÇA!';
     } else if (b.type === 'MILHAR_CERCADO') {
       gradientBg = 'from-indigo-600/25 via-purple-600/15 to-indigo-700/25 border-indigo-500/50 shadow-indigo-500/10';
       badgeColor = 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40';
       icon = '🎯';
+      badgeLabel = '🎯 MILHAR NO CERCADO!';
     } else if (b.type === 'CENTENA_1ST') {
       gradientBg = 'from-emerald-600/25 via-teal-600/15 to-emerald-700/25 border-emerald-500/50 shadow-emerald-500/10';
       badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
       icon = '⭐';
+      badgeLabel = '⭐ CENTENA NO 1º PRÊMIO!';
     }
 
     const formattedDate = b.date ? b.date.split('-').reverse().slice(0, 2).join('/') : '';
@@ -5830,30 +5917,31 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
         <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <!-- Lado Esquerdo: Ícone + Título + Info -->
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl bg-slate-950/80 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner shrink-0">
+            <div class="w-12 h-12 rounded-2xl bg-slate-950/80 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner shrink-0 cursor-pointer" onclick="openBingoCelebrationModal()">
               ${icon}
             </div>
             <div class="space-y-0.5">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeColor} shadow-sm flex items-center gap-1">
-                  <span>${title}</span>
+                <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${badgeColor} shadow-sm flex items-center gap-1">
+                  <span>${badgeLabel}</span>
                 </span>
-                <span class="text-[10px] text-slate-300 font-medium">
-                  Extração: <b class="text-white">${b.lottery}</b> (${b.slot}) - ${formattedDate}
+                <span class="text-xs sm:text-sm font-black text-white">
+                  Nosso aplicativo acertou mais uma vez!
                 </span>
               </div>
               <div class="flex items-baseline gap-2 pt-0.5 flex-wrap">
-                <span class="text-[11px] text-slate-400 font-semibold">Premiação:</span>
-                <span class="text-xs font-bold text-slate-200">${b.prize_desc}</span>
+                <span class="text-[11px] text-slate-300 font-semibold">
+                  Extração: <b class="text-amber-200">${b.lottery}</b> (${b.slot}) - ${formattedDate}
+                </span>
                 <span class="text-slate-500 text-xs">•</span>
-                <span class="text-xs text-amber-300 font-medium font-mono">${b.score} pts auditados</span>
+                <span class="text-xs font-medium text-slate-300">${b.prize_desc}</span>
               </div>
             </div>
           </div>
 
           <!-- Centro/Destaque: O Número Cravado -->
           <div class="flex items-center gap-3 self-end sm:self-center">
-            <div class="flex flex-col items-center bg-slate-950/85 border border-amber-500/40 rounded-xl px-3.5 py-1 shadow-lg">
+            <div class="flex flex-col items-center bg-slate-950/85 border border-amber-500/40 rounded-xl px-3.5 py-1 shadow-lg cursor-pointer" onclick="openBingoCelebrationModal()">
               <span class="text-[9px] uppercase tracking-widest text-amber-400 font-bold">Número Premiado</span>
               <span class="font-mono text-xl sm:text-2xl font-black text-yellow-300 tracking-wider drop-shadow-[0_2px_8px_rgba(253,224,71,0.6)]">
                 ${b.hit_number}
@@ -5862,11 +5950,11 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
 
             <!-- Botões de Ação -->
             <div class="flex items-center gap-1.5">
-              <a href="/historico" title="Ver auditoria detalhada no histórico"
-                class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1">
-                <span>Ver Auditoria</span>
+              <button type="button" onclick="goToBingoDetails()" title="Ver detalhes do acerto"
+                class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shrink-0">
+                <span>Ver Detalhes</span>
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
-              </a>
+              </button>
               <button type="button" onclick="dismissMilharBingoBanner(${b.id})" title="Fechar este aviso"
                 class="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60 active:scale-95 transition-all cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -5893,7 +5981,6 @@ window.dismissMilharBingoBanner = function(bingoId) {
     } catch(e) {}
   }
 };
-
 
 /* ==========================================================================
    MÓDULO: MATRIZ 3X3 DO DIA (BASE DIA & MÊS)
