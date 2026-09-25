@@ -443,6 +443,26 @@ const api = {
     return await res.json();
   },
 
+  async getMatrizDia(date = null) {
+    let url = `${API_BASE}/analysis/matriz-dia`;
+    if (date) url += `?target_date=${encodeURIComponent(date)}`;
+    const res = await fetch(url, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao carregar Matriz 3x3 do Dia.');
+    return await res.json();
+  },
+
+  async getMatrizAnimal(group, date = null) {
+    let url = `${API_BASE}/analysis/matriz-animal?group=${encodeURIComponent(group)}`;
+    if (date) url += `&target_date=${encodeURIComponent(date)}`;
+    const res = await fetch(url, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao carregar confluência do bicho na Matriz.');
+    return await res.json();
+  },
+
   async getCruzDoDia(date = null) {
     let url = `${API_BASE}/analysis/cruz-do-dia`;
     if (date) url += `?target_date=${encodeURIComponent(date)}`;
