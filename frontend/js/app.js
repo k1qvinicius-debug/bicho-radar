@@ -1,3 +1,4 @@
+window.API = window.api || (typeof api !== 'undefined' ? api : null);
 window.API_BASE = window.API_BASE || '/api';
 var API_BASE = window.API_BASE;
 
@@ -813,7 +814,18 @@ window.selectSlotFromPill = async function(slotCode) {
     }
   }
   updateSlotPillsUI(slotCode);
-  await Promise.all([loadPrediction(), loadDrawResults()]);
+
+  // Se o usuário estiver na Home e clicar em um horário, leva diretamente para os palpites desse horário
+  if (currentScreen === 'home') {
+    switchScreen('palpites');
+  }
+
+  // Apenas busca resultados de apuração se a tela de resultados estiver atualmente visível
+  const promises = [loadPrediction()];
+  if (currentScreen === 'resultados') {
+    promises.push(loadDrawResults());
+  }
+  await Promise.all(promises);
   updateHomeScreenData();
 };
 
@@ -1186,6 +1198,30 @@ function getPredictionCacheKey(lottery, date, slot, strategy) {
   return `${lottery || 'RJ'}_${date || 'today'}_${slot || 'default'}_${strategy || 'hybrid'}`;
 }
 
+let _activePredictionReqSeq = 0;
+let _prefetchTimeout = null;
+
+function prefetchAdjacentSlots(lottery, activeSlot) {
+  if (_prefetchTimeout) clearTimeout(_prefetchTimeout);
+  if (!standardSlotsList || standardSlotsList.length <= 1) return;
+
+  _prefetchTimeout = setTimeout(async () => {
+    const dateVal = document.getElementById('target-date')?.value || '';
+    for (const s of standardSlotsList) {
+      if (s.code === activeSlot) continue;
+      const key = getPredictionCacheKey(lottery, dateVal, s.code, currentStrategy);
+      if (!_predictionCache.has(key) && api.isLoggedIn()) {
+        try {
+          const pred = await api.getPrediction(dateVal, s.code, currentStrategy, lottery);
+          _predictionCache.set(key, pred);
+        } catch (e) {
+          break;
+        }
+      }
+    }
+  }, 800);
+}
+
 async function loadPrediction(forceRefresh = false) {
   if (!api.isLoggedIn()) return;
   const loadingEl = document.getElementById('loading-state');
@@ -1198,29 +1234,43 @@ async function loadPrediction(forceRefresh = false) {
   if (!forceRefresh && _predictionCache.has(cacheKey)) {
     currentPrediction = _predictionCache.get(cacheKey);
     renderDashboard(currentPrediction);
+    if (contentEl) contentEl.classList.remove('opacity-40', 'pointer-events-none');
+    if (loadingEl) loadingEl.classList.add('hidden');
+    prefetchAdjacentSlots(currentLottery, slotVal);
     return;
   }
 
-  // Se ainda não temos dados renderizados na tela, exibe o loading suave
+  const reqSeq = ++_activePredictionReqSeq;
+
+  // Feedback visual imediato: esmaece o dashboard e bloqueia cliques duplicados durante a consulta
+  if (contentEl) {
+    contentEl.classList.add('opacity-40', 'pointer-events-none');
+  }
   const hasRendered = currentPrediction && currentPrediction.top_groups && currentPrediction.top_groups.length > 0;
   if (!hasRendered && loadingEl) {
     loadingEl.classList.remove('hidden');
   }
-  if (contentEl && !hasRendered) {
-    contentEl.classList.add('opacity-40');
-  }
 
   try {
-    currentPrediction = await api.getPrediction(dateVal, slotVal, currentStrategy, currentLottery);
+    const result = await api.getPrediction(dateVal, slotVal, currentStrategy, currentLottery);
+    // Ignora se uma requisição mais recente já foi disparada
+    if (reqSeq !== _activePredictionReqSeq) return;
+
+    currentPrediction = result;
     _predictionCache.set(cacheKey, currentPrediction);
     renderDashboard(currentPrediction);
+
+    // Pré-carrega demais horários em background suave
+    prefetchAdjacentSlots(currentLottery, slotVal);
   } catch (err) {
-    if (api.isLoggedIn()) {
+    if (reqSeq === _activePredictionReqSeq && api.isLoggedIn()) {
       showToast('Erro ao carregar análise: ' + err.message, 'error');
     }
   } finally {
-    if (loadingEl) loadingEl.classList.add('hidden');
-    if (contentEl) contentEl.classList.remove('opacity-40');
+    if (reqSeq === _activePredictionReqSeq) {
+      if (loadingEl) loadingEl.classList.add('hidden');
+      if (contentEl) contentEl.classList.remove('opacity-40', 'pointer-events-none');
+    }
   }
 }
 
@@ -2700,7 +2750,8 @@ window.loadAndRenderPatternBreaksHistory = async function(lottery) {
   `;
 
   try {
-    const data = await API.getPatternBreaks(effLot, 20);
+    const clientApi = window.api || (typeof api !== 'undefined' ? api : null);
+    const data = (clientApi && typeof clientApi.getPatternBreaks === 'function') ? await clientApi.getPatternBreaks(effLot, 20) : {};
     const totalBreaks = data.total_breaks || 0;
     const contraHits = data.contra_hits || 0;
     const rate = data.contra_protection_rate || 0;
@@ -4280,11 +4331,20 @@ window.selectResultDate = function(dateStr) {
 window.selectSlotForPrediction = function(slotCode, dateStr = null) {
   switchMainTab('palpites');
   const targetSlotEl = document.getElementById('target-slot');
-  if (targetSlotEl) targetSlotEl.value = slotCode;
+  if (targetSlotEl) {
+    targetSlotEl.value = slotCode;
+    const selectedOpt = Array.from(targetSlotEl.options).find(o => o.value === slotCode);
+    if (selectedOpt) selectedOpt.selected = true;
+    const homeNextSlot = document.getElementById('home-next-slot-name');
+    if (homeNextSlot && selectedOpt) homeNextSlot.textContent = selectedOpt.textContent;
+    const currentSlotName = document.getElementById('current-slot-name');
+    if (currentSlotName && selectedOpt) currentSlotName.textContent = selectedOpt.textContent;
+  }
   if (dateStr) {
     const targetDateEl = document.getElementById('target-date');
     if (targetDateEl) targetDateEl.value = dateStr;
   }
+  updateSlotPillsUI(slotCode);
   loadPrediction();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
