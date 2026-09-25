@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setDefaultDate();
   try {
     await Promise.all([loadPrediction(), loadDrawResults()]);
+    checkAndRenderMilharBingoBanner();
   } catch (err) {
     console.warn('Erro ao carregar dados iniciais:', err);
     try { await loadDrawResults(); } catch(e) {}
@@ -5681,4 +5682,122 @@ window.subscribePlan = async function(planKey) {
   const waUrl = `https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`;
 
   window.open(waUrl, '_blank');
+};
+
+
+/* ==========================================================================
+   BANNER DE DESTAQUE: BINGO DE MILHAR / CENTENA PREMIADA PELA IA
+   ========================================================================== */
+window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
+  const container = document.getElementById('milhar-bingo-banner-container');
+  if (!container) return;
+
+  try {
+    const data = await api.getRecentBingos();
+    if (!data || !data.has_bingo || !data.latest) {
+      container.classList.add('hidden');
+      container.innerHTML = '';
+      return;
+    }
+
+    const b = data.latest;
+    const dismissedKey = 'bicho_dismissed_bingo_' + b.id;
+    if (!forceShow && localStorage.getItem(dismissedKey) === '1') {
+      container.classList.add('hidden');
+      container.innerHTML = '';
+      return;
+    }
+
+    let gradientBg = 'from-amber-500/25 via-yellow-500/15 to-amber-600/25 border-amber-500/50 shadow-amber-500/10';
+    let badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+    let icon = '🏆';
+    let title = b.badge;
+
+    if (b.type === 'MILHAR_1ST') {
+      gradientBg = 'from-amber-500/35 via-yellow-400/25 to-amber-600/35 border-amber-400/80 shadow-amber-400/20';
+      badgeColor = 'bg-gradient-to-r from-amber-500/30 to-yellow-400/30 text-yellow-200 border-yellow-400/60';
+      icon = '💥';
+    } else if (b.type === 'MILHAR_CERCADO') {
+      gradientBg = 'from-indigo-600/25 via-purple-600/15 to-indigo-700/25 border-indigo-500/50 shadow-indigo-500/10';
+      badgeColor = 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40';
+      icon = '🎯';
+    } else if (b.type === 'CENTENA_1ST') {
+      gradientBg = 'from-emerald-600/25 via-teal-600/15 to-emerald-700/25 border-emerald-500/50 shadow-emerald-500/10';
+      badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+      icon = '⭐';
+    }
+
+    const formattedDate = b.date ? b.date.split('-').reverse().slice(0, 2).join('/') : '';
+
+    container.className = 'w-full transition-all duration-300 transform';
+    container.innerHTML = `
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r ${gradientBg} border backdrop-blur-md p-3.5 sm:p-4 shadow-xl">
+        <!-- Brilho animado de fundo -->
+        <div class="absolute -top-12 -right-12 w-36 h-36 bg-yellow-400/15 rounded-full blur-2xl pointer-events-none animate-pulse"></div>
+
+        <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <!-- Lado Esquerdo: Ícone + Título + Info -->
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-slate-950/80 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner shrink-0">
+              ${icon}
+            </div>
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeColor} shadow-sm flex items-center gap-1">
+                  <span>${title}</span>
+                </span>
+                <span class="text-[10px] text-slate-300 font-medium">
+                  Extração: <b class="text-white">${b.lottery}</b> (${b.slot}) - ${formattedDate}
+                </span>
+              </div>
+              <div class="flex items-baseline gap-2 pt-0.5 flex-wrap">
+                <span class="text-[11px] text-slate-400 font-semibold">Premiação:</span>
+                <span class="text-xs font-bold text-slate-200">${b.prize_desc}</span>
+                <span class="text-slate-500 text-xs">•</span>
+                <span class="text-xs text-amber-300 font-medium font-mono">${b.score} pts auditados</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Centro/Destaque: O Número Cravado -->
+          <div class="flex items-center gap-3 self-end sm:self-center">
+            <div class="flex flex-col items-center bg-slate-950/85 border border-amber-500/40 rounded-xl px-3.5 py-1 shadow-lg">
+              <span class="text-[9px] uppercase tracking-widest text-amber-400 font-bold">Número Premiado</span>
+              <span class="font-mono text-xl sm:text-2xl font-black text-yellow-300 tracking-wider drop-shadow-[0_2px_8px_rgba(253,224,71,0.6)]">
+                ${b.hit_number}
+              </span>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="flex items-center gap-1.5">
+              <a href="/historico" title="Ver auditoria detalhada no histórico"
+                class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1">
+                <span>Ver Auditoria</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+              </a>
+              <button type="button" onclick="dismissMilharBingoBanner(${b.id})" title="Fechar este aviso"
+                class="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60 active:scale-95 transition-all cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    container.classList.remove('hidden');
+  } catch (err) {
+    console.warn('Erro ao verificar bingos de milhar:', err);
+  }
+};
+
+window.dismissMilharBingoBanner = function(bingoId) {
+  const container = document.getElementById('milhar-bingo-banner-container');
+  if (container) {
+    container.classList.add('hidden');
+  }
+  if (bingoId) {
+    try {
+      localStorage.setItem('bicho_dismissed_bingo_' + bingoId, '1');
+    } catch(e) {}
+  }
 };
