@@ -4418,7 +4418,7 @@ function updateAuthUI() {
     if (appGate) appGate.classList.add('hidden');
     if (mainHeader) mainHeader.classList.remove('hidden');
     if (mainContainer) mainContainer.classList.remove('hidden');
-    if (mobBottomNav) mobBottomNav.classList.remove('hidden');
+    if (mobBottomNav) mobBottomNav.classList.add('hidden');
 
     const userEmail = (tenant.email || '').toLowerCase();
     const isMasterAdmin = tenant.role === 'admin' || userEmail === 'k1qvinicius.cs@gmail.com' || userEmail === 'k1qvinicius@gmail.com';
