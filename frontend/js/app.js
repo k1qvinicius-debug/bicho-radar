@@ -5851,8 +5851,9 @@ window.goToBingoDetails = function() {
     const lot = b.lottery || 'RJ';
     const dt = b.date || '';
     const slot = b.slot || '';
-    const hId = b.draw_id || b.id || '';
-    window.location.href = `/historico?lottery=${encodeURIComponent(lot)}&date=${encodeURIComponent(dt)}&slot=${encodeURIComponent(slot)}&highlight=${encodeURIComponent(hId)}&type=${encodeURIComponent(b.type || '')}`;
+    const hId = b.snapshot_id || b.draw_id || b.id || '';
+    const num = b.hit_number || b.prize_1 || '';
+    window.location.href = `/historico?lottery=${encodeURIComponent(lot)}&date=${encodeURIComponent(dt)}&slot=${encodeURIComponent(slot)}&highlight=${encodeURIComponent(hId)}&number=${encodeURIComponent(num)}&type=${encodeURIComponent(b.type || '')}`;
   } else {
     window.location.href = '/historico';
   }
