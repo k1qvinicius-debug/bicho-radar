@@ -994,7 +994,7 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
 
   const screenTitles = {
     'home': 'Visão Geral',
-    'palpites': 'Palpites do Motor',
+    'palpites': 'Jogos Prontos',
     'centena-master': 'Centena Master',
     'cruz': 'Cruz do Dia',
     'puxadas': 'Radar de Puxadas',
@@ -2281,7 +2281,7 @@ function calculateConfidenceData(group) {
     const matMeta = group.metadata.matriz_dia;
     const confVal = Math.round(matMeta?.confluence_score || 0);
     points += 6;
-    badges.push({ icon: '⚡', label: `Matriz 3x3 (${confVal}% no Grid)`, color: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm' });
+    badges.push({ icon: '⚡', label: `Chave Mestra (${confVal}% no Grid)`, color: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm' });
   }
 
   const confidence = Math.min(Math.max(Math.round(points), 68), 98);
@@ -2356,7 +2356,7 @@ function renderAnimalCards(data) {
       .filter(h => h.group_number === grpNum || animalTens.includes(h.value.slice(-2)))
       .map(h => h.value);
 
-    // Prioriza centenas da Matriz 3x3 no topo
+    // Prioriza centenas da Chave Mestra no topo
     if (matrizCentenas.length > 0) {
       animalHundreds = Array.from(new Set([...matrizCentenas, ...animalHundreds]));
     }
@@ -2376,7 +2376,7 @@ function renderAnimalCards(data) {
       .filter(m => m.group_number === grpNum || animalTens.includes(m.value.slice(-2)))
       .map(m => m.value);
 
-    // Prioriza milhares da Matriz 3x3 e da Cruz no topo
+    // Prioriza milhares da Chave Mestra e da Cruz no topo
     if (matrizMilhares.length > 0) {
       animalThousands = Array.from(new Set([...matrizMilhares, ...animalThousands]));
     }
@@ -2402,7 +2402,7 @@ function renderAnimalCards(data) {
           const btnCls = isMatrizCentena
             ? 'bg-amber-950/90 border border-amber-500/80 text-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30'
             : 'bg-cyan-950/80 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200';
-          return `<button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')" title="Clique para copiar a centena ${h}${isMatrizCentena ? ' (⚡ Matriz 3x3)' : ''}" class="px-2 py-0.5 rounded ${btnCls} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${h}${isMatrizCentena ? '<span class="text-[9px] text-amber-300 ml-0.5" title="Matriz 3x3">⚡</span>' : ''}</button>`;
+          return `<button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')" title="Clique para copiar a centena ${h}${isMatrizCentena ? ' (⚡ Chave Mestra)' : ''}" class="px-2 py-0.5 rounded ${btnCls} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${h}${isMatrizCentena ? '<span class="text-[9px] text-amber-300 ml-0.5" title="Chave Mestra">⚡</span>' : ''}</button>`;
         }).join(' ')
       : '<span class="text-xs text-slate-500">-</span>';
 
@@ -2414,12 +2414,12 @@ function renderAnimalCards(data) {
           let badgeIcon = '';
           if (isMatrizMilhar) {
             btnClass = 'bg-amber-950/90 border border-amber-500/80 text-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30';
-            badgeIcon = '<span class="text-[9px] text-amber-300 ml-0.5" title="Matriz 3x3">⚡</span>';
+            badgeIcon = '<span class="text-[9px] text-amber-300 ml-0.5" title="Chave Mestra">⚡</span>';
           } else if (isCruzMilhar) {
             btnClass = 'bg-cyan-950/80 border border-cyan-500/70 text-cyan-200';
             badgeIcon = '<span class="text-[9px] text-cyan-300 ml-0.5">✨</span>';
           }
-          return `<button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Clique para copiar o milhar ${m}${isMatrizMilhar ? ' (⚡ Matriz 3x3)' : (isCruzMilhar ? ' (Cruz do Dia)' : '')}" class="px-2 py-0.5 rounded ${btnClass} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${m}${badgeIcon}</button>`;
+          return `<button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Clique para copiar o milhar ${m}${isMatrizMilhar ? ' (⚡ Chave Mestra)' : (isCruzMilhar ? ' (Cruz do Dia)' : '')}" class="px-2 py-0.5 rounded ${btnClass} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${m}${badgeIcon}</button>`;
         }).join(' ')
       : '<span class="text-xs text-slate-500">-</span>';
 
@@ -2591,7 +2591,7 @@ function renderPatternBreakSection(pb) {
             <h3 class="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
               <span>Radar de Quebra de Padrão</span>
               <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 uppercase tracking-widest">Contra-Banca</span>
-              ${pb.assimilation?.has_empirical_learning ? '<span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">🧠 IA ASSIMILADA</span>' : ''}
+              ${pb.assimilation?.has_empirical_learning ? '<span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">📊 RADAR CALIBRADO</span>' : ''}
             </h3>
             <p class="text-[10px] text-slate-400">Proteção estatística contra inversões e zebras calculadas</p>
           </div>
@@ -2744,7 +2744,7 @@ window.loadAndRenderPatternBreaksHistory = async function(lottery) {
             <div class="h-6 w-[1px] bg-slate-800"></div>
             <div class="flex flex-col">
               <div class="flex items-center gap-1 text-[11px]">
-                <span class="text-slate-400">Fav IA:</span>
+                <span class="text-slate-400">Favorito:</span>
                 <span class="font-bold text-slate-300">${h.favorite_animal}</span>
                 <span class="text-[9px] text-slate-500">(Gr ${h.favorite_group})</span>
               </div>
@@ -5930,7 +5930,7 @@ window.loadMatrizContent = async function(forceDate = null, forceMode = null) {
     gridContainer.innerHTML = `
       <div class="col-span-3 py-10 flex flex-col items-center justify-center text-center space-y-2">
         <div class="w-7 h-7 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-        <span class="text-[11px] text-slate-400 font-medium">Calculando Matriz 3x3 da Data...</span>
+        <span class="text-[11px] text-slate-400 font-medium">Calculando Chave Mestra da Data...</span>
       </div>`;
   }
 
@@ -5939,7 +5939,7 @@ window.loadMatrizContent = async function(forceDate = null, forceMode = null) {
     window._currentMatrizData = data;
     renderMatrizView(data, window._currentMatrizMode);
   } catch (err) {
-    console.error('Erro ao carregar Matriz 3x3:', err);
+    console.error('Erro ao carregar Chave Mestra:', err);
     if (gridContainer) {
       gridContainer.innerHTML = `<div class="col-span-3 py-6 text-center text-rose-400 text-xs font-semibold">Falha ao carregar Matriz: ${err.message || 'Erro de conexão'}</div>`;
     }
@@ -6248,7 +6248,7 @@ window.selectMatrizAnimal = async function(groupNum) {
             </div>
           </div>
           <span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold">
-            ⚡ Matriz 3x3
+            ⚡ Chave Mestra
           </span>
         </div>
 
