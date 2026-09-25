@@ -293,25 +293,67 @@ def list_snapshots(
 
 
 @router.get("/snapshots/{snapshot_id}", response_model=Dict[str, Any])
-def get_snapshot_details(snapshot_id: int):
+def get_snapshot_details(snapshot_id: str):
     """Retorna detalhes completos de uma análise congelada com predições e conferência."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT s.*, e.hit_rate_score, e.evaluated_at, e.details_json,
-                   d.prize_1, d.prize_2, d.prize_3, d.prize_4, d.prize_5
-            FROM analysis_snapshots s
-            LEFT JOIN analysis_evaluations e ON s.id = e.snapshot_id
-            LEFT JOIN draw_results d ON e.draw_id = d.id
-            WHERE s.id = ?
-        """, (snapshot_id,))
-        row = cursor.fetchone()
+        target_snap_id = None
+        if snapshot_id.isdigit():
+            target_snap_id = int(snapshot_id)
+        elif snapshot_id.startswith("matriz_"):
+            parts = snapshot_id.split("_")
+            if len(parts) >= 3 and parts[-1].isdigit():
+                draw_id = int(parts[-1])
+                cursor.execute(
+                    "SELECT snapshot_id FROM analysis_evaluations WHERE draw_id = ?",
+                    (draw_id,)
+                )
+                ev = cursor.fetchone()
+                if ev:
+                    target_snap_id = ev["snapshot_id"]
+                else:
+                    cursor.execute("SELECT * FROM draw_results WHERE id = ?", (draw_id,))
+                    dr = cursor.fetchone()
+                    if dr:
+                        cursor.execute(
+                            "SELECT id FROM analysis_snapshots WHERE target_date = ? AND target_slot = ? AND (lottery = ? OR (lottery IS NULL AND ? = 'RJ'))",
+                            (dr["draw_date"], dr["slot"], dr["lottery"], dr["lottery"])
+                        )
+                        sn = cursor.fetchone()
+                        if sn:
+                            target_snap_id = sn["id"]
+                        else:
+                            try:
+                                from ..engine.evaluator import ensure_snapshots_and_evaluate_for_draw
+                                ensure_snapshots_and_evaluate_for_draw(draw_id)
+                                cursor.execute(
+                                    "SELECT id FROM analysis_snapshots WHERE target_date = ? AND target_slot = ? AND (lottery = ? OR (lottery IS NULL AND ? = 'RJ'))",
+                                    (dr["draw_date"], dr["slot"], dr["lottery"], dr["lottery"])
+                                )
+                                sn2 = cursor.fetchone()
+                                if sn2:
+                                    target_snap_id = sn2["id"]
+                            except Exception:
+                                pass
+
+        row = None
+        if target_snap_id:
+            cursor.execute("""
+                SELECT s.*, e.hit_rate_score, e.evaluated_at, e.details_json,
+                       d.prize_1, d.prize_2, d.prize_3, d.prize_4, d.prize_5
+                FROM analysis_snapshots s
+                LEFT JOIN analysis_evaluations e ON s.id = e.snapshot_id
+                LEFT JOIN draw_results d ON e.draw_id = d.id
+                WHERE s.id = ?
+            """, (target_snap_id,))
+            row = cursor.fetchone()
+
         if not row:
             raise HTTPException(status_code=404, detail="Snapshot não encontrado.")
 
         data = dict(row)
-        data["predictions"] = json.loads(data["predictions_json"])
-        data["weights_used"] = json.loads(data["weights_used_json"])
+        data["predictions"] = json.loads(data["predictions_json"]) if data.get("predictions_json") else {}
+        data["weights_used"] = json.loads(data["weights_used_json"]) if data.get("weights_used_json") else {}
         data["evaluation_details"] = json.loads(data["details_json"]) if data.get("details_json") else None
 
         return data
@@ -660,12 +702,21 @@ def get_recent_bingos():
             hit_m1 = m1 in top_m
             hit_c1 = c1 in top_c or c1 in dir_c
 
+            # Localiza se existe snapshot registrado para esta data, horário e loteria
+            cursor.execute(
+                "SELECT id FROM analysis_snapshots WHERE target_date = ? AND target_slot = ? AND (lottery = ? OR (lottery IS NULL AND ? = 'RJ'))",
+                (dt, slot, lot, lot)
+            )
+            matched_snap = cursor.fetchone()
+            matched_snap_id = matched_snap["id"] if matched_snap else None
+
             if hit_m1:
                 unique_key = (lot, slot, dt, m1)
                 if unique_key not in seen_keys:
                     seen_keys.add(unique_key)
                     bingos.append({
                         "id": f"matriz_m_{d['id']}",
+                        "snapshot_id": matched_snap_id,
                         "draw_id": d["id"],
                         "type": "MILHAR_1ST",
                         "badge": "💥 1º PRÊMIO NA CABEÇA!",
@@ -685,6 +736,7 @@ def get_recent_bingos():
                     seen_keys.add(unique_key)
                     bingos.append({
                         "id": f"matriz_c_{d['id']}",
+                        "snapshot_id": matched_snap_id,
                         "draw_id": d["id"],
                         "type": "CENTENA_1ST",
                         "badge": "⭐ CENTENA NO 1º PRÊMIO!",
