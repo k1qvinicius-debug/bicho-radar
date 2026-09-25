@@ -37,7 +37,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png?v=2.0" />
   <link rel="apple-touch-icon" sizes="192x192" href="/img/icon-192.png?v=2.0" />
   <link rel="icon" type="image/png" href="/img/favicon.png?v=108.0" />
-  <link rel="stylesheet" href="/css/style.css?v=103.0" />
+  <link rel="stylesheet" href="/css/style.css?v=104.0" />
   <!-- Prevenção imediata de flash da tela de login para usuários autenticados -->
   <script>
     (function() {
@@ -60,16 +60,10 @@
     html.is-authenticated #main-content-container {
       display: block !important;
     }
-    @media (max-width: 767px) {
-      html.is-authenticated #mob-bottom-nav {
-        display: block !important;
-      }
-    }
-    @media (min-width: 768px) {
-      #mob-bottom-nav,
-      html.is-authenticated #mob-bottom-nav {
-        display: none !important;
-      }
+    /* Opção 1: Barra inferior removida para liberar 100% da tela do celular e unificar no menu do topo */
+    #mob-bottom-nav,
+    html.is-authenticated #mob-bottom-nav {
+      display: none !important;
     }
   </style>
   <script>
@@ -151,7 +145,7 @@
     html[data-initial-screen="matriz"] #view-matriz { display: block !important; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen pb-24 md:pb-12 antialiased selection:bg-indigo-500 selection:text-white overflow-x-hidden w-full max-w-full relative">
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-10 md:pb-12 antialiased selection:bg-indigo-500 selection:text-white overflow-x-hidden w-full max-w-full relative">
 
   <!-- Header Superior Fixo -->
   <header id="app-main-header" class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 hidden w-full max-w-full overflow-x-hidden">
@@ -233,12 +227,25 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
-      <!-- Item Início -->
-      <div>
+      <!-- Itens Principais de Navegação Rápida -->
+      <div class="space-y-1">
         <button type="button" onclick="navigateTo(null, 'home')" id="sidebar-btn-home"
           class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
           <span class="text-sm">🏠</span>
           <span>Início (Visão Geral)</span>
+        </button>
+        <button type="button" onclick="navigateTo(null, 'palpites')" id="sidebar-btn-palpites"
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm">🎯</span>
+            <span>Palpites do Motor IA</span>
+          </div>
+          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">Motor</span>
+        </button>
+        <button type="button" onclick="navigateTo(null, 'resultados')" id="sidebar-btn-resultados"
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <span class="text-sm">📋</span>
+          <span>Resultados dos Sorteios</span>
         </button>
       </div>
 
@@ -2478,7 +2485,7 @@
   </div>
 
 <script src="/js/api.js?v=104.0"></script>
-  <script src="/js/app.js?v=107.0"></script>
+  <script src="/js/app.js?v=108.0"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
