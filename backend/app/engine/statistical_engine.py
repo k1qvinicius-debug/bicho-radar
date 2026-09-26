@@ -284,95 +284,106 @@ class StatisticalEngine:
             risk_color = "emerald"
             risk_percentage = max(18, int(20 + diff_score * 2.5))
 
-        # 2. Identificação do Último 1º Prêmio
-        last_draw = draws[-1] if draws else {}
-        last_p1 = last_draw.get("prize_1", "") if last_draw else ""
-        last_g1 = get_group_for_number(last_p1) if last_p1 else fav_group.group_number
-        last_anim = get_animal_info(last_g1)["name"] if last_g1 else fav_group.animal_name
+        # 2. Identificação do Último 1º Prêmio Apurado
+        valid_draws = [d for d in draws if d.get("prize_1") and str(d.get("prize_1")).strip()]
+        last_draw = valid_draws[-1] if valid_draws else {}
+        if not last_draw:
+            try:
+                with get_db_connection() as conn:
+                    cur = conn.cursor()
+                    if lottery == "FEDERAL":
+                        q_lot = "(lottery = 'FEDERAL' OR slot = 'FED')"
+                        p_lot = []
+                    elif lottery == "RJ":
+                        q_lot = "(lottery = 'RJ' OR lottery IS NULL OR slot = 'FED')"
+                        p_lot = []
+                    else:
+                        q_lot = "lottery = ?"
+                        p_lot = [lottery]
+                    cur.execute(
+                        f"SELECT * FROM draw_results WHERE {q_lot} AND prize_1 IS NOT NULL AND prize_1 != '' "
+                        f"ORDER BY draw_date DESC, id DESC LIMIT 1",
+                        p_lot
+                    )
+                    r = cur.fetchone()
+                    if r:
+                        last_draw = dict(r)
+            except Exception as e:
+                print(f"Aviso ao buscar último sorteio: {e}")
 
-        # 3. Assimilação de Quebras Históricas Reais (Aprendizado Empírico da IA)
-        specific_escapes = []
-        lottery_zebras = []
+        last_p1 = str(last_draw.get("prize_1", "")).strip() if last_draw else ""
+        last_slot = last_draw.get("slot", "") if last_draw else ""
+        last_date = last_draw.get("draw_date", "") if last_draw else ""
+        last_g1 = get_group_for_number(last_p1) if last_p1 else (fav_group.group_number if top_groups else 1)
+        last_anim_info = get_animal_info(last_g1)
+        last_anim = last_anim_info["name"]
+        last_emoji = last_anim_info.get("emoji", "🐾")
+        tens_last = [str(d).zfill(2) for d in last_anim_info.get("tens", [])]
+
+        # 3. Transições Históricas e Quebras da Banca após o último resultado (last_g1)
+        transitions_after_last = Counter()
         try:
             with get_db_connection() as conn:
                 cur = conn.cursor()
-                # 3a. Rota de fuga específica da banca para este favorito exato
                 cur.execute("""
-                    SELECT actual_winner_group, actual_winner_animal, COUNT(*) as freq
-                    FROM pattern_breaks_history
-                    WHERE lottery = ? AND favorite_group = ?
-                    GROUP BY actual_winner_group, actual_winner_animal
-                    ORDER BY freq DESC
-                    LIMIT 3
-                """, (lottery, fav_group.group_number))
-                specific_escapes = [
-                    {"group": int(r["actual_winner_group"]), "animal": r["actual_winner_animal"], "count": int(r["freq"])}
-                    for r in cur.fetchall()
-                ]
+                    SELECT d1.prize_1 as p1, d2.prize_1 as p2
+                    FROM draw_results d1
+                    JOIN draw_results d2 ON d2.id = (
+                        SELECT MIN(id) FROM draw_results WHERE id > d1.id AND (lottery = d1.lottery OR (d1.lottery IS NULL AND lottery = 'RJ'))
+                    )
+                    WHERE (d1.lottery = ? OR (? = 'RJ' AND (d1.lottery IS NULL OR d1.lottery = 'RJ')))
+                    ORDER BY d1.id DESC
+                    LIMIT 300
+                """, (lottery, lottery))
+                for row in cur.fetchall():
+                    g1 = get_group_for_number(row["p1"])
+                    if g1 == last_g1:
+                        g2 = get_group_for_number(row["p2"])
+                        if g2 and g2 != last_g1:
+                            transitions_after_last[g2] += 1
+        except Exception as e:
+            print(f"Aviso ao buscar transições de quebra: {e}")
 
-                # 3b. Zebras mais frequentes em quebras de padrão desta banca no geral
-                cur.execute("""
-                    SELECT actual_winner_group, actual_winner_animal, COUNT(*) as freq
-                    FROM pattern_breaks_history
-                    WHERE lottery = ?
-                    GROUP BY actual_winner_group, actual_winner_animal
-                    ORDER BY freq DESC
-                    LIMIT 5
-                """, (lottery,))
-                lottery_zebras = [
-                    {"group": int(r["actual_winner_group"]), "animal": r["actual_winner_animal"], "count": int(r["freq"])}
-                    for r in cur.fetchall()
-                ]
-        except Exception:
-            pass
-
-        # Determina o 1º Bicho de Quebra (Prioridade: Fuga Específica > Zebra Geral > Oposto Polar)
+        # Determina o 1º Bicho de Quebra (Prioridade: Rota Empírica após last_g1 > Contra-Puxada Polar)
         polar_g = ((last_g1 + 12 - 1) % 25) + 1
-        while polar_g == last_g1 or polar_g == fav_group.group_number:
+        while polar_g in (last_g1,):
             polar_g = (polar_g % 25) + 1
 
         bicho_1_group = polar_g
-        rule_1 = "Contra-Puxada Polar (Círculo Oposto)"
+        rule_1 = f"Contra-Puxada Polar (Círculo Oposto do {last_anim})"
         is_empirical_1 = False
 
-        if specific_escapes and specific_escapes[0]["group"] != fav_group.group_number:
-            bicho_1_group = specific_escapes[0]["group"]
-            rule_1 = f"Rota de Fuga da Banca (Fugiu {specific_escapes[0]['count']}x para cá quando {fav_group.animal_name} quebrou)"
+        if transitions_after_last:
+            top_empirical = transitions_after_last.most_common(1)[0]
+            bicho_1_group = top_empirical[0]
+            count_emp = top_empirical[1]
+            rule_1 = f"Rota de Fuga da Banca ({count_emp}x após {last_anim} na {lottery})"
             is_empirical_1 = True
-        elif lottery_zebras:
-            candidate = next((z for z in lottery_zebras if z["group"] not in (fav_group.group_number, last_g1)), None)
-            if candidate:
-                bicho_1_group = candidate["group"]
-                rule_1 = f"Zebra Mais Frequente em Quebras ({candidate['count']}x na {lottery})"
-                is_empirical_1 = True
 
         bicho_1_info = get_animal_info(bicho_1_group)
 
         # Determina o 2º Bicho de Quebra (Segunda rota empírica ou zebra polar +7)
         second_break_g = ((last_g1 + 7 - 1) % 25) + 1
-        while second_break_g in (last_g1, fav_group.group_number, bicho_1_group):
+        while second_break_g in (last_g1, bicho_1_group):
             second_break_g = (second_break_g % 25) + 1
 
         bicho_2_group = second_break_g
-        rule_2 = "Segunda Cobertura (Zebra Oposta)"
+        rule_2 = f"Segunda Cobertura (Inversão de Faixa após {last_anim})"
         is_empirical_2 = False
 
-        if len(specific_escapes) > 1 and specific_escapes[1]["group"] not in (fav_group.group_number, bicho_1_group):
-            bicho_2_group = specific_escapes[1]["group"]
-            rule_2 = f"2ª Rota de Fuga Empírica ({specific_escapes[1]['count']}x quando {fav_group.animal_name} quebrou)"
-            is_empirical_2 = True
-        elif lottery_zebras:
-            candidate_2 = next((z for z in lottery_zebras if z["group"] not in (fav_group.group_number, bicho_1_group, last_g1)), None)
-            if candidate_2:
-                bicho_2_group = candidate_2["group"]
-                rule_2 = f"2ª Zebra Histórica ({candidate_2['count']}x na {lottery})"
-                is_empirical_2 = True
+        if transitions_after_last and len(transitions_after_last) > 1:
+            for g_cand, c_cand in transitions_after_last.most_common():
+                if g_cand not in (last_g1, bicho_1_group):
+                    bicho_2_group = g_cand
+                    rule_2 = f"2ª Zebra Histórica ({c_cand}x após {last_anim})"
+                    is_empirical_2 = True
+                    break
 
         bicho_2_info = get_animal_info(bicho_2_group)
 
         # 5. Dezenas de Proteção
-        tens_b1 = bicho_1_info["tens"]
-        tens_b2 = bicho_2_info["tens"]
+        tens_b1 = [str(d).zfill(2) for d in bicho_1_info["tens"]]
+        tens_b2 = [str(d).zfill(2) for d in bicho_2_info["tens"]]
         prot_tens = [tens_b1[1], tens_b1[3] if len(tens_b1) > 3 else tens_b1[0], tens_b2[1]]
 
         # 6. Centenas de Quebra
@@ -382,50 +393,54 @@ class StatisticalEngine:
             f"9{tens_b2[1]}"
         ]
 
-        # 7. Duques de Cobertura (Hedge Bets: Favorito + Quebra)
+        # 7. Duques de Cobertura (Hedge Bets: Último Resultado + Quebra & Favorito + Quebra)
+        last_ten = tens_last[1] if len(tens_last) > 1 else (tens_last[0] if tens_last else "00")
         fav_ten = fav_group.tens[1] if len(fav_group.tens) > 1 else fav_group.tens[0]
 
         hedge_combos = [
             {
                 "order": 1,
-                "tens": [fav_ten, tens_b1[1]],
-                "tens_formatted": f"{fav_ten} - {tens_b1[1]}",
-                "label": f"{fav_group.animal_name} (Fav) + {bicho_1_info['name']} (Quebra)",
-                "strategy": "Cerco de Segurança: Favorito + Bicho da Contra",
-                "badge": "🛡️ Cerco Blindado"
+                "tens": [last_ten, tens_b1[1]],
+                "tens_formatted": f"{last_ten} - {tens_b1[1]}",
+                "label": f"{last_anim} (Último) + {bicho_1_info['name']} (Contra)",
+                "strategy": f"Cerco do Último Resultado: {last_anim} + Bicho da Contra",
+                "badge": "🛡️ Contra-Ataque"
             },
             {
                 "order": 2,
-                "tens": [fav_ten, tens_b2[1]],
-                "tens_formatted": f"{fav_ten} - {tens_b2[1]}",
-                "label": f"{fav_group.animal_name} (Fav) + {bicho_2_info['name']} (Zebra)",
-                "strategy": "Cerco Alternativo: Favorito + Segunda Zebra",
-                "badge": "🛡️ Proteção Total"
+                "tens": [fav_ten, tens_b1[1]],
+                "tens_formatted": f"{fav_ten} - {tens_b1[1]}",
+                "label": f"{fav_group.animal_name} (Fav) + {bicho_1_info['name']} (Contra)",
+                "strategy": f"Proteção do Favorito: {fav_group.animal_name} + Bicho da Contra",
+                "badge": "🛡️ Cerco Blindado"
             },
             {
                 "order": 3,
                 "tens": [tens_b1[1], tens_b2[1]],
                 "tens_formatted": f"{tens_b1[1]} - {tens_b2[1]}",
                 "label": f"{bicho_1_info['name']} + {bicho_2_info['name']} (Dupla Quebra)",
-                "strategy": "Duque de Zebras: Cerco nas 2 Contras",
+                "strategy": "Duque de Zebras: Cerco nas 2 Contras da Banca",
                 "badge": "⚡ Tiro na Zebra"
             }
         ]
 
         # 8. Explicação Contextual em Linguagem Simples e Clara
+        slot_txt = f" ({last_slot})" if last_slot else ""
+        p1_txt = f" no 1º prêmio ({last_p1})" if last_p1 else ""
+
         if is_empirical_1:
             reason = (
-                f"O favorito do sistema é o {fav_group.animal_name} (Grupo {fav_group.group_number:02d}) com Score {fav_group.score:.1f}. "
-                f"Com base na assimilação de quebras da {lottery}, a rota de fuga predileta da banca "
+                f"O último bicho que veio no resultado da {lottery}{slot_txt} foi {last_anim} (Grupo {last_g1:02d}){p1_txt}. "
+                f"Com base na assimilação histórica de quebras da banca contra a puxada de {last_anim}, a rota de fuga predileta "
                 f"aponta para o {bicho_1_info['name']} (Grupo {bicho_1_info['group']:02d}) como cobertura principal, "
                 f"reforçada pelo {bicho_2_info['name']} (Grupo {bicho_2_info['group']:02d})."
             )
         else:
             reason = (
-                f"O favorito do sistema é o {fav_group.animal_name} (Grupo {fav_group.group_number:02d}) com Score {fav_group.score:.1f}. "
-                f"Porém, se a banca tentar 'quebrar o padrão' e desviar do favorito, a contra-puxada do último 1º prêmio "
-                f"({last_anim} Gr. {last_g1:02d}) aponta para o {bicho_1_info['name']} (Grupo {bicho_1_info['group']:02d}) "
-                f"como o principal Bicho da Contra para cobertura."
+                f"O último bicho que veio no resultado da {lottery}{slot_txt} foi {last_anim} (Grupo {last_g1:02d}){p1_txt}. "
+                f"Contra a puxada tradicional de {last_anim}, a rota de quebra de padrão (simetria polar contra a banca) "
+                f"aponta para o {bicho_1_info['name']} (Grupo {bicho_1_info['group']:02d}) como o principal Bicho da Contra, "
+                f"com segunda cobertura no {bicho_2_info['name']} (Grupo {bicho_2_info['group']:02d})."
             )
 
         return {
@@ -437,13 +452,16 @@ class StatisticalEngine:
             "last_draw_reference": {
                 "group": last_g1,
                 "animal": last_anim,
-                "prize_1": last_p1
+                "emoji": last_emoji,
+                "prize_1": last_p1,
+                "slot": last_slot,
+                "date": last_date
             },
             "primary_break_animal": {
                 "group": bicho_1_info["group"],
                 "name": bicho_1_info["name"],
                 "emoji": bicho_1_info["emoji"],
-                "tens": bicho_1_info["tens"],
+                "tens": tens_b1,
                 "rule": rule_1,
                 "is_empirical": is_empirical_1
             },
@@ -451,21 +469,25 @@ class StatisticalEngine:
                 "group": bicho_2_info["group"],
                 "name": bicho_2_info["name"],
                 "emoji": bicho_2_info["emoji"],
-                "tens": bicho_2_info["tens"],
+                "tens": tens_b2,
                 "rule": rule_2,
                 "is_empirical": is_empirical_2
             },
-            "assimilation": {
-                "has_empirical_learning": is_empirical_1 or is_empirical_2,
-                "specific_escapes_count": sum(x["count"] for x in specific_escapes),
-                "total_lottery_breaks_recorded": sum(x["count"] for x in lottery_zebras),
-                "top_escape_animal": bicho_1_info["name"],
-                "learning_mode": "EMPIRICAL_ASSIMILATED" if (is_empirical_1 or is_empirical_2) else "MATHEMATICAL_MODEL"
-            },
             "protection_tens": prot_tens,
             "protection_hundreds": prot_hundreds,
+            "break_hundreds": prot_hundreds,
             "hedge_combos": hedge_combos,
-            "recommended_action": f"Jogar no favorito {fav_group.animal_name} cobrindo o Grupo {bicho_1_info['group']:02d} ({bicho_1_info['name']}) e o Duque {fav_ten}-{tens_b1[1]}."
+            "hedge_duques": hedge_combos,
+            "favorite_reference": {
+                "group": fav_group.group_number,
+                "animal": fav_group.animal_name,
+                "score": fav_group.score
+            },
+            "assimilation": {
+                "has_empirical_learning": is_empirical_1 or is_empirical_2,
+                "transitions_count": sum(transitions_after_last.values()) if transitions_after_last else 0
+            },
+            "recommended_action": f"Cobrir o bicho da contra {bicho_1_info['name']} (Grupo {bicho_1_info['group']:02d}) e o Duque {last_ten}-{tens_b1[1]} contra a puxada do último resultado ({last_anim})."
         }
 
     def _generate_ddz_combinations(self, top_tens: List[RankedItem]) -> List[Dict[str, Any]]:
