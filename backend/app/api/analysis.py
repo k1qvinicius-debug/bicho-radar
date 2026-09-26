@@ -751,7 +751,7 @@ def get_recent_bingos():
                 badge = "💥 1º PRÊMIO NA CABEÇA!"
                 hit_number = p1
                 prize_desc = "1º Prêmio (Cabeça Seca)"
-                title = f"Nosso aplicativo acertou mais uma vez! Milhar {p1} cravada no 1º Prêmio!"
+                title = f"🎯 Bateu na mosca! Milhar {p1} cravada no 1º Prêmio!"
             elif mc > 0:
                 b_type = "MILHAR_CERCADO"
                 badge = f"🎯 MILHAR NO CERCADO ({mc}x)!"
@@ -765,13 +765,13 @@ def get_recent_bingos():
                 except Exception:
                     pass
                 prize_desc = "Cercado (1º ao 5º Prêmio)"
-                title = f"Nosso aplicativo acertou mais uma vez! Milhar {hit_number} no cercado!"
+                title = f"🎯 Bateu na mosca! Milhar {hit_number} no cercado!"
             elif c1:
                 b_type = "CENTENA_1ST"
                 badge = "⭐ CENTENA NO 1º PRÊMIO!"
                 hit_number = p1[-3:]
                 prize_desc = "1º Prêmio (Cabeça)"
-                title = f"Nosso aplicativo acertou mais uma vez! Centena {hit_number} no 1º Prêmio!"
+                title = f"🎯 Bateu na mosca! Centena {hit_number} no 1º Prêmio!"
             else:
                 continue
 
@@ -861,7 +861,7 @@ def get_recent_bingos():
                         "draw_id": d["id"],
                         "type": "MILHAR_1ST",
                         "badge": "💥 1º PRÊMIO NA CABEÇA!",
-                        "title": f"Nosso aplicativo acertou mais uma vez! Milhar {m1} cravada no 1º Prêmio!",
+                        "title": f"🎯 Bateu na mosca! Milhar {m1} cravada no 1º Prêmio!",
                         "hit_number": m1,
                         "prize_1": p1,
                         "prize_desc": f"1º Prêmio ({anim['name']} - Chave Mestra)",
@@ -881,7 +881,7 @@ def get_recent_bingos():
                         "draw_id": d["id"],
                         "type": "CENTENA_1ST",
                         "badge": "⭐ CENTENA NO 1º PRÊMIO!",
-                        "title": f"Nosso aplicativo acertou mais uma vez! Centena {c1} no 1º Prêmio!",
+                        "title": f"🎯 Bateu na mosca! Centena {c1} no 1º Prêmio!",
                         "hit_number": c1,
                         "prize_1": p1,
                         "prize_desc": f"1º Prêmio ({anim['name']} - Chave Mestra)",
