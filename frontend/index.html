@@ -1436,14 +1436,16 @@
           </button>
         </div>
 
-        <div class="flex items-center gap-1.5 justify-end flex-wrap">
-          <button id="btn-copy-matriz-direct" onclick="copyAllMatrizDirectCentenas(this)"
-            class="px-3 py-1.5 rounded-lg bg-amber-950/60 hover:bg-amber-900 border border-amber-800/60 hover:border-amber-500 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer">
-            <span>📋</span> <span>Copiar Centenas Diretas</span>
-          </button>
+        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
           <button id="btn-copy-matriz-thousands" onclick="copyAllMatrizThousands(this)"
-            class="px-3 py-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900 border border-indigo-800/60 hover:border-indigo-500 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer">
-            <span>⚡</span> <span>Copiar Milhares VIP</span>
+            class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600/30 to-amber-500/20 hover:from-amber-600/40 hover:to-amber-500/30 border border-amber-500/50 hover:border-amber-400 text-amber-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer"
+            title="Copiar todas as milhares geradas pela Chave Mestra">
+            <span>👑</span> <span>Copiar Milhares</span>
+          </button>
+          <button id="btn-copy-matriz-hundreds" onclick="copyAllMatrizHundreds(this)"
+            class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600/30 to-cyan-500/20 hover:from-cyan-600/40 hover:to-cyan-500/30 border border-cyan-500/50 hover:border-cyan-400 text-cyan-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer"
+            title="Copiar todas as centenas geradas pela Chave Mestra">
+            <span>🎯</span> <span>Copiar Centenas</span>
           </button>
         </div>
       </div>
@@ -1540,7 +1542,14 @@
                 <span class="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
                   <span>📐</span> <span>Centenas Diretas do Grid</span>
                 </span>
-                <span class="text-[10px] text-cyan-400 font-mono" id="matriz-direct-count">0 centenas</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] text-cyan-400 font-mono" id="matriz-direct-count">0 centenas</span>
+                  <button type="button" onclick="copyAllMatrizDirectCentenas(this)"
+                    class="px-2 py-0.5 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-700/60 hover:border-cyan-400 text-cyan-300 text-[10px] font-bold transition-all active:scale-95 cursor-pointer shadow-sm"
+                    title="Copiar apenas centenas formadas pelas linhas do grid">
+                    📋 Copiar Diretas
+                  </button>
+                </div>
               </div>
 
               <div class="space-y-2 pt-2" id="matriz-direct-lines-container">
@@ -1557,11 +1566,25 @@
 
         <!-- 3. TOP BICHOS COM MÁXIMA CONFLUÊNCIA NA MATRIZ -->
         <div class="space-y-3 pt-2">
-          <div class="flex items-center justify-between pb-1 border-b border-slate-800">
-            <h3 class="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-              <span>🏆</span> <span>Bichos com Máxima Confluência no Grid 3x3</span>
-            </h3>
-            <span class="text-[11px] text-slate-400">Dezenas 100% no Grid + Centenas de Ouro</span>
+          <div class="flex items-center justify-between pb-1 border-b border-slate-800 flex-wrap gap-2">
+            <div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                <span>👑</span> <span>Bichos com Máxima Confluência no Grid 3x3</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">Dezenas 100% no Grid + Centenas e Milhares VIP</p>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="copyAllMatrizThousands(this)"
+                class="px-2.5 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-600/50 hover:border-amber-400 text-amber-300 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
+                title="Copiar todas as milhares dos bichos com confluência">
+                <span>👑</span> <span>Copiar Milhares</span>
+              </button>
+              <button type="button" onclick="copyAllMatrizHundreds(this)"
+                class="px-2.5 py-1 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-600/50 hover:border-cyan-400 text-cyan-300 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
+                title="Copiar todas as centenas dos bichos com confluência">
+                <span>🎯</span> <span>Copiar Centenas</span>
+              </button>
+            </div>
           </div>
 
           <div id="matriz-confluence-animals-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -2397,7 +2420,7 @@
   </div>
 
   <script src="/js/api.js?v=1790370520"></script>
-  <script src="/js/app.js?v=1790370520"></script>
+  <script src="/js/app.js?v=1790373000"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
