@@ -453,6 +453,21 @@ const api = {
     return await res.json();
   },
 
+  async getActiveLotteryPicks(date = null) {
+    let url = `${API_BASE}/analysis/active-lottery-picks`;
+    if (date) url += `?target_date=${encodeURIComponent(date)}`;
+    try {
+      const res = await fetch(url, {
+        headers: { ...getAuthHeaders() },
+      });
+      if (!res.ok) return {};
+      return await res.json();
+    } catch (e) {
+      console.warn('Não foi possível carregar palpites ativos das loterias:', e);
+      return {};
+    }
+  },
+
   async getMatrizAnimal(group, date = null, mode = 'dia') {
     let url = `${API_BASE}/analysis/matriz-animal?group=${encodeURIComponent(group)}`;
     if (date) url += `&target_date=${encodeURIComponent(date)}`;
