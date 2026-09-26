@@ -470,15 +470,16 @@ def get_matriz_dia_endpoint(
 def get_matriz_animal_endpoint(
     group: int = Query(..., ge=1, le=25, description="Número do grupo do bicho (1 a 25)"),
     target_date: Optional[str] = Query(None, description="Data da Matriz (YYYY-MM-DD). Padrão: hoje"),
+    mode: Optional[str] = Query("dia", description="Modo da Matriz: dia, mes ou both"),
     tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
     """
     Retorna as Centenas e Milhares prioritárias de um bicho filtradas
-    e ordenadas pela confluência da Matriz 3x3 da Data.
+    e ordenadas pela confluência da Matriz 3x3 da Data (Base Dia, Base Mês ou Visão Integrada).
     """
     from ..engine.matriz_engine import get_animal_matriz_centenas
     effective_date = target_date or datetime.now().strftime("%Y-%m-%d")
-    return get_animal_matriz_centenas(group, effective_date)
+    return get_animal_matriz_centenas(group, effective_date, mode=mode or "dia")
 
 
 @router.get("/transition-matrix", response_model=Dict[str, Any])
