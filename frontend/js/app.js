@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   startInstantResultsMonitor();
 
   // Restaura a tela ativa do usuário (via hash, query param ou localStorage)
-  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master'];
+  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   const hash = window.location.hash.replace('#', '');
   const urlParams = new URLSearchParams(window.location.search);
   let savedScreen = null;
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Suporte ao botão voltar/avançar do navegador entre as telas
 window.addEventListener('hashchange', () => {
-  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master'];
+  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   const hash = window.location.hash.replace('#', '');
   if (validScreens.includes(hash)) {
     switchScreen(hash, false);
@@ -1012,6 +1012,9 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
   } else if (screenName === 'milhares-atrasadas') {
     const milBtn = document.getElementById('sidebar-btn-milhares-atrasadas');
     if (milBtn) milBtn.classList.add('sidebar-item-active');
+  } else if (screenName === 'matriz') {
+    const matrizBtn = document.getElementById('sidebar-btn-matriz');
+    if (matrizBtn) matrizBtn.classList.add('sidebar-item-active');
   } else if (lotteryCode && screenName) {
     window.toggleLotteryAccordion(lotteryCode, true);
     const subBtn = document.getElementById(`subnav-${lotteryCode}-${screenName}`);
@@ -1022,6 +1025,7 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
     'home': 'Visão Geral',
     'palpites': 'Jogos Prontos',
     'centena-master': 'Centena Master',
+    'matriz': 'Chave Mestra (Matriz 3x3)',
     'cruz': 'Cruz do Dia',
     'puxadas': 'Radar de Puxadas',
     'atrasados': 'Mais Atrasados',
