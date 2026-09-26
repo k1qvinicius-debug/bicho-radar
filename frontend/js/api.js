@@ -453,9 +453,10 @@ const api = {
     return await res.json();
   },
 
-  async getMatrizAnimal(group, date = null) {
+  async getMatrizAnimal(group, date = null, mode = 'dia') {
     let url = `${API_BASE}/analysis/matriz-animal?group=${encodeURIComponent(group)}`;
     if (date) url += `&target_date=${encodeURIComponent(date)}`;
+    if (mode) url += `&mode=${encodeURIComponent(mode)}`;
     const res = await fetch(url, {
       headers: { ...getAuthHeaders() },
     });
