@@ -482,6 +482,67 @@ def get_matriz_animal_endpoint(
     return get_animal_matriz_centenas(group, effective_date, mode=mode or "dia")
 
 
+_ACTIVE_LOTTERY_PICKS_CACHE: Dict[str, Any] = {}
+_ACTIVE_LOTTERY_PICKS_TTL = 180.0  # 3 minutos
+
+
+@router.get("/active-lottery-picks", response_model=Dict[str, Any])
+def get_active_lottery_picks_endpoint(
+    target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD). Padrão: hoje"),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
+):
+    """
+    Retorna o mapa dos palpites ativos e horários pendentes para cada uma das principais loterias (RJ, LOOK, NACIONAL, SP, FEDERAL).
+    Permite identificar instantaneamente se um bicho da Chave Mestra também é palpite oficial nessas loterias.
+    """
+    global _ACTIVE_LOTTERY_PICKS_CACHE
+    effective_date = target_date or datetime.now().strftime("%Y-%m-%d")
+    now = time.time()
+
+    entry = _ACTIVE_LOTTERY_PICKS_CACHE.get(effective_date)
+    if entry:
+        ts, val = entry
+        if now - ts < _ACTIVE_LOTTERY_PICKS_TTL:
+            return val
+
+    engine = StatisticalEngine()
+    lottery_picks = {}
+    lotteries_to_check = ["RJ", "LOOK", "NACIONAL", "SP", "FEDERAL"]
+
+    for lot in lotteries_to_check:
+        try:
+            slot = get_default_next_slot(lot)
+            pred = engine.analyze(
+                target_date=effective_date,
+                target_slot=slot,
+                strategy="hybrid",
+                lottery=lot
+            )
+            top_groups = []
+            for rank, g in enumerate(pred.top_groups, start=1):
+                top_groups.append({
+                    "group": g.group_number,
+                    "animal": g.animal_name,
+                    "emoji": g.animal_emoji,
+                    "rank": rank,
+                    "score": round(g.score, 1)
+                })
+
+            lottery_picks[lot] = {
+                "lottery": lot,
+                "lottery_name": pred.lottery_name or lot,
+                "slot": slot,
+                "slot_name": pred.target_slot_name or slot,
+                "top_groups": top_groups,
+                "groups": [g["group"] for g in top_groups]
+            }
+        except Exception:
+            continue
+
+    _ACTIVE_LOTTERY_PICKS_CACHE[effective_date] = (now, lottery_picks)
+    return lottery_picks
+
+
 @router.get("/transition-matrix", response_model=Dict[str, Any])
 def get_transition_matrix_endpoint(
     lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
