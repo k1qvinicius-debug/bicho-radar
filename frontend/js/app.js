@@ -6450,48 +6450,124 @@ window.selectMatrizAnimal = async function(groupNum) {
   }
 };
 
-window.copyAllMatrizDirectCentenas = function(btn) {
-  if (!window._currentMatrizData) return;
-  const mode = window._currentMatrizMode || 'dia';
-  const lines = (mode === 'mes') ? window._currentMatrizData.lines_mes : window._currentMatrizData.lines_dia;
-  if (!lines) return;
+window.copyAllMatrizThousands = async function(btn) {
+  if (!window._currentMatrizData) {
+    showToast('Carregando dados da Chave Mestra...', 'info');
+    return;
+  }
+  const data = window._currentMatrizData;
+  const animals = data.top_confluence_animals || data.all_animals_confluence || [];
+  if (!animals || animals.length === 0) {
+    showToast('Nenhuma milhar disponível na Chave Mestra.', 'warning');
+    return;
+  }
 
-  const allC = Array.from(new Set([
-    ...(lines.horizontais || []),
-    ...(lines.verticais || []),
-    ...(lines.diagonais || [])
-  ]));
-
-  if (allC.length === 0) return;
-  const text = allC.join(', ');
-
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btn ? btn.innerHTML : '';
-    if (btn) btn.innerHTML = '<span>✅</span> <span>Copiadas!</span>';
-    showToast(`${allC.length} centenas diretas copiadas!`);
-    setTimeout(() => { if (btn) btn.innerHTML = orig; }, 2000);
-  }).catch(() => {
-    showToast('Erro ao copiar');
-  });
-};
-
-window.copyAllMatrizThousands = function(btn) {
-  if (!window._currentMatrizData || !window._currentMatrizData.top_confluence_animals) return;
   const mList = [];
-  window._currentMatrizData.top_confluence_animals.slice(0, 4).forEach(a => {
-    (a.top_milhares || []).slice(0, 2).forEach(m => mList.push(m));
+  animals.forEach(a => {
+    (a.top_milhares || []).forEach(m => {
+      if (m !== undefined && m !== null) {
+        mList.push(String(m).trim().padStart(4, '0'));
+      }
+    });
   });
 
-  const uniqueM = Array.from(new Set(mList));
-  if (uniqueM.length === 0) return;
+  const uniqueM = Array.from(new Set(mList)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  if (uniqueM.length === 0) {
+    showToast('Nenhuma milhar encontrada na Chave Mestra.', 'warning');
+    return;
+  }
+
   const text = uniqueM.join(', ');
+  const ok = await window.copyToClipboard(text, btn, 'Copiadas!');
+  if (ok) {
+    showToast(`${uniqueM.length} Milhares da Chave Mestra copiadas!`, 'success');
+  } else {
+    showToast('Não foi possível copiar automaticamente.', 'warning');
+  }
+};
+window.copyAllMatrizMilhares = window.copyAllMatrizThousands;
 
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btn ? btn.innerHTML : '';
-    if (btn) btn.innerHTML = '<span>✅</span> <span>Copiadas!</span>';
-    showToast(`${uniqueM.length} milhares VIP copiadas!`);
-    setTimeout(() => { if (btn) btn.innerHTML = orig; }, 2000);
-  }).catch(() => {
-    showToast('Erro ao copiar');
+window.copyAllMatrizHundreds = async function(btn) {
+  if (!window._currentMatrizData) {
+    showToast('Carregando dados da Chave Mestra...', 'info');
+    return;
+  }
+  const data = window._currentMatrizData;
+  const mode = window._currentMatrizMode || 'dia';
+
+  const cList = [];
+
+  // 1. Centenas Diretas do Grid (dependendo do modo ativo)
+  if (mode === 'both') {
+    (data.all_direct_centenas || []).forEach(c => {
+      if (c !== undefined && c !== null) cList.push(String(c).trim().padStart(3, '0'));
+    });
+  } else if (mode === 'mes') {
+    const lines = data.lines_mes || {};
+    [...(lines.horizontais || []), ...(lines.verticais || []), ...(lines.diagonais || [])].forEach(c => {
+      if (c !== undefined && c !== null) cList.push(String(c).trim().padStart(3, '0'));
+    });
+  } else {
+    const lines = data.lines_dia || {};
+    [...(lines.horizontais || []), ...(lines.verticais || []), ...(lines.diagonais || [])].forEach(c => {
+      if (c !== undefined && c !== null) cList.push(String(c).trim().padStart(3, '0'));
+    });
+  }
+
+  // 2. Centenas dos Bichos com Maior Confluência no Grid
+  const animals = data.top_confluence_animals || data.all_animals_confluence || [];
+  animals.forEach(a => {
+    (a.top_centenas || []).forEach(c => {
+      if (c !== undefined && c !== null) cList.push(String(c).trim().padStart(3, '0'));
+    });
   });
+
+  const uniqueC = Array.from(new Set(cList)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  if (uniqueC.length === 0) {
+    showToast('Nenhuma centena encontrada na Chave Mestra.', 'warning');
+    return;
+  }
+
+  const text = uniqueC.join(', ');
+  const ok = await window.copyToClipboard(text, btn, 'Copiadas!');
+  if (ok) {
+    showToast(`${uniqueC.length} Centenas da Chave Mestra copiadas!`, 'success');
+  } else {
+    showToast('Não foi possível copiar automaticamente.', 'warning');
+  }
+};
+window.copyAllMatrizCentenas = window.copyAllMatrizHundreds;
+
+window.copyAllMatrizDirectCentenas = async function(btn) {
+  if (!window._currentMatrizData) {
+    showToast('Carregando dados da Chave Mestra...', 'info');
+    return;
+  }
+  const mode = window._currentMatrizMode || 'dia';
+  const data = window._currentMatrizData;
+  const lines = (mode === 'mes') ? data.lines_mes : ((mode === 'both') ? null : data.lines_dia);
+
+  const directList = (mode === 'both')
+    ? (data.all_direct_centenas || [])
+    : [
+        ...((lines && lines.horizontais) || []),
+        ...((lines && lines.verticais) || []),
+        ...((lines && lines.diagonais) || [])
+      ];
+
+  const uniqueDirect = Array.from(new Set(directList.map(c => String(c).trim().padStart(3, '0'))))
+    .sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+
+  if (uniqueDirect.length === 0) {
+    showToast('Nenhuma centena direta encontrada.', 'warning');
+    return;
+  }
+
+  const text = uniqueDirect.join(', ');
+  const ok = await window.copyToClipboard(text, btn, 'Copiadas!');
+  if (ok) {
+    showToast(`${uniqueDirect.length} centenas diretas copiadas!`, 'success');
+  } else {
+    showToast('Não foi possível copiar automaticamente.', 'warning');
+  }
 };
