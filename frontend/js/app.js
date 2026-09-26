@@ -6449,7 +6449,86 @@ function renderMatrizView(data, mode) {
     }).join('');
   }
 
-  // 6. Renderiza Seletor de Animais (25 bichos)
+  // 6. Renderiza Ternos de Dezena de Alta Confluência
+  const ternosTitleEl = document.getElementById('matriz-ternos-title');
+  const ternosSubEl = document.getElementById('matriz-ternos-subtitle');
+  if (ternosTitleEl) {
+    ternosTitleEl.innerHTML = (mode === 'mes')
+      ? '<span>🎯</span> <span>Ternos de Dezena da Chave Mestra (Base Mês ' + String(data.month).padStart(2, '0') + ')</span>'
+      : (mode === 'both'
+        ? '<span>✨</span> <span>Ternos de Dezena da Chave Mestra (Visão Integrada Dia + Mês)</span>'
+        : '<span>🎯</span> <span>Ternos de Dezena da Chave Mestra (Base Dia ' + String(data.day).padStart(2, '0') + ')</span>');
+  }
+  if (ternosSubEl) {
+    ternosSubEl.textContent = (mode === 'mes')
+      ? 'Ternos de Dezena (1º ao 5º) formados pelas dezenas dos líderes do Mês'
+      : (mode === 'both'
+        ? 'Ternos de Dezena (1º ao 5º) com sinergia cruzada Dia + Mês'
+        : 'Ternos de Dezena (1º ao 5º) formados pelas dezenas dos líderes do Dia');
+  }
+
+  const ternosContainer = document.getElementById('matriz-ternos-container');
+  const ternosSource = (mode === 'mes')
+    ? (data.ternos_de_dezena_mes || [])
+    : ((mode === 'both')
+      ? (data.ternos_de_dezena_both || [])
+      : (data.ternos_de_dezena_dia || data.ternos_de_dezena || []));
+
+  window._currentMatrizTernos = ternosSource;
+
+  if (ternosContainer) {
+    if (!ternosSource || ternosSource.length === 0) {
+      ternosContainer.innerHTML = '<p class="text-xs text-slate-500 py-3 text-center col-span-3">Nenhum terno gerado para esta data.</p>';
+    } else {
+      ternosContainer.innerHTML = ternosSource.map(t => {
+        const bichosHtml = (t.bichos || []).map(b => `
+          <div class="flex-1 flex flex-col items-center justify-center p-2 rounded-xl bg-slate-950/80 border border-slate-800/80 hover:border-amber-500/40 transition-all text-center">
+            <span class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/50 text-amber-300 font-mono font-black text-sm flex items-center justify-center shadow-sm mb-1">
+              ${b.dezena}
+            </span>
+            <span class="text-xs font-bold text-white flex items-center gap-0.5 truncate max-w-[90px]">
+              <span>${b.emoji || '🐾'}</span> <span class="truncate">${b.name}</span>
+            </span>
+            <span class="text-[9px] text-slate-400 font-mono">Gr ${String(b.group).padStart(2, '0')}</span>
+          </div>
+        `).join('');
+
+        return `
+          <div class="card-glass p-3 rounded-xl border border-slate-800 hover:border-amber-500/40 transition-all space-y-2.5 flex flex-col justify-between">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+                  ${t.badge || '👑 Terno'}
+                </span>
+                <h4 class="text-xs font-bold text-white">${t.title}</h4>
+              </div>
+              <span class="text-[10px] font-mono font-bold text-cyan-300 bg-cyan-950/60 border border-cyan-700/50 px-1.5 py-0.5 rounded">
+                ⚡ ${Math.round(t.score || 85)}%
+              </span>
+            </div>
+
+            <!-- As 3 Dezenas e seus bichos -->
+            <div class="grid grid-cols-3 gap-1.5">
+              ${bichosHtml}
+            </div>
+
+            <p class="text-[10px] text-slate-400 italic leading-tight">
+              ${t.description || 'Palpite de alta assertividade para o 1º ao 5º prêmio'}
+            </p>
+
+            <!-- Botão de Cópia Individual do Terno -->
+            <button type="button" onclick="copySingleTerno(this, '${t.copy_str}')"
+              class="w-full py-1 px-2 rounded-lg bg-amber-950/60 hover:bg-amber-900/80 border border-amber-700/50 hover:border-amber-400 text-amber-300 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
+              title="Copiar terno de dezena ${t.copy_str}">
+              <span>🎯</span> <span>Copiar Terno (${t.copy_str})</span>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 7. Renderiza Seletor de Animais (25 bichos)
   renderMatrizAnimalsPicker(data);
 }
 
@@ -6717,6 +6796,41 @@ window.copyAllMatrizDirectCentenas = async function(btn) {
   const ok = await window.copyToClipboard(text, btn, 'Copiadas!');
   if (ok) {
     showToast(`${uniqueDirect.length} centenas diretas copiadas!`, 'success');
+  } else {
+    showToast('Não foi possível copiar automaticamente.', 'warning');
+  }
+};
+
+window.copySingleTerno = async function(btn, ternoStr) {
+  if (!ternoStr) {
+    showToast('Nenhum terno disponível para copiar.', 'warning');
+    return;
+  }
+  const ok = await window.copyToClipboard(ternoStr, btn, 'Copiado!');
+  if (ok) {
+    showToast(`Terno de Dezena (${ternoStr}) copiado com sucesso!`, 'success');
+  } else {
+    showToast('Não foi possível copiar automaticamente.', 'warning');
+  }
+};
+
+window.copyAllMatrizTernos = async function(btn) {
+  const ternos = window._currentMatrizTernos;
+  if (!ternos || ternos.length === 0) {
+    showToast('Nenhum terno de dezena disponível.', 'warning');
+    return;
+  }
+
+  const mode = window._currentMatrizMode || 'dia';
+  const modeLabel = (mode === 'mes') ? 'BASE MÊS' : ((mode === 'both') ? 'VISÃO INTEGRADA' : 'BASE DIA');
+  const lines = [
+    `🎯 TERNOS DE DEZENA - CHAVE MESTRA (${modeLabel})`,
+    ...ternos.map(t => `${t.copy_str} (${t.title} - ${(t.bichos || []).map(b => b.name).join(' + ')})`)
+  ];
+
+  const ok = await window.copyToClipboard(lines.join('\n'), btn, 'Copiados!');
+  if (ok) {
+    showToast(`${ternos.length} Ternos de Dezena copiados com sucesso!`, 'success');
   } else {
     showToast('Não foi possível copiar automaticamente.', 'warning');
   }
