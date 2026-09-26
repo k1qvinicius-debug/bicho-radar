@@ -6305,24 +6305,33 @@ function renderMatrizView(data, mode) {
   // 4. Top Animais com Confluência
   const confContainer = document.getElementById('matriz-confluence-animals-container');
   if (confContainer && data.top_confluence_animals) {
-    confContainer.innerHTML = data.top_confluence_animals.slice(0, 6).map(anim => {
+    const displayedAnimals = data.top_confluence_animals.slice(0, 6);
+    window._currentMatrizDisplayedAnimals = displayedAnimals;
+
+    confContainer.innerHTML = displayedAnimals.map(anim => {
       const matchTensStr = (anim.matching_tens && anim.matching_tens.length > 0)
         ? anim.matching_tens.map(t => `<span class="px-1.5 py-0.2 rounded bg-indigo-950/80 border border-indigo-700/50 text-indigo-200 font-mono font-bold text-[11px]">${t}</span>`).join(' ')
         : '<span class="text-slate-500 text-xs">-</span>';
 
-      const centenasHtml = (anim.top_centenas || []).slice(0, 4).map(c => `
+      const centenasList = (anim.top_centenas || []).slice(0, 4);
+      const milharesList = (anim.top_milhares || []).slice(0, 4);
+
+      const centenasHtml = centenasList.map(c => `
         <button type="button" onclick="copySingleNumber(event, '${c}', 'Centena')" title="Copiar centena ${c}"
           class="px-2 py-0.5 rounded bg-amber-950/90 border border-amber-500/80 text-amber-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
           ${c}
         </button>
       `).join(' ');
 
-      const milharesHtml = (anim.top_milhares || []).slice(0, 4).map(m => `
+      const milharesHtml = milharesList.map(m => `
         <button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Copiar milhar ${m}"
           class="px-2 py-0.5 rounded bg-indigo-950/90 border border-indigo-500/80 text-indigo-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
           ${m}
         </button>
       `).join(' ');
+
+      const cStr = centenasList.join(', ');
+      const mStr = milharesList.join(', ');
 
       return `
         <div class="card-glass p-3 rounded-xl border border-slate-800 hover:border-amber-500/40 transition-all space-y-2">
@@ -6352,6 +6361,20 @@ function renderMatrizView(data, mode) {
               <span>Milhares VIP:</span>
               <div class="flex items-center gap-1">${milharesHtml}</div>
             </div>
+          </div>
+
+          <!-- 2 Botões de Cópia: Centena e Milhares do Bicho -->
+          <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800/80">
+            <button type="button" onclick="copyAnimalMatrizHundreds(this, '${anim.animal}', '${cStr}')"
+              class="py-1 px-2 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-700/50 hover:border-cyan-400 text-cyan-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
+              title="Copiar centenas da ${anim.animal}">
+              <span>🎯</span> <span>Copiar Centenas</span>
+            </button>
+            <button type="button" onclick="copyAnimalMatrizThousands(this, '${anim.animal}', '${mStr}')"
+              class="py-1 px-2 rounded-lg bg-amber-950/60 hover:bg-amber-900/80 border border-amber-700/50 hover:border-amber-400 text-amber-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
+              title="Copiar milhares da ${anim.animal}">
+              <span>👑</span> <span>Copiar Milhares</span>
+            </button>
           </div>
         </div>
       `;
@@ -6437,6 +6460,9 @@ window.selectMatrizAnimal = async function(groupNum) {
         ? animData.matching_tens.map(t => `<span class="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-700/60 text-indigo-200 font-mono font-bold text-xs">${t}</span>`).join(' ')
         : '<span class="text-xs text-slate-500">Nenhuma dezena 100% contida</span>';
 
+      const cAllStr = (animData.top_centenas || []).join(', ');
+      const mAllStr = (animData.top_milhares || []).join(', ');
+
       detailCard.innerHTML = `
         <div class="flex items-center justify-between pb-2 border-b border-slate-800">
           <div class="flex items-center gap-2">
@@ -6457,14 +6483,26 @@ window.selectMatrizAnimal = async function(groupNum) {
             <div class="flex flex-wrap gap-1">${matchingStr}</div>
           </div>
 
-          <div class="space-y-1.5 p-2 rounded-lg bg-slate-950/60 border border-slate-800">
-            <span class="text-[11px] font-bold text-amber-400 uppercase block">Centenas de Ouro:</span>
-            <div class="flex flex-wrap gap-1">${centenasHtml}</div>
+          <div class="space-y-1.5 p-2 rounded-lg bg-slate-950/60 border border-slate-800 flex flex-col justify-between">
+            <div>
+              <span class="text-[11px] font-bold text-amber-400 uppercase block mb-1">Centenas de Ouro:</span>
+              <div class="flex flex-wrap gap-1">${centenasHtml}</div>
+            </div>
+            <button type="button" onclick="copyAnimalMatrizHundreds(this, '${animData.animal}', '${cAllStr}')"
+              class="w-full mt-2 py-1 px-2 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-700/50 text-cyan-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm">
+              <span>🎯</span> <span>Copiar Centenas</span>
+            </button>
           </div>
 
-          <div class="space-y-1.5 p-2 rounded-lg bg-slate-950/60 border border-slate-800">
-            <span class="text-[11px] font-bold text-indigo-400 uppercase block">Milhares VIP:</span>
-            <div class="flex flex-wrap gap-1">${milharesHtml}</div>
+          <div class="space-y-1.5 p-2 rounded-lg bg-slate-950/60 border border-slate-800 flex flex-col justify-between">
+            <div>
+              <span class="text-[11px] font-bold text-indigo-400 uppercase block mb-1">Milhares VIP:</span>
+              <div class="flex flex-wrap gap-1">${milharesHtml}</div>
+            </div>
+            <button type="button" onclick="copyAnimalMatrizThousands(this, '${animData.animal}', '${mAllStr}')"
+              class="w-full mt-2 py-1 px-2 rounded-lg bg-amber-950/60 hover:bg-amber-900/80 border border-amber-700/50 text-amber-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm">
+              <span>👑</span> <span>Copiar Milhares</span>
+            </button>
           </div>
         </div>
       `;
@@ -6477,21 +6515,48 @@ window.selectMatrizAnimal = async function(groupNum) {
   }
 };
 
+window.copyAnimalMatrizHundreds = async function(btn, animalName, numbersStr) {
+  if (!numbersStr) {
+    showToast(`Nenhuma centena disponível para ${animalName}.`, 'warning');
+    return;
+  }
+  const ok = await window.copyToClipboard(numbersStr, btn, 'Copiadas!');
+  if (ok) {
+    showToast(`Centenas de ${animalName} copiadas!`, 'success');
+  } else {
+    showToast('Não foi possível copiar automaticamente.', 'warning');
+  }
+};
+
+window.copyAnimalMatrizThousands = async function(btn, animalName, numbersStr) {
+  if (!numbersStr) {
+    showToast(`Nenhuma milhar disponível para ${animalName}.`, 'warning');
+    return;
+  }
+  const ok = await window.copyToClipboard(numbersStr, btn, 'Copiadas!');
+  if (ok) {
+    showToast(`Milhares de ${animalName} copiadas!`, 'success');
+  } else {
+    showToast('Não foi possível copiar automaticamente.', 'warning');
+  }
+};
+
 window.copyAllMatrizThousands = async function(btn) {
   if (!window._currentMatrizData) {
     showToast('Carregando dados da Chave Mestra...', 'info');
     return;
   }
   const data = window._currentMatrizData;
-  const animals = data.top_confluence_animals || data.all_animals_confluence || [];
+  const animals = window._currentMatrizDisplayedAnimals || (data.top_confluence_animals || []).slice(0, 6);
   if (!animals || animals.length === 0) {
-    showToast('Nenhuma milhar disponível na Chave Mestra.', 'warning');
+    showToast('Nenhum bicho disponível na Chave Mestra.', 'warning');
     return;
   }
 
   const mList = [];
   animals.forEach(a => {
-    (a.top_milhares || []).forEach(m => {
+    const list = (a.top_milhares || []).slice(0, 4);
+    list.forEach(m => {
       if (m !== undefined && m !== null) {
         mList.push(String(m).trim().padStart(4, '0'));
       }
@@ -6500,19 +6565,20 @@ window.copyAllMatrizThousands = async function(btn) {
 
   const uniqueM = Array.from(new Set(mList)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
   if (uniqueM.length === 0) {
-    showToast('Nenhuma milhar encontrada na Chave Mestra.', 'warning');
+    showToast('Nenhuma milhar encontrada nos bichos.', 'warning');
     return;
   }
 
   const text = uniqueM.join(', ');
   const ok = await window.copyToClipboard(text, btn, 'Copiadas!');
   if (ok) {
-    showToast(`${uniqueM.length} Milhares da Chave Mestra copiadas!`, 'success');
+    showToast(`${uniqueM.length} Milhares dos bichos copiadas!`, 'success');
   } else {
     showToast('Não foi possível copiar automaticamente.', 'warning');
   }
 };
 window.copyAllMatrizMilhares = window.copyAllMatrizThousands;
+window.copyAllMatrizConfluenceThousands = window.copyAllMatrizThousands;
 
 window.copyAllMatrizHundreds = async function(btn) {
   if (!window._currentMatrizData) {
@@ -6520,50 +6586,38 @@ window.copyAllMatrizHundreds = async function(btn) {
     return;
   }
   const data = window._currentMatrizData;
-  const mode = window._currentMatrizMode || 'dia';
-
-  const cList = [];
-
-  // 1. Centenas Diretas do Grid (dependendo do modo ativo)
-  if (mode === 'both') {
-    (data.all_direct_centenas || []).forEach(c => {
-      if (c !== undefined && c !== null) cList.push(String(c).trim().padStart(3, '0'));
-    });
-  } else if (mode === 'mes') {
-    const lines = data.lines_mes || {};
-    [...(lines.horizontais || []), ...(lines.verticais || []), ...(lines.diagonais || [])].forEach(c => {
-      if (c !== undefined && c !== null) cList.push(String(c).trim().padStart(3, '0'));
-    });
-  } else {
-    const lines = data.lines_dia || {};
-    [...(lines.horizontais || []), ...(lines.verticais || []), ...(lines.diagonais || [])].forEach(c => {
-      if (c !== undefined && c !== null) cList.push(String(c).trim().padStart(3, '0'));
-    });
+  const animals = window._currentMatrizDisplayedAnimals || (data.top_confluence_animals || []).slice(0, 6);
+  if (!animals || animals.length === 0) {
+    showToast('Nenhum bicho disponível na Chave Mestra.', 'warning');
+    return;
   }
 
-  // 2. Centenas dos Bichos com Maior Confluência no Grid
-  const animals = data.top_confluence_animals || data.all_animals_confluence || [];
+  const cList = [];
   animals.forEach(a => {
-    (a.top_centenas || []).forEach(c => {
-      if (c !== undefined && c !== null) cList.push(String(c).trim().padStart(3, '0'));
+    const list = (a.top_centenas || []).slice(0, 4);
+    list.forEach(c => {
+      if (c !== undefined && c !== null) {
+        cList.push(String(c).trim().padStart(3, '0'));
+      }
     });
   });
 
   const uniqueC = Array.from(new Set(cList)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
   if (uniqueC.length === 0) {
-    showToast('Nenhuma centena encontrada na Chave Mestra.', 'warning');
+    showToast('Nenhuma centena encontrada nos bichos.', 'warning');
     return;
   }
 
   const text = uniqueC.join(', ');
   const ok = await window.copyToClipboard(text, btn, 'Copiadas!');
   if (ok) {
-    showToast(`${uniqueC.length} Centenas da Chave Mestra copiadas!`, 'success');
+    showToast(`${uniqueC.length} Centenas dos bichos copiadas!`, 'success');
   } else {
     showToast('Não foi possível copiar automaticamente.', 'warning');
   }
 };
 window.copyAllMatrizCentenas = window.copyAllMatrizHundreds;
+window.copyAllMatrizConfluenceHundreds = window.copyAllMatrizHundreds;
 
 window.copyAllMatrizDirectCentenas = async function(btn) {
   if (!window._currentMatrizData) {
