@@ -125,6 +125,16 @@ def get_matriz_dia(target_date: str = None) -> Dict[str, Any]:
     confluence_animals_mes.sort(key=lambda x: x["confluence_score"], reverse=True)
     confluence_animals_both.sort(key=lambda x: x["confluence_score"], reverse=True)
 
+    # Ternos de Dezena para os 3 modos
+    ternos_dia = _build_matriz_ternos_de_dezena(confluence_animals_dia, grid_dia, digits_dia, lines_dia, "dia")
+    ternos_mes = _build_matriz_ternos_de_dezena(confluence_animals_mes, grid_mes, digits_mes, lines_mes, "mes")
+    lines_both = {
+        "horizontais": lines_dia["horizontais"] + lines_mes["horizontais"],
+        "verticais": lines_dia["verticais"] + lines_mes["verticais"],
+        "diagonais": lines_dia["diagonais"] + lines_mes["diagonais"]
+    }
+    ternos_both = _build_matriz_ternos_de_dezena(confluence_animals_both, grid_dia, all_digits, lines_both, "both")
+
     return {
         "date": target_date,
         "day": day_int,
@@ -146,8 +156,197 @@ def get_matriz_dia(target_date: str = None) -> Dict[str, Any]:
         "top_confluence_animals_mes": confluence_animals_mes[:8],
         "all_animals_confluence_mes": confluence_animals_mes,
         "top_confluence_animals_both": confluence_animals_both[:8],
-        "all_animals_confluence_both": confluence_animals_both
+        "all_animals_confluence_both": confluence_animals_both,
+        # Ternos de Dezena da Matriz
+        "ternos_de_dezena": ternos_dia,
+        "ternos_de_dezena_dia": ternos_dia,
+        "ternos_de_dezena_mes": ternos_mes,
+        "ternos_de_dezena_both": ternos_both
     }
+
+def _get_animal_for_ten(dz_str: str) -> Dict[str, Any]:
+    dz = int(dz_str)
+    grp = 25 if dz == 0 else ((dz - 1) // 4) + 1
+    info = get_animal_info(grp)
+    return {
+        "name": info["name"],
+        "emoji": info.get("emoji", "🐾"),
+        "group": grp,
+        "dezena": dz_str
+    }
+
+def _build_matriz_ternos_de_dezena(
+    animals: List[Dict[str, Any]],
+    grid: List[List[int]],
+    digits: List[int],
+    lines: Dict[str, List[str]],
+    mode: str
+) -> List[Dict[str, Any]]:
+    ternos = []
+
+    def pick_best_ten(anim, used_tens=None):
+        m_tens = anim.get("matching_tens", [])
+        if m_tens:
+            for t in m_tens:
+                if not used_tens or t not in used_tens:
+                    return t
+            return m_tens[0]
+        p_tens = anim.get("partial_tens", [])
+        if p_tens:
+            for t in p_tens:
+                if not used_tens or t not in used_tens:
+                    return t
+            return p_tens[0]
+        c_list = anim.get("top_centenas", [])
+        if c_list:
+            return c_list[0][-2:]
+        return "00"
+
+    # 1. 👑 Terno Chave Mestra: Top 1 + Top 2 + Top 3
+    if len(animals) >= 3:
+        a1, a2, a3 = animals[0], animals[1], animals[2]
+        t1 = pick_best_ten(a1)
+        t2 = pick_best_ten(a2, {t1})
+        t3 = pick_best_ten(a3, {t1, t2})
+        dezenas = sorted([t1, t2, t3])
+        score = round((a1.get("confluence_score", 0) + a2.get("confluence_score", 0) + a3.get("confluence_score", 0)) / 3, 1)
+        ternos.append({
+            "title": "Terno Chave Mestra",
+            "badge": "👑 Ouro",
+            "score": score,
+            "dezenas": dezenas,
+            "dezenas_str": " - ".join(dezenas),
+            "copy_str": ", ".join(dezenas),
+            "bichos": [
+                {"name": a1["animal"], "emoji": a1.get("emoji", "🐾"), "dezena": t1, "group": a1["group"]},
+                {"name": a2["animal"], "emoji": a2.get("emoji", "🐾"), "dezena": t2, "group": a2["group"]},
+                {"name": a3["animal"], "emoji": a3.get("emoji", "🐾"), "dezena": t3, "group": a3["group"]}
+            ],
+            "description": "Combinação dos 3 animais líderes de confluência no Grid 3x3"
+        })
+
+    # 2. ⚡ Terno Confluência Alta: Top 1 + Top 2 + Top 4
+    if len(animals) >= 4:
+        a1, a2, a4 = animals[0], animals[1], animals[3]
+        m1 = a1.get("matching_tens", [])
+        t1 = m1[1] if len(m1) > 1 else pick_best_ten(a1)
+        m2 = a2.get("matching_tens", [])
+        t2 = m2[1] if len(m2) > 1 else pick_best_ten(a2, {t1})
+        t4 = pick_best_ten(a4, {t1, t2})
+        dezenas = sorted([t1, t2, t4])
+        score = round((a1.get("confluence_score", 0) + a2.get("confluence_score", 0) + a4.get("confluence_score", 0)) / 3, 1)
+        ternos.append({
+            "title": "Terno Confluência Alta",
+            "badge": "⚡ Alta Força",
+            "score": score,
+            "dezenas": dezenas,
+            "dezenas_str": " - ".join(dezenas),
+            "copy_str": ", ".join(dezenas),
+            "bichos": [
+                {"name": a1["animal"], "emoji": a1.get("emoji", "🐾"), "dezena": t1, "group": a1["group"]},
+                {"name": a2["animal"], "emoji": a2.get("emoji", "🐾"), "dezena": t2, "group": a2["group"]},
+                {"name": a4["animal"], "emoji": a4.get("emoji", "🐾"), "dezena": t4, "group": a4["group"]}
+            ],
+            "description": "Confluência estelar com rotação inteligente de dezenas"
+        })
+
+    # 3. 🎯 Terno de Sinergia: Top 2 + Top 3 + Top 5
+    if len(animals) >= 5:
+        a2, a3, a5 = animals[1], animals[2], animals[4]
+        t2 = pick_best_ten(a2)
+        t3 = pick_best_ten(a3, {t2})
+        t5 = pick_best_ten(a5, {t2, t3})
+        dezenas = sorted([t2, t3, t5])
+        score = round((a2.get("confluence_score", 0) + a3.get("confluence_score", 0) + a5.get("confluence_score", 0)) / 3, 1)
+        ternos.append({
+            "title": "Terno de Sinergia",
+            "badge": "🎯 Sinergia",
+            "score": score,
+            "dezenas": dezenas,
+            "dezenas_str": " - ".join(dezenas),
+            "copy_str": ", ".join(dezenas),
+            "bichos": [
+                {"name": a2["animal"], "emoji": a2.get("emoji", "🐾"), "dezena": t2, "group": a2["group"]},
+                {"name": a3["animal"], "emoji": a3.get("emoji", "🐾"), "dezena": t3, "group": a3["group"]},
+                {"name": a5["animal"], "emoji": a5.get("emoji", "🐾"), "dezena": t5, "group": a5["group"]}
+            ],
+            "description": "Equilíbrio harmônico entre animais de alto fluxo"
+        })
+
+    # 4. 🔥 Terno Radar VIP: Top 1 + Top 3 + Top 6
+    if len(animals) >= 6:
+        a1, a3, a6 = animals[0], animals[2], animals[5]
+        m3 = a3.get("matching_tens", [])
+        t1 = pick_best_ten(a1)
+        t3 = m3[1] if len(m3) > 1 else pick_best_ten(a3, {t1})
+        t6 = pick_best_ten(a6, {t1, t3})
+        dezenas = sorted([t1, t3, t6])
+        score = round((a1.get("confluence_score", 0) + a3.get("confluence_score", 0) + a6.get("confluence_score", 0)) / 3, 1)
+        ternos.append({
+            "title": "Terno Radar VIP",
+            "badge": "🔥 Sniper",
+            "score": score,
+            "dezenas": dezenas,
+            "dezenas_str": " - ".join(dezenas),
+            "copy_str": ", ".join(dezenas),
+            "bichos": [
+                {"name": a1["animal"], "emoji": a1.get("emoji", "🐾"), "dezena": t1, "group": a1["group"]},
+                {"name": a3["animal"], "emoji": a3.get("emoji", "🐾"), "dezena": t3, "group": a3["group"]},
+                {"name": a6["animal"], "emoji": a6.get("emoji", "🐾"), "dezena": t6, "group": a6["group"]}
+            ],
+            "description": "Fechamento tático cobrindo o bloco superior do ranking"
+        })
+
+    # 5. 📐 Terno Linhas do Grid 3x3
+    direct_centenas = lines.get("horizontais", []) + lines.get("verticais", []) + lines.get("diagonais", [])
+    tens_from_lines = []
+    for c in direct_centenas:
+        dz = c[-2:]
+        if dz not in tens_from_lines:
+            tens_from_lines.append(dz)
+    if len(tens_from_lines) >= 3:
+        d_grid = sorted(tens_from_lines[:3])
+        ternos.append({
+            "title": "Terno Linhas do Grid",
+            "badge": "📐 Geométrico",
+            "score": 88.0,
+            "dezenas": d_grid,
+            "dezenas_str": " - ".join(d_grid),
+            "copy_str": ", ".join(d_grid),
+            "bichos": [_get_animal_for_ten(dz) for dz in d_grid],
+            "description": "Extraído diretamente das linhas horizontais e diagonais do Grid 3x3"
+        })
+
+    # 6. ⭐ Terno Polos Magnéticos (vértices do grid)
+    v_tens = [
+        f"{grid[0][0]}{grid[0][2]}",
+        f"{grid[2][0]}{grid[2][2]}",
+        f"{grid[1][1]}{grid[0][0]}"
+    ]
+    unique_v = []
+    for v in v_tens:
+        if v not in unique_v:
+            unique_v.append(v)
+    if len(unique_v) < 3 and len(tens_from_lines) >= 3:
+        for t in tens_from_lines:
+            if t not in unique_v:
+                unique_v.append(t)
+            if len(unique_v) == 3:
+                break
+    if len(unique_v) == 3:
+        d_pol = sorted(unique_v)
+        ternos.append({
+            "title": "Terno Polos Magnéticos",
+            "badge": "⭐ Vértices",
+            "score": 85.0,
+            "dezenas": d_pol,
+            "dezenas_str": " - ".join(d_pol),
+            "copy_str": ", ".join(d_pol),
+            "bichos": [_get_animal_for_ten(dz) for dz in d_pol],
+            "description": "Conexão dos 4 vértices angulares com o centro da matriz"
+        })
+
+    return ternos
 
 def _calculate_animal_matriz(
     group_number: int,
