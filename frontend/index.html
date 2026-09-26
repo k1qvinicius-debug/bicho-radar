@@ -1591,6 +1591,27 @@
           </div>
         </div>
 
+        <!-- 3.5. TERNOS DE DEZENA DE ALTA CONFLUÊNCIA -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center justify-between pb-1 border-b border-slate-800 flex-wrap gap-2">
+            <div>
+              <h3 id="matriz-ternos-title" class="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                <span>🎯</span> <span>Ternos de Dezena de Alta Confluência (1º ao 5º)</span>
+              </h3>
+              <p id="matriz-ternos-subtitle" class="text-[11px] text-slate-400">Jogos prontos combinando as dezenas dos bichos com maior assertividade no Grid</p>
+            </div>
+            <button type="button" onclick="copyAllMatrizTernos(this)"
+              class="px-2.5 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-600/50 hover:border-amber-400 text-amber-300 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
+              title="Copiar todos os ternos de dezena">
+              <span>📋</span> <span>Copiar Todos os Ternos</span>
+            </button>
+          </div>
+
+          <div id="matriz-ternos-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+
         <!-- 4. SIMULADOR & CRUZADOR RÁPIDO DE QUALQUER BICHO -->
         <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3 pt-3">
           <div class="flex items-center justify-between flex-wrap gap-2">
@@ -2419,7 +2440,7 @@
   </div>
 
   <script src="/js/api.js?v=1790439479"></script>
-  <script src="/js/app.js?v=1790439479"></script>
+  <script src="/js/app.js?v=1790443239"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
