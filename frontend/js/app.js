@@ -1,3 +1,9 @@
+// Remove stale cached elements if present
+(function() {
+  var b = document.getElementById('nav-btn-milhares-atrasadas');
+  if (b) b.remove();
+})();
+
 window.API = window.api || (typeof api !== 'undefined' ? api : null);
 let currentScreen = 'home';
 window.currentScreen = currentScreen;
@@ -215,7 +221,7 @@ window.switchScreen = function(screenName, updateHash = true) {
   if (navBtnCruz) navBtnCruz.className = (screenName === 'cruz') ? activeDesktopClass : inactiveDesktopClass;
   if (navBtnResultados) navBtnResultados.className = (screenName === 'resultados') ? activeDesktopClass : inactiveDesktopClass;
     const navBtnMilhares = document.getElementById('nav-btn-milhares-atrasadas');
-    if (navBtnMilhares) navBtnMilhares.className = (screenName === 'milhares-atrasadas') ? activeDesktopClass : inactiveDesktopClass;
+    if (navBtnMilhares) navBtnMilhares.remove();
 
   // Atualiza botões do Mobile Bottom Nav (Dock Glassmorphism)
   const mobBtnHome = document.getElementById('mob-btn-home');
