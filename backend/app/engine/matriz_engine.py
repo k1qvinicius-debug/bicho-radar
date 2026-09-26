@@ -98,20 +98,32 @@ def get_matriz_dia(target_date: str = None) -> Dict[str, Any]:
     all_digits = sorted(list(set(digits_dia + digits_mes)))
 
     # Centenas diretas combinadas
-    all_direct_centenas = sorted(list(set(
-        lines_dia["horizontais"] + lines_dia["verticais"] + lines_dia["diagonais"] +
-        lines_mes["horizontais"] + lines_mes["verticais"] + lines_mes["diagonais"]
-    )))
+    direct_centenas_dia = sorted(list(set(lines_dia["horizontais"] + lines_dia["verticais"] + lines_dia["diagonais"])))
+    direct_centenas_mes = sorted(list(set(lines_mes["horizontais"] + lines_mes["verticais"] + lines_mes["diagonais"])))
+    all_direct_centenas = sorted(list(set(direct_centenas_dia + direct_centenas_mes)))
 
-    # Confluencia de todos os 25 animais com a matriz do dia
-    digits_dia_set = set(digits_dia)
-    confluence_animals = []
+    # Confluência dos animais calculada para os 3 modos: Dia, Mês e Visão Integrada
+    confluence_animals_dia = []
+    confluence_animals_mes = []
+    confluence_animals_both = []
 
     for grp in range(1, 26):
-        anim_data = _calculate_animal_matriz(grp, grid_dia, grid_mes, digits_dia, digits_mes, all_direct_centenas, target_date)
-        confluence_animals.append(anim_data)
+        confluence_animals_dia.append(_calculate_animal_matriz(
+            grp, grid_dia, grid_mes, digits_dia, digits_mes, all_direct_centenas, target_date,
+            mode="dia", lines_dia=lines_dia, lines_mes=lines_mes
+        ))
+        confluence_animals_mes.append(_calculate_animal_matriz(
+            grp, grid_dia, grid_mes, digits_dia, digits_mes, all_direct_centenas, target_date,
+            mode="mes", lines_dia=lines_dia, lines_mes=lines_mes
+        ))
+        confluence_animals_both.append(_calculate_animal_matriz(
+            grp, grid_dia, grid_mes, digits_dia, digits_mes, all_direct_centenas, target_date,
+            mode="both", lines_dia=lines_dia, lines_mes=lines_mes
+        ))
 
-    confluence_animals.sort(key=lambda x: x["confluence_score"], reverse=True)
+    confluence_animals_dia.sort(key=lambda x: x["confluence_score"], reverse=True)
+    confluence_animals_mes.sort(key=lambda x: x["confluence_score"], reverse=True)
+    confluence_animals_both.sort(key=lambda x: x["confluence_score"], reverse=True)
 
     return {
         "date": target_date,
@@ -124,9 +136,17 @@ def get_matriz_dia(target_date: str = None) -> Dict[str, Any]:
         "all_digits": all_digits,
         "lines_dia": lines_dia,
         "lines_mes": lines_mes,
+        "direct_centenas_dia": direct_centenas_dia,
+        "direct_centenas_mes": direct_centenas_mes,
         "all_direct_centenas": all_direct_centenas,
-        "top_confluence_animals": confluence_animals[:8],
-        "all_animals_confluence": confluence_animals
+        "top_confluence_animals": confluence_animals_dia[:8],
+        "all_animals_confluence": confluence_animals_dia,
+        "top_confluence_animals_dia": confluence_animals_dia[:8],
+        "all_animals_confluence_dia": confluence_animals_dia,
+        "top_confluence_animals_mes": confluence_animals_mes[:8],
+        "all_animals_confluence_mes": confluence_animals_mes,
+        "top_confluence_animals_both": confluence_animals_both[:8],
+        "all_animals_confluence_both": confluence_animals_both
     }
 
 def _calculate_animal_matriz(
@@ -136,56 +156,128 @@ def _calculate_animal_matriz(
     digits_dia: List[int],
     digits_mes: List[int],
     all_direct_centenas: List[str],
-    target_date: str
+    target_date: str,
+    mode: str = "dia",
+    lines_dia: Dict[str, List[str]] = None,
+    lines_mes: Dict[str, List[str]] = None
 ) -> Dict[str, Any]:
     digits_dia_set = set(digits_dia)
     digits_mes_set = set(digits_mes)
     all_digits_set = digits_dia_set | digits_mes_set
-    direct_centenas_set = set(all_direct_centenas)
 
     anim_info = get_animal_info(group_number)
     animal_name = anim_info["name"]
     animal_emoji = anim_info.get("emoji", "🐾")
     tens = [str(d).zfill(2) for d in anim_info["tens"]]
 
-    matching_tens = []
-    partial_tens = []
+    if mode == "mes":
+        active_grid = grid_mes
+        active_digits = digits_mes
+        target_digits_set = digits_mes_set
+        badge_name = "🗓️ Matriz Base Mês"
+        if lines_mes:
+            direct_centenas_set = set(lines_mes["horizontais"] + lines_mes["verticais"] + lines_mes["diagonais"])
+        else:
+            direct_centenas_set = set(all_direct_centenas)
 
-    for dz in tens:
-        d_ten, d_unit = int(dz[0]), int(dz[1])
-        if d_ten in digits_dia_set and d_unit in digits_dia_set:
-            matching_tens.append(dz)
-        elif (d_ten in digits_dia_set or d_unit in digits_dia_set) or (d_ten in all_digits_set and d_unit in all_digits_set):
-            partial_tens.append(dz)
+        matching_tens = []
+        partial_tens = []
+        for dz in tens:
+            d_ten, d_unit = int(dz[0]), int(dz[1])
+            if d_ten in target_digits_set and d_unit in target_digits_set:
+                matching_tens.append(dz)
+            elif d_ten in target_digits_set or d_unit in target_digits_set or (d_ten in all_digits_set and d_unit in all_digits_set):
+                partial_tens.append(dz)
 
-    confluence_score = (len(matching_tens) * 25.0) + (len(partial_tens) * 10.0)
+        confluence_score = (len(matching_tens) * 25.0) + (len(partial_tens) * 10.0)
+        vertices = {grid_mes[0][0], grid_mes[0][2], grid_mes[2][0], grid_mes[2][2]}
+        polar_main = (grid_mes[2][2], grid_mes[0][0])
+        side_axis = (grid_mes[1][0], grid_mes[1][2])
 
-    # Vertices da matriz (cantos da grade)
-    vertices = {grid_dia[0][0], grid_dia[0][2], grid_dia[2][0], grid_dia[2][2]}
+    elif mode == "both":
+        active_grid = grid_dia
+        active_digits = sorted(list(all_digits_set))
+        target_digits_set = all_digits_set
+        badge_name = "✨ Matriz Integrada"
+        direct_centenas_set = set(all_direct_centenas)
+
+        matching_dia = [dz for dz in tens if int(dz[0]) in digits_dia_set and int(dz[1]) in digits_dia_set]
+        matching_mes = [dz for dz in tens if int(dz[0]) in digits_mes_set and int(dz[1]) in digits_mes_set]
+        matching_tens = list(dict.fromkeys(matching_dia + matching_mes))
+
+        partial_tens = []
+        for dz in tens:
+            if dz not in matching_tens:
+                d_ten, d_unit = int(dz[0]), int(dz[1])
+                if d_ten in target_digits_set and d_unit in target_digits_set:
+                    partial_tens.append(dz)
+                elif d_ten in target_digits_set or d_unit in target_digits_set:
+                    partial_tens.append(dz)
+
+        # Sinergia integrada: valoriza quem conecta com ambas as matrizes simultaneamente
+        base_score = (len(matching_dia) * 20.0) + (len(matching_mes) * 20.0) + (len(partial_tens) * 8.0)
+        if matching_dia and matching_mes:
+            base_score += 25.0  # Pontuação de ponte harmônica Dia + Mês
+        confluence_score = base_score
+
+        vertices = {
+            grid_dia[0][0], grid_dia[0][2], grid_dia[2][0], grid_dia[2][2],
+            grid_mes[0][0], grid_mes[0][2], grid_mes[2][0], grid_mes[2][2]
+        }
+        polar_main = (grid_dia[2][2], grid_dia[0][0], grid_mes[2][2], grid_mes[0][0])
+        side_axis = (grid_dia[1][0], grid_dia[1][2], grid_mes[1][0], grid_mes[1][2])
+
+    else:  # mode == "dia"
+        active_grid = grid_dia
+        active_digits = digits_dia
+        target_digits_set = digits_dia_set
+        badge_name = "⚡ Matriz Base Dia"
+        if lines_dia:
+            direct_centenas_set = set(lines_dia["horizontais"] + lines_dia["verticais"] + lines_dia["diagonais"])
+        else:
+            direct_centenas_set = set(all_direct_centenas)
+
+        matching_tens = []
+        partial_tens = []
+        for dz in tens:
+            d_ten, d_unit = int(dz[0]), int(dz[1])
+            if d_ten in target_digits_set and d_unit in target_digits_set:
+                matching_tens.append(dz)
+            elif d_ten in target_digits_set or d_unit in target_digits_set or (d_ten in all_digits_set and d_unit in all_digits_set):
+                partial_tens.append(dz)
+
+        confluence_score = (len(matching_tens) * 25.0) + (len(partial_tens) * 10.0)
+        vertices = {grid_dia[0][0], grid_dia[0][2], grid_dia[2][0], grid_dia[2][2]}
+        polar_main = (grid_dia[2][2], grid_dia[0][0])
+        side_axis = (grid_dia[1][0], grid_dia[1][2])
 
     centenas_by_dz: Dict[str, List[Dict[str, Any]]] = {dz: [] for dz in tens}
     all_centenas_scored = []
 
+    grids_to_check = [active_grid] if mode != "both" else [grid_dia, grid_mes]
+
     for dz in tens:
         d_ten, d_unit = int(dz[0]), int(dz[1])
-        is_full_in_dia = dz in matching_tens
+        is_full = dz in matching_tens
         is_partial = dz in partial_tens
 
         # Verifica se d_ten e d_unit estao alinhados na mesma linha ou coluna do grid
         is_aligned = False
-        for r_idx in range(3):
-            row_vals = grid_dia[r_idx]
-            if d_ten in row_vals and d_unit in row_vals:
-                is_aligned = True
-                break
-        if not is_aligned:
-            for c_idx in range(3):
-                col_vals = [grid_dia[r_idx][c_idx] for r_idx in range(3)]
-                if d_ten in col_vals and d_unit in col_vals:
+        for g in grids_to_check:
+            for r_idx in range(3):
+                if d_ten in g[r_idx] and d_unit in g[r_idx]:
                     is_aligned = True
                     break
+            if not is_aligned:
+                for c_idx in range(3):
+                    col_vals = [g[r_idx][c_idx] for r_idx in range(3)]
+                    if d_ten in col_vals and d_unit in col_vals:
+                        is_aligned = True
+                        break
+            if is_aligned:
+                break
 
-        for pref in digits_dia:
+        for pref in active_digits:
             cent = f"{pref}{dz}"
             score = 15.0
             reasons = []
@@ -194,7 +286,7 @@ def _calculate_animal_matriz(
                 score += 50.0
                 reasons.append("Alinhamento Direto na Matriz")
 
-            if is_full_in_dia:
+            if is_full:
                 score += 25.0
                 reasons.append("Dezena Formada no Grid")
             elif is_partial:
@@ -209,23 +301,25 @@ def _calculate_animal_matriz(
                 score += 15.0
                 reasons.append("Prefixo de Vértice")
 
-            if pref == grid_dia[2][2] or pref == grid_dia[0][0]:
+            if pref in polar_main:
                 score += 5.0
                 reasons.append("Vértice Polar Principal")
 
             # Conexao geometrica: se o prefixo compartilha linha/coluna com os digitos da dezena
             shares_line = False
-            for r_idx in range(3):
-                row_vals = grid_dia[r_idx]
-                if pref in row_vals and (d_ten in row_vals or d_unit in row_vals):
-                    shares_line = True
-                    break
-            if not shares_line:
-                for c_idx in range(3):
-                    col_vals = [grid_dia[r_idx][c_idx] for r_idx in range(3)]
-                    if pref in col_vals and (d_ten in col_vals or d_unit in col_vals):
+            for g in grids_to_check:
+                for r_idx in range(3):
+                    if pref in g[r_idx] and (d_ten in g[r_idx] or d_unit in g[r_idx]):
                         shares_line = True
                         break
+                if not shares_line:
+                    for c_idx in range(3):
+                        col_vals = [g[r_idx][c_idx] for r_idx in range(3)]
+                        if pref in col_vals and (d_ten in col_vals or d_unit in col_vals):
+                            shares_line = True
+                            break
+                if shares_line:
+                    break
 
             if shares_line:
                 score += 12.0
@@ -237,7 +331,7 @@ def _calculate_animal_matriz(
                 "dezena": dz,
                 "prefix": pref,
                 "is_direct_line": cent in direct_centenas_set,
-                "badge": "⚡ Matriz 3x3",
+                "badge": badge_name,
                 "reason": " • ".join(reasons) if reasons else "Dígitos do Grid"
             }
             centenas_by_dz[dz].append(item)
@@ -274,16 +368,16 @@ def _calculate_animal_matriz(
         base_score = c_obj["score"]
         c_thousands = []
 
-        for m_pref in digits_dia:
+        for m_pref in active_digits:
             milh = f"{m_pref}{c_str}"
             m_score = base_score + 10.0
             reasons_m = []
             if m_pref in vertices:
                 m_score += 10.0
                 reasons_m.append("Milhar Vértice")
-            if m_pref in digits_dia:
+            if m_pref in active_digits:
                 m_score += 10.0
-            if m_pref == grid_dia[1][0] or m_pref == grid_dia[1][2]:
+            if m_pref in side_axis:
                 m_score += 8.0
                 reasons_m.append("Eixo Central")
             # Eco da dezena na milhar (ex: 3734 - digito 3 repete dezena 34)
@@ -291,7 +385,7 @@ def _calculate_animal_matriz(
                 m_score += 12.0
                 reasons_m.append("Eco da Dezena")
             # Sinergia milhar + centena
-            if (m_pref, c_pref) in [(3, 7), (7, 3), (2, 7), (7, 2), (2, 4), (4, 2), (5, 6), (6, 5)]:
+            if (m_pref, c_pref) in [(3, 7), (7, 3), (2, 7), (7, 2), (2, 4), (4, 2), (5, 6), (6, 5), (0, 8), (8, 0), (1, 9), (9, 1)]:
                 m_score += 15.0
                 reasons_m.append("Harmonia Polar")
 
@@ -323,6 +417,7 @@ def _calculate_animal_matriz(
         "animal": animal_name,
         "emoji": animal_emoji,
         "date": target_date,
+        "mode": mode,
         "confluence_score": round(confluence_score, 1),
         "matching_tens": matching_tens,
         "partial_tens": partial_tens,
@@ -332,15 +427,25 @@ def _calculate_animal_matriz(
         "top_milhares_details": top_milhares_list,
     }
 
-def get_animal_matriz_centenas(group_number: int, target_date: str = None) -> Dict[str, Any]:
-    """Retorna os dados da matriz para um bicho especifico."""
+def get_animal_matriz_centenas(group_number: int, target_date: str = None, mode: str = "dia") -> Dict[str, Any]:
+    """Retorna os dados da matriz para um bicho especifico de acordo com o modo (dia, mes, both)."""
     matriz = get_matriz_dia(target_date)
-    for anim in matriz["all_animals_confluence"]:
+    mode = (mode or "dia").lower()
+
+    if mode == "mes":
+        pool = matriz.get("all_animals_confluence_mes", [])
+    elif mode == "both":
+        pool = matriz.get("all_animals_confluence_both", [])
+    else:
+        pool = matriz.get("all_animals_confluence_dia", matriz.get("all_animals_confluence", []))
+
+    for anim in pool:
         if anim["group"] == group_number:
             anim["matriz_grid_dia"] = matriz["grid_dia"]
             anim["matriz_grid_mes"] = matriz["grid_mes"]
+            anim["mode"] = mode
             return anim
-    
+
     # Fallback
     return _calculate_animal_matriz(
         group_number,
@@ -349,5 +454,8 @@ def get_animal_matriz_centenas(group_number: int, target_date: str = None) -> Di
         matriz["digits_dia"],
         matriz["digits_mes"],
         matriz["all_direct_centenas"],
-        matriz["date"]
+        matriz["date"],
+        mode=mode,
+        lines_dia=matriz.get("lines_dia"),
+        lines_mes=matriz.get("lines_mes")
     )
