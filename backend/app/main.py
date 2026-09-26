@@ -84,12 +84,18 @@ FRONTEND_DIR = os.path.join(
 @app.get("/")
 @app.get("/index.html")
 def serve_home():
-    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+    return FileResponse(
+        os.path.join(FRONTEND_DIR, "index.html"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate, max-age=0"}
+    )
 
 @app.get("/historico")
 @app.get("/historico.html")
 def serve_historico():
-    return FileResponse(os.path.join(FRONTEND_DIR, "historico.html"))
+    return FileResponse(
+        os.path.join(FRONTEND_DIR, "historico.html"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate, max-age=0"}
+    )
 
 @app.get("/admin")
 @app.get("/admin.html")
