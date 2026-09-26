@@ -6185,17 +6185,24 @@ window.switchMatrizMode = function(mode) {
   if (window._currentMatrizData) {
     renderMatrizView(window._currentMatrizData, mode);
   }
+
+  // Se já houver um bicho selecionado no Cruzador, recalcula para o novo modo (dia/mês/both)
+  if (window._currentMatrizSelectedGroup) {
+    selectMatrizAnimal(window._currentMatrizSelectedGroup);
+  }
 };
 
 function renderMatrizView(data, mode) {
   if (!data) return;
+  mode = mode || window._currentMatrizMode || 'dia';
 
   // 1. Pílulas de Dígitos Ativos
   const pillsContainer = document.getElementById('matriz-active-digits-pills');
   if (pillsContainer) {
     const activeDigits = (mode === 'mes') ? data.digits_mes : ((mode === 'both') ? data.all_digits : data.digits_dia);
+    const labelDigits = (mode === 'mes') ? 'Dígitos Mês:' : ((mode === 'both') ? 'Dígitos (Dia + Mês):' : 'Dígitos Ativos:');
     pillsContainer.innerHTML = `
-      <span class="font-bold text-slate-300">Dígitos Ativos:</span>
+      <span class="font-bold text-slate-300">${labelDigits}</span>
       ${activeDigits.map(d => `<span class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono font-bold text-xs flex items-center justify-center">${d}</span>`).join('')}
     `;
   }
@@ -6214,7 +6221,7 @@ function renderMatrizView(data, mode) {
   }
 
   if (gridCoords) {
-    gridCoords.textContent = (mode === 'mes') ? `Mês ${data.month}` : `Dia ${data.day}`;
+    gridCoords.textContent = (mode === 'mes') ? `Mês ${data.month}` : ((mode === 'both') ? `Dia ${data.day} & Mês ${data.month}` : `Dia ${data.day}`);
   }
 
   if (gridContainer && activeGrid) {
@@ -6251,62 +6258,123 @@ function renderMatrizView(data, mode) {
   const directCountEl = document.getElementById('matriz-direct-count');
   const linesData = (mode === 'mes') ? data.lines_mes : data.lines_dia;
 
-  if (linesContainer && linesData) {
-    const totalLines = (linesData.horizontais || []).length + (linesData.verticais || []).length + (linesData.diagonais || []).length;
-    if (directCountEl) {
-      directCountEl.textContent = `${totalLines} centenas`;
+  if (linesContainer) {
+    if (mode === 'both') {
+      const allDirect = data.all_direct_centenas || [];
+      if (directCountEl) {
+        directCountEl.textContent = `${allDirect.length} centenas (Dia + Mês)`;
+      }
+      linesContainer.innerHTML = `
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-1.5 text-[11px] font-bold text-amber-400 uppercase">
+            <span>✨</span> <span>Centenas Diretas Combinadas (Dia & Mês):</span>
+          </div>
+          <div class="flex flex-wrap gap-1 max-h-40 overflow-y-auto custom-scrollbar p-1">
+            ${allDirect.map(num => `
+              <button type="button" onclick="copySingleNumber(event, '${num}', 'Centena')" title="Copiar centena ${num}"
+                class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-400 text-amber-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+                ${num}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else if (linesData) {
+      const totalLines = (linesData.horizontais || []).length + (linesData.verticais || []).length + (linesData.diagonais || []).length;
+      if (directCountEl) {
+        directCountEl.textContent = `${totalLines} centenas`;
+      }
+
+      linesContainer.innerHTML = `
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase">
+            <span>↔️</span> <span>Horizontais (Diretas & Inversas):</span>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            ${(linesData.horizontais || []).map(num => `
+              <button type="button" onclick="copySingleNumber(event, '${num}', 'Centena')" title="Copiar centena ${num}"
+                class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-400 text-cyan-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+                ${num}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="space-y-1.5 pt-1">
+          <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase">
+            <span>↕️</span> <span>Verticais (Colunas):</span>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            ${(linesData.verticais || []).map(num => `
+              <button type="button" onclick="copySingleNumber(event, '${num}', 'Centena')" title="Copiar centena ${num}"
+                class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-400 text-amber-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+                ${num}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="space-y-1.5 pt-1">
+          <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase">
+            <span>↗️</span> <span>Diagonais (Cruzamentos):</span>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            ${(linesData.diagonais || []).map(num => `
+              <button type="button" onclick="copySingleNumber(event, '${num}', 'Centena')" title="Copiar centena ${num}"
+                class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-400 text-indigo-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+                ${num}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
     }
-
-    linesContainer.innerHTML = `
-      <div class="space-y-1.5">
-        <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase">
-          <span>↔️</span> <span>Horizontais (Diretas & Inversas):</span>
-        </div>
-        <div class="flex flex-wrap gap-1">
-          ${(linesData.horizontais || []).map(num => `
-            <button type="button" onclick="copySingleNumber(event, '${num}', 'Centena')" title="Copiar centena ${num}"
-              class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-400 text-cyan-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
-              ${num}
-            </button>
-          `).join('')}
-        </div>
-      </div>
-
-      <div class="space-y-1.5 pt-1">
-        <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase">
-          <span>↕️</span> <span>Verticais (Colunas):</span>
-        </div>
-        <div class="flex flex-wrap gap-1">
-          ${(linesData.verticais || []).map(num => `
-            <button type="button" onclick="copySingleNumber(event, '${num}', 'Centena')" title="Copiar centena ${num}"
-              class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-400 text-amber-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
-              ${num}
-            </button>
-          `).join('')}
-        </div>
-      </div>
-
-      <div class="space-y-1.5 pt-1">
-        <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase">
-          <span>↗️</span> <span>Diagonais (Cruzamentos):</span>
-        </div>
-        <div class="flex flex-wrap gap-1">
-          ${(linesData.diagonais || []).map(num => `
-            <button type="button" onclick="copySingleNumber(event, '${num}', 'Centena')" title="Copiar centena ${num}"
-              class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-400 text-indigo-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
-              ${num}
-            </button>
-          `).join('')}
-        </div>
-      </div>
-    `;
   }
 
-  // 4. Top Animais com Confluência
+  // 4. Atualiza Título e Subtítulo da Confluência conforme Modo
+  const confTitleEl = document.getElementById('matriz-confluence-title');
+  const confSubEl = document.getElementById('matriz-confluence-subtitle');
+  if (confTitleEl) {
+    confTitleEl.innerHTML = (mode === 'mes')
+      ? '<span>🗓️</span> <span>Bichos com Máxima Confluência no Grid (Base Mês ' + String(data.month).padStart(2, '0') + ')</span>'
+      : (mode === 'both'
+        ? '<span>✨</span> <span>Bichos com Máxima Confluência (Visão Integrada Dia + Mês)</span>'
+        : '<span>👑</span> <span>Bichos com Máxima Confluência no Grid (Base Dia ' + String(data.day).padStart(2, '0') + ')</span>');
+  }
+  if (confSubEl) {
+    confSubEl.textContent = (mode === 'mes')
+      ? 'Dezenas 100% no Grid do Mês + Centenas e Milhares Base Mês'
+      : (mode === 'both'
+        ? 'Sinergia Cruzada Grid Dia + Mês + Centenas e Milhares VIP'
+        : 'Dezenas 100% no Grid do Dia + Centenas e Milhares VIP');
+  }
+
+  // Atualiza Subtítulo do Cruzador
+  const cruzadorSubEl = document.getElementById('matriz-cruzador-subtitle');
+  if (cruzadorSubEl) {
+    cruzadorSubEl.textContent = (mode === 'mes')
+      ? 'Selecione qualquer bicho para extrair centenas e milhares da grade do mês'
+      : (mode === 'both'
+        ? 'Selecione qualquer bicho para extrair centenas e milhares da visão integrada (Dia + Mês)'
+        : 'Selecione qualquer um dos 25 animais para extrair suas centenas e milhares da grade de hoje');
+  }
+
+  // 5. Top Animais com Confluência específicos para o MODO ATUAL
   const confContainer = document.getElementById('matriz-confluence-animals-container');
-  if (confContainer && data.top_confluence_animals) {
-    const displayedAnimals = data.top_confluence_animals.slice(0, 6);
+  const animalsListSource = (mode === 'mes')
+    ? (data.top_confluence_animals_mes || data.top_confluence_animals)
+    : ((mode === 'both')
+      ? (data.top_confluence_animals_both || data.top_confluence_animals)
+      : (data.top_confluence_animals_dia || data.top_confluence_animals));
+
+  if (confContainer && animalsListSource) {
+    const displayedAnimals = animalsListSource.slice(0, 6);
     window._currentMatrizDisplayedAnimals = displayedAnimals;
+
+    const modeTag = (mode === 'mes') ? 'no Grid Mês' : ((mode === 'both') ? 'Integrado' : 'no Grid Dia');
+    const tensLabel = (mode === 'mes') ? 'Dezenas no Grid Mês:' : ((mode === 'both') ? 'Dezenas no Grid Integrado:' : 'Dezenas no Grid Dia:');
+    const cLabel = (mode === 'mes') ? 'Centenas Mês:' : ((mode === 'both') ? 'Centenas Integradas:' : 'Centenas VIP:');
+    const mLabel = (mode === 'mes') ? 'Milhares Mês:' : ((mode === 'both') ? 'Milhares Integradas:' : 'Milhares VIP:');
 
     confContainer.innerHTML = displayedAnimals.map(anim => {
       const matchTensStr = (anim.matching_tens && anim.matching_tens.length > 0)
@@ -6344,21 +6412,21 @@ function renderMatrizView(data, mode) {
               </div>
             </div>
             <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
-              ⚡ ${Math.round(anim.confluence_score)}% no Grid
+              ⚡ ${Math.round(anim.confluence_score)}% ${modeTag}
             </span>
           </div>
 
           <div class="space-y-1 pt-1 border-t border-slate-800/80">
             <div class="flex items-center justify-between text-[10px] text-slate-400">
-              <span>Dezenas no Grid:</span>
+              <span>${tensLabel}</span>
               <div class="flex items-center gap-1">${matchTensStr}</div>
             </div>
             <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-              <span>Centenas VIP:</span>
+              <span>${cLabel}</span>
               <div class="flex items-center gap-1">${centenasHtml}</div>
             </div>
             <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-              <span>Milhares VIP:</span>
+              <span>${mLabel}</span>
               <div class="flex items-center gap-1">${milharesHtml}</div>
             </div>
           </div>
@@ -6381,7 +6449,7 @@ function renderMatrizView(data, mode) {
     }).join('');
   }
 
-  // 5. Renderiza Seletor de Animais (25 bichos)
+  // 6. Renderiza Seletor de Animais (25 bichos)
   renderMatrizAnimalsPicker(data);
 }
 
@@ -6428,6 +6496,7 @@ window.selectMatrizAnimal = async function(groupNum) {
   const badgeEl = document.getElementById('matriz-selected-animal-badge');
   const dateInput = document.getElementById('matriz-target-date');
   const dateVal = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().split('T')[0];
+  const mode = window._currentMatrizMode || 'dia';
 
   if (detailCard) {
     detailCard.classList.remove('hidden');
@@ -6435,7 +6504,7 @@ window.selectMatrizAnimal = async function(groupNum) {
   }
 
   try {
-    const animData = await api.getMatrizAnimal(groupNum, dateVal);
+    const animData = await api.getMatrizAnimal(groupNum, dateVal, mode);
     if (badgeEl) {
       badgeEl.classList.remove('hidden');
       badgeEl.textContent = `${animData.emoji || '🐾'} ${animData.animal} (Gr ${String(animData.group).padStart(2, '0')})`;
@@ -6469,11 +6538,11 @@ window.selectMatrizAnimal = async function(groupNum) {
             <span class="text-2xl">${animData.emoji || '🐾'}</span>
             <div>
               <h4 class="text-sm font-bold text-white">${animData.animal} (Grupo ${String(animData.group).padStart(2, '0')})</h4>
-              <span class="text-[11px] text-slate-400">Confluência: ${Math.round(animData.confluence_score || 0)}% no Grid 3x3</span>
+              <span class="text-[11px] text-slate-400">Confluência: ${Math.round(animData.confluence_score || 0)}% no Grid (${mode === 'mes' ? 'Base Mês' : (mode === 'both' ? 'Integrada' : 'Base Dia')})</span>
             </div>
           </div>
           <span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold">
-            ⚡ Chave Mestra
+            ${mode === 'mes' ? '🗓️ Chave Mês' : (mode === 'both' ? '✨ Chave Integrada' : '⚡ Chave Mestra')}
           </span>
         </div>
 
