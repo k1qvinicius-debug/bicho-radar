@@ -1,5 +1,5 @@
 // Bicho Master Pro - Service Worker v2.0 (Ícone Águia Oficial)
-const CACHE_NAME = 'bicho-master-pwa-v2';
+const CACHE_NAME = 'bicho-master-pwa-v3';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
