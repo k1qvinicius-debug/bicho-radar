@@ -2624,6 +2624,13 @@ function renderPatternBreakSection(pb) {
   const protTens = pb.protection_tens || [];
   const protHundreds = pb.protection_hundreds || [];
 
+  const lastRef = pb.last_draw_reference || {};
+  const lastAnim = lastRef.animal || 'Último Resultado';
+  const lastGroup = lastRef.group ? `Gr. ${String(lastRef.group).padStart(2, '0')}` : '';
+  const lastPrize = lastRef.prize_1 ? `1º Prêmio ${lastRef.prize_1}` : '';
+  const lastSlot = lastRef.slot ? `${lastRef.slot}` : '';
+  const lastEmoji = lastRef.emoji || '🐾';
+
   const hedgesHtml = hedges.map(h => `
     <div class="p-2 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2">
       <div class="flex items-center gap-2">
@@ -2659,6 +2666,20 @@ function renderPatternBreakSection(pb) {
             ${pb.risk_badge} (${pb.risk_percentage}%)
           </span>
         </div>
+      </div>
+
+            <!-- Badge de Origem da Quebra: Último Resultado -->
+      <div class="flex items-center justify-between flex-wrap gap-1.5 p-2 rounded-xl bg-slate-950/80 border border-amber-500/30 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="text-base">${lastEmoji}</span>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] uppercase font-bold text-slate-400">Base da Quebra (Último Resultado):</span>
+            <span class="font-black text-amber-300">${lastAnim} (${lastGroup})</span>
+            ${lastPrize ? `<span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-200 border border-amber-500/20">${lastPrize}</span>` : ''}
+            ${lastSlot ? `<span class="text-[10px] font-mono text-slate-400">(${lastSlot})</span>` : ''}
+          </div>
+        </div>
+        <span class="text-[9px] font-bold text-cyan-300 bg-cyan-950/80 border border-cyan-500/30 px-2 py-0.5 rounded-full">Anti-Puxada Contra-Banca</span>
       </div>
 
       <!-- Explicação Contextual -->
@@ -2720,7 +2741,7 @@ function renderPatternBreakSection(pb) {
       <!-- Duques de Cobertura (Hedge Bets) -->
       <div class="space-y-1.5 pt-1">
         <div class="flex items-center justify-between text-[10px] font-bold text-slate-400 px-0.5">
-          <span class="uppercase tracking-wider">Duques de Proteção (Favorito + Bicho da Contra)</span>
+          <span class="uppercase tracking-wider">Duques de Proteção (Último Resultado + Contra-Banca)</span>
           <span class="text-indigo-400">1º ao 5º Prêmio</span>
         </div>
         <div class="space-y-1.5">
@@ -2733,7 +2754,7 @@ function renderPatternBreakSection(pb) {
         <span class="text-sm shrink-0">💡</span>
         <div>
           <strong class="text-white">Como lucrar com esta proteção:</strong>
-          Jogue normalmente no seu favorito (${fav_name}), mas cubra também com uma moeda no <strong>Bicho da Contra (${b1.name})</strong> ou faça o <strong>Duque de Proteção</strong> do 1º ao 5º. Se a banca soltar o favorito, você fatura; se ela tentar quebrar a puxada, você ganha na zebra!
+          Se a banca tentar quebrar a puxada do último resultado (${lastAnim}), cubra com uma moeda no <strong>Bicho da Contra (${b1.name})</strong> ou faça os <strong>Duques de Proteção</strong> do 1º ao 5º. Se der a continuidade do favorito, você fatura; se a banca quebrar o padrão do último sorteio, você ganha na zebra!
         </div>
       </div>
     </div>
