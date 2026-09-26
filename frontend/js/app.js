@@ -6105,6 +6105,50 @@ window._currentMatrizData = null;
 window._currentMatrizMode = 'dia'; // 'dia', 'mes', 'both'
 window._currentMatrizSelectedGroup = null;
 
+window.navigateToLotteryPrediction = async function(event, lottery, slot) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  showToast(`Abrindo palpites oficiais de ${lottery}...`, 'info');
+  if (window.navigateTo) {
+    await window.navigateTo(lottery, 'palpites');
+  } else if (window.switchLottery) {
+    await window.switchLottery(lottery);
+    if (window.switchScreen) window.switchScreen('palpites');
+  }
+  if (slot) {
+    setTimeout(() => {
+      const slotBtn = document.querySelector(`[data-slot-code="${slot}"]`);
+      if (slotBtn) slotBtn.click();
+    }, 350);
+  }
+};
+
+window.getAnimalActiveLotteries = function(groupNum) {
+  const picks = window._currentActiveLotteryPicks || {};
+  const matches = [];
+  const order = ['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL'];
+  
+  order.forEach(lot => {
+    const lotData = picks[lot];
+    if (lotData && lotData.top_groups) {
+      const match = lotData.top_groups.find(g => Number(g.group) === Number(groupNum));
+      if (match) {
+        matches.push({
+          lottery: lot,
+          lottery_name: lotData.lottery_name || lot,
+          slot: lotData.slot,
+          slot_name: lotData.slot_name || lotData.slot,
+          rank: match.rank,
+          score: match.score
+        });
+      }
+    }
+  });
+  return matches;
+};
+
 window.loadMatrizContent = async function(forceDate = null, forceMode = null) {
   const dateInput = document.getElementById('matriz-target-date');
   const mainDateInput = document.getElementById('target-date');
