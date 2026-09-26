@@ -6134,8 +6134,15 @@ window.loadMatrizContent = async function(forceDate = null, forceMode = null) {
   }
 
   try {
-    const data = await api.getMatrizDia(dateVal);
+    const [data, picks] = await Promise.all([
+      api.getMatrizDia(dateVal),
+      (typeof api.getActiveLotteryPicks === 'function')
+        ? api.getActiveLotteryPicks(dateVal).catch(() => ({}))
+        : Promise.resolve({})
+    ]);
     window._currentMatrizData = data;
+    window._currentActiveLotteryPicks = picks || {};
+    window._currentActiveLotteryPicksDate = dateVal;
     renderMatrizView(data, window._currentMatrizMode);
   } catch (err) {
     console.error('Erro ao carregar Chave Mestra:', err);
@@ -6431,6 +6438,40 @@ function renderMatrizView(data, mode) {
             </div>
           </div>
 
+          <!-- Presença do Bicho nos Palpites Oficiais das Loterias -->
+          ${(function() {
+            const activeMatches = (typeof window.getAnimalActiveLotteries === 'function')
+              ? window.getAnimalActiveLotteries(anim.group)
+              : [];
+            if (activeMatches && activeMatches.length > 0) {
+              return `
+                <div class="pt-1.5 border-t border-slate-800/80">
+                  <div class="flex items-center justify-between text-[10px] mb-1">
+                    <span class="font-bold text-emerald-400 flex items-center gap-1">
+                      <span>🔥</span> <span>Palpite Ativo nas Loterias:</span>
+                    </span>
+                    <span class="text-[9px] text-slate-400 font-medium">Toque p/ ver</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1">
+                    ${activeMatches.map(m => `
+                      <button type="button" onclick="navigateToLotteryPrediction(event, '${m.lottery}', '${m.slot}')"
+                        class="px-2 py-0.5 rounded-md bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/60 hover:border-emerald-400 text-emerald-300 text-[10px] font-bold flex items-center gap-1 transition-all active:scale-95 shadow-sm cursor-pointer"
+                        title="Ver palpites de ${m.lottery_name} (${m.slot_name || m.slot}) - Top #${m.rank}">
+                        <span>🎰</span> <span>${m.lottery}</span> <span class="text-[9px] opacity-75 font-mono">(${m.slot || ''})</span>
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            } else {
+              return `
+                <div class="pt-1 border-t border-slate-800/80 text-[10px] text-slate-500 flex items-center gap-1">
+                  <span>⚡</span> <span>Oportunidade Exclusiva Chave Mestra</span>
+                </div>
+              `;
+            }
+          })()}
+
           <!-- 2 Botões de Cópia: Centena e Milhares do Bicho -->
           <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800/80">
             <button type="button" onclick="copyAnimalMatrizHundreds(this, '${anim.animal}', '${cStr}')"
@@ -6512,6 +6553,40 @@ function renderMatrizView(data, mode) {
               ${bichosHtml}
             </div>
 
+            <!-- Sinergia do Terno com Palpites das Loterias -->
+            ${(function() {
+              const tMatches = [];
+              (t.bichos || []).forEach(b => {
+                const ml = (typeof window.getAnimalActiveLotteries === 'function') ? window.getAnimalActiveLotteries(b.group) : [];
+                ml.forEach(m => tMatches.push({ ...m, bichoName: b.name }));
+              });
+              const seenL = new Set();
+              const uniqueL = [];
+              tMatches.forEach(m => {
+                if (!seenL.has(m.lottery)) {
+                  seenL.add(m.lottery);
+                  uniqueL.push(m);
+                }
+              });
+              if (uniqueL.length === 0) return '';
+              return `
+                <div class="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
+                  <span class="font-bold text-emerald-400 flex items-center gap-1">
+                    <span>🔥</span> <span>Palpite em:</span>
+                  </span>
+                  <div class="flex flex-wrap gap-1">
+                    ${uniqueL.map(m => `
+                      <button type="button" onclick="navigateToLotteryPrediction(event, '${m.lottery}', '${m.slot}')"
+                        class="px-1.5 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 hover:border-emerald-400 text-emerald-300 text-[9px] font-bold flex items-center gap-0.5 transition-all active:scale-95 cursor-pointer"
+                        title="Bicho ${m.bichoName} é palpite em ${m.lottery} (${m.slot_name || m.slot})">
+                        <span>🎰</span> <span>${m.lottery}</span>
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            })()}
+
             <p class="text-[10px] text-slate-400 italic leading-tight">
               ${t.description || 'Palpite de alta assertividade para o 1º ao 5º prêmio'}
             </p>
@@ -6550,9 +6625,20 @@ function renderMatrizAnimalsPicker(data) {
 
   picker.innerHTML = animalsList.map(a => {
     const isSelected = window._currentMatrizSelectedGroup === a.g;
+    const activeLots = (typeof window.getAnimalActiveLotteries === 'function')
+      ? window.getAnimalActiveLotteries(a.g)
+      : [];
+    const hasActivePicks = activeLots.length > 0;
+
     const btnCls = isSelected
       ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-sm'
-      : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700/60';
+      : (hasActivePicks
+        ? 'bg-slate-800/90 hover:bg-slate-700 text-emerald-300 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
+        : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700/60');
+
+    const fireBadge = hasActivePicks
+      ? `<span class="text-[10px] text-emerald-400" title="Palpite ativo em: ${activeLots.map(l => l.lottery).join(', ')}">🔥</span>`
+      : '';
 
     return `
       <button type="button" onclick="selectMatrizAnimal(${a.g})"
@@ -6560,6 +6646,7 @@ function renderMatrizAnimalsPicker(data) {
         <span>${a.emoji}</span>
         <span>${a.name}</span>
         <span class="text-[9px] opacity-75">(${String(a.g).padStart(2, '0')})</span>
+        ${fireBadge}
       </button>
     `;
   }).join('');
@@ -6653,6 +6740,67 @@ window.selectMatrizAnimal = async function(groupNum) {
             </button>
           </div>
         </div>
+
+        <!-- Presença nos Palpites Oficiais das Loterias (Próximo Horário) -->
+        ${(function() {
+          const animalMatches = (typeof window.getAnimalActiveLotteries === 'function')
+            ? window.getAnimalActiveLotteries(groupNum)
+            : [];
+
+          return `
+            <div class="pt-3 border-t border-slate-800/80 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>🎰</span> <span>Presença nos Palpites Oficiais das Loterias:</span>
+                </span>
+                <span class="text-[11px] text-slate-400">
+                  ${animalMatches.length > 0
+                    ? `<span class="text-emerald-400 font-bold">🔥 Palpite Ativo em ${animalMatches.length} ${animalMatches.length === 1 ? 'loteria' : 'loterias'}</span>`
+                    : '<span class="text-slate-500">Exclusivo na Chave Mestra</span>'}
+                </span>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                ${['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL'].map(lot => {
+                  const match = animalMatches.find(m => m.lottery === lot);
+                  const lotData = (window._currentActiveLotteryPicks || {})[lot];
+                  const slotName = (lotData && (lotData.slot_name || lotData.slot)) || 'Próximo';
+
+                  if (match) {
+                    return `
+                      <div class="p-2 rounded-xl bg-emerald-950/60 border border-emerald-500/60 flex flex-col justify-between space-y-1.5 shadow-sm">
+                        <div>
+                          <div class="flex items-center justify-between">
+                            <span class="text-xs font-black text-emerald-300">${lot}</span>
+                            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">#${match.rank}</span>
+                          </div>
+                          <span class="text-[10px] text-emerald-400/90 block truncate font-medium">${match.slot_name || match.slot}</span>
+                        </div>
+                        <button type="button" onclick="navigateToLotteryPrediction(event, '${lot}', '${match.slot}')"
+                          class="w-full py-1 px-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm cursor-pointer">
+                          <span>🚀</span> <span>Jogar ${lot}</span>
+                        </button>
+                      </div>
+                    `;
+                  } else {
+                    return `
+                      <div class="p-2 rounded-xl bg-slate-950/40 border border-slate-800/60 flex flex-col justify-between space-y-1 opacity-60">
+                        <div>
+                          <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-400">${lot}</span>
+                            <span class="text-[9px] text-slate-500">-</span>
+                          </div>
+                          <span class="text-[10px] text-slate-500 block truncate">${slotName}</span>
+                        </div>
+                        <span class="text-[9px] text-slate-500 text-center py-1 italic">Fora do Top 5</span>
+                      </div>
+                    `;
+                  }
+                }).join('')}
+              </div>
+            </div>
+          `;
+        })()}
       `;
     }
   } catch (err) {
