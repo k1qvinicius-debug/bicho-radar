@@ -112,8 +112,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initTenantAuth();
   await setupGoogleIdentity();
   updateLotteryButtonsUI();
-  await initSlotSelector(currentLottery);
   setDefaultDate();
+  await initSlotSelector(currentLottery);
   try {
     await Promise.all([loadPrediction(), loadDrawResults()]);
     checkAndRenderMilharBingoBanner();
@@ -197,6 +197,17 @@ window.switchScreen = function(screenName, updateHash = true) {
   if (slotsSection) {
     if (screenName === 'palpites') {
       slotsSection.classList.remove('hidden');
+      // Sincronização garantida: se a tela aberta for Palpites e os horários no DOM pertencerem a outra banca, sincroniza imediatamente
+      const firstPill = document.querySelector('#lottery-slots-pills .slot-pill-btn');
+      const pillSlot = firstPill ? firstPill.getAttribute('data-slot') : null;
+      const isPillFed = pillSlot === 'FED';
+      const isLotFed = currentLottery === 'FEDERAL';
+      const hasMismatch = (isLotFed && !isPillFed) || (!isLotFed && isPillFed) || !firstPill;
+      if (hasMismatch) {
+        initSlotSelector(currentLottery).then(() => {
+          if (typeof loadPrediction === 'function') loadPrediction();
+        });
+      }
     } else {
       slotsSection.classList.add('hidden');
     }
@@ -604,8 +615,52 @@ async function initSlotSelector(lottery = currentLottery) {
 
   try {
     const targetDate = document.getElementById('target-date')?.value || null;
-    const rawSlots = await api.getSlots(lottery, targetDate);
-    const slots = (rawSlots || []).slice();
+    let slots = [];
+    try {
+      const rawSlots = await api.getSlots(lottery, targetDate);
+      slots = (rawSlots || []).slice();
+    } catch (e) {
+      console.warn('Falha ao buscar slots via API, usando fallback:', e);
+    }
+
+    // Fallback garantido se a API retornar vazio ou falhar
+    if (!slots || slots.length === 0) {
+      if (lottery === 'FEDERAL') {
+        const now = new Date();
+        let dow = now.getDay();
+        if (targetDate) {
+          try {
+            const parts = targetDate.split('-');
+            if (parts.length === 3) dow = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getDay();
+          } catch (e) {}
+        }
+        if (dow === 0) {
+          slots = [{ code: 'FED', name: 'Federal 11h (Domingo) - 11:00', time: '11:00', order: 1 }];
+        } else {
+          slots = [{ code: 'FED', name: 'Federal 20h (Quarta e Sábado) - 20:00', time: '20:00', order: 1 }];
+        }
+      } else {
+        slots = [
+          { code: 'PPT', name: 'PPT - 09:20', time: '09:20' },
+          { code: 'PTM', name: 'PTM - 11:20', time: '11:20' },
+          { code: 'PT', name: 'PT - 14:20', time: '14:20' },
+          { code: 'PTV', name: 'PTV - 16:20', time: '16:20' },
+          { code: 'PTN', name: 'PTN - 18:20', time: '18:20' },
+          { code: 'COR', name: 'Coruja - 21:20', time: '21:20' }
+        ];
+      }
+    }
+
+    // Isolamento estrito de praças: Federal NUNCA recebe slots do RJ e outras praças NUNCA recebem FED
+    if (lottery === 'FEDERAL') {
+      slots = slots.filter(s => s.code === 'FED');
+      if (slots.length === 0) {
+        slots = [{ code: 'FED', name: 'Federal 20h (Quarta e Sábado) - 20:00', time: '20:00', order: 1 }];
+      }
+    } else {
+      slots = slots.filter(s => s.code !== 'FED');
+    }
+
     slots.sort((a, b) => getSlotMinutes(a, targetDate) - getSlotMinutes(b, targetDate));
     standardSlotsList = slots;
     slotSelect.innerHTML = '';
@@ -644,9 +699,7 @@ async function initSlotSelector(lottery = currentLottery) {
     if (isToday) {
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-      // Encontra o próximo horário alvo que:
-      // 1. Ainda NÃO foi apurado hoje (não está em drawnCodes)
-      // 2. E cujo horário no relógio ainda não passou (tolerância máx 5 min)
+      // Encontra o próximo horário alvo que ainda não foi apurado hoje e não passou
       const upcomingSlot = slots.find(s => {
         const isDrawn = drawnCodes.has(s.code.toUpperCase());
         if (isDrawn) return false;
@@ -657,13 +710,10 @@ async function initSlotSelector(lottery = currentLottery) {
       if (upcomingSlot) {
         defaultSlot = upcomingSlot.code;
       } else {
-        // Se todos os horários futuros já passaram ou foram apurados,
-        // procura qualquer slot de hoje que ainda esteja pendente de apuração
         const anyPending = slots.find(s => !drawnCodes.has(s.code.toUpperCase()));
         if (anyPending) {
           defaultSlot = anyPending.code;
         } else {
-          // Se todos os slots de hoje já foram apurados, seleciona o último do dia
           defaultSlot = slots[slots.length - 1].code;
         }
       }
@@ -677,7 +727,6 @@ async function initSlotSelector(lottery = currentLottery) {
       slotSelect.appendChild(opt);
     });
 
-    // Sincroniza valor explicitamente no select e nos cabeçalhos
     slotSelect.value = defaultSlot;
     const selectedOpt = Array.from(slotSelect.options).find(o => o.value === defaultSlot);
     if (selectedOpt) selectedOpt.selected = true;
@@ -700,6 +749,10 @@ async function initSlotSelector(lottery = currentLottery) {
     renderSlotPillsUI(slots, defaultSlot);
   } catch (err) {
     console.error('Erro ao inicializar horários:', err);
+    if (lottery === 'FEDERAL') {
+      const fallbackFed = [{ code: 'FED', name: 'Federal 20h (Oficial Caixa)', time: '20:00' }];
+      renderSlotPillsUI(fallbackFed, 'FED');
+    }
   }
 }
 
@@ -892,6 +945,7 @@ function renderSlotPillsUI(slots, activeSlotCode) {
     btn.type = 'button';
     btn.className = 'slot-pill-btn';
     btn.setAttribute('data-slot', s.code);
+    btn.setAttribute('data-slot-code', s.code);
     btn.setAttribute('data-slot-name', s.name || s.code);
     btn.onclick = () => window.selectSlotFromPill(s.code);
     btn.innerHTML = `<span>⏰</span><span>${s.name || s.code}</span>`;
@@ -1050,12 +1104,41 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
 
 window.switchLottery = async function(lotteryCode, force = false) {
   if (!lotteryCode) return;
-  if (!force && lotteryCode === currentLottery) {
+
+  // Verifica se o estado visual das pílulas de horário bate com a loteria desejada
+  const firstPill = document.querySelector('#lottery-slots-pills .slot-pill-btn');
+  const pillSlot = firstPill ? firstPill.getAttribute('data-slot') : null;
+  const isPillFed = pillSlot === 'FED';
+  const isLotFed = lotteryCode === 'FEDERAL';
+  const hasMismatch = (isLotFed && !isPillFed) || (!isLotFed && isPillFed) || !firstPill;
+
+  if (!force && !hasMismatch && lotteryCode === currentLottery) {
     return;
   }
   currentLottery = lotteryCode;
   localStorage.setItem('bicho_active_lottery', lotteryCode);
+  _lastKnownDrawId = null; // Reseta cache de ID para evitar falsos alertas de novo sorteio ao trocar de banca
   updateLotteryButtonsUI();
+
+  // ATUALIZAÇÃO INSTANTÂNEA: Renderiza imediatamente o slot da Federal para que o usuário veja a mudança sem delay
+  if (lotteryCode === 'FEDERAL') {
+    const isSun = new Date().getDay() === 0;
+    const fedSlotMeta = isSun
+      ? { code: 'FED', name: 'Federal 11h (Domingo) - 11:00', time: '11:00' }
+      : { code: 'FED', name: 'Federal 20h (Quarta e Sábado) - 20:00', time: '20:00' };
+    standardSlotsList = [fedSlotMeta];
+    const slotSelect = document.getElementById('target-slot');
+    if (slotSelect) {
+      slotSelect.innerHTML = `<option value="FED" selected>${fedSlotMeta.name}</option>`;
+      slotSelect.value = 'FED';
+    }
+    const headerSlotName = document.getElementById('header-slot-name');
+    if (headerSlotName) headerSlotName.textContent = fedSlotMeta.name;
+    const homeNextSlot = document.getElementById('home-next-slot-name');
+    if (homeNextSlot) homeNextSlot.textContent = fedSlotMeta.name;
+    renderSlotPillsUI([fedSlotMeta], 'FED');
+  }
+
   await initSlotSelector(currentLottery);
   _puxadasDataCache = null;
   _predictionCache.clear();
@@ -3997,7 +4080,9 @@ window.selectResultLottery = async function (lotteryCode) {
   if (!lotteryCode) return;
   currentLottery = lotteryCode;
   localStorage.setItem('bicho_active_lottery', lotteryCode);
+  _lastKnownDrawId = null;
   updateLotteryButtonsUI();
+  await initSlotSelector(currentLottery);
   await loadDrawResults();
 };
 
@@ -6144,9 +6229,9 @@ window.navigateToLotteryPrediction = async function(event, lottery, slot) {
   }
   if (slot) {
     setTimeout(() => {
-      const slotBtn = document.querySelector(`[data-slot-code="${slot}"]`);
+      const slotBtn = document.querySelector(`[data-slot="${slot}"], [data-slot-code="${slot}"]`);
       if (slotBtn) slotBtn.click();
-    }, 350);
+    }, 250);
   }
 };
 
