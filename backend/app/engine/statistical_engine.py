@@ -998,7 +998,7 @@ class StatisticalEngine:
         # Calcula atrasos reais e dinâmicos para a loteria atual com base nos draws apurados
         today_date = datetime.now().date()
         lot_code = (lottery or "RJ").upper()
-        multiplier = 8 if lot_code in ["LOOK", "NACIONAL"] else (5 if lot_code == "SP" else (2 if lot_code == "FEDERAL" else 6))
+        multiplier = 8 if lot_code in ["LOOK", "NACIONAL"] else (5 if lot_code in ["SP", "BAHIA", "MINAS"] else (2 if lot_code == "FEDERAL" else 6))
         
         delay_stats: Dict[int, Dict[str, Any]] = {}
         for g in range(1, 26):
