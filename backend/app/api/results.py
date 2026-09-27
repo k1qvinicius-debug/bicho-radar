@@ -78,7 +78,7 @@ def get_slots(lottery: Optional[str] = Query("RJ"), target_date: Optional[str] =
 
 @router.get("", response_model=Dict[str, Any])
 def list_results(
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=200),
     offset: int = Query(0, ge=0),
     slot: Optional[str] = Query(None),
     lottery: Optional[str] = Query(None),
@@ -98,9 +98,9 @@ def list_results(
                 query += " AND (lottery = 'FEDERAL' OR slot = 'FED')"
                 count_query += " AND (lottery = 'FEDERAL' OR slot = 'FED')"
             elif lot_code == "RJ":
-                # No Rio de Janeiro, a extração das 18h às quartas é a Loteria Federal (FED)
-                query += " AND (lottery = 'RJ' OR (slot = 'FED' AND day_of_week = 2) OR (lottery IS NULL AND ? = 'RJ'))"
-                count_query += " AND (lottery = 'RJ' OR (slot = 'FED' AND day_of_week = 2) OR (lottery IS NULL AND ? = 'RJ'))"
+                # No Rio de Janeiro, a extração das 18h às quartas é a Loteria Federal (FED 20h) e aos domingos às 11h
+                query += " AND (lottery = 'RJ' OR (slot = 'FED' AND day_of_week IN (2, 6)) OR (lottery IS NULL AND ? = 'RJ'))"
+                count_query += " AND (lottery = 'RJ' OR (slot = 'FED' AND day_of_week IN (2, 6)) OR (lottery IS NULL AND ? = 'RJ'))"
                 params.append(lot_code)
             else:
                 query += " AND lottery = ?"
