@@ -6789,6 +6789,20 @@ window.selectMatrizAnimal = async function(groupNum) {
           </div>
         </div>
 
+        <!-- Card Explicativo: Inteligência do Cruzamento Mestre -->
+        <div class="p-3 rounded-xl bg-gradient-to-r from-amber-950/40 via-indigo-950/30 to-slate-900/60 border border-amber-500/30 flex items-start gap-2.5 shadow-sm">
+          <span class="text-xl shrink-0 mt-0.5">🧠</span>
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs font-bold text-amber-300">Inteligência do Cruzamento Mestre</span>
+              <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-200 text-[9px] font-mono uppercase tracking-wider font-bold">Alta Precisão</span>
+            </div>
+            <p class="text-[11px] text-slate-300 leading-relaxed">
+              O algoritmo extrai os <strong>prefixos de maior força da Matriz</strong> (cabeças da centena e milhar) e cruza estrategicamente com as <strong>dezenas oficiais do ${animData.animal}</strong>. Conectando a energia do Dia e do Mês, cravamos milhares no 1º Prêmio com máxima assertividade!
+            </p>
+          </div>
+        </div>
+
         <!-- Presença nos Palpites Oficiais das Loterias (Bancas Diárias & Federal Separada) -->
         ${(function() {
           const animalMatches = (typeof window.getAnimalActiveLotteries === 'function')
