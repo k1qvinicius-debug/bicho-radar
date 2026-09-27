@@ -696,8 +696,9 @@ const api = {
     let slot = null;
     let lot = lottery;
     const knownLotteries = ['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL', 'BAHIA', 'MINAS'];
-    if (slotOrLottery && knownLotteries.includes(slotOrLottery)) {
-      lot = slotOrLottery;
+    const slotOrLotUpper = (slotOrLottery || '').toUpperCase();
+    if (slotOrLotUpper && knownLotteries.includes(slotOrLotUpper)) {
+      lot = slotOrLotUpper;
     } else if (slotOrLottery) {
       slot = slotOrLottery;
     }
