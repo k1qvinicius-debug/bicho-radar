@@ -366,6 +366,62 @@ const api = {
     return await res.json();
   },
 
+  // Relatórios Financeiros e Faturamento
+  async getFinancialReport(groupBy = 'week', rangeDays = 90) {
+    const params = new URLSearchParams({ group_by: groupBy, range_days: rangeDays });
+    const res = await fetch(`${API_BASE}/admin/financial/report?${params.toString()}`, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro ao buscar relatório financeiro.' }));
+      throw new Error(err.detail || 'Erro ao buscar relatório financeiro.');
+    }
+    return await res.json();
+  },
+
+  async createFinancialPayment(data) {
+    const res = await fetch(`${API_BASE}/admin/financial/payments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro ao registrar venda.' }));
+      throw new Error(err.detail || 'Erro ao registrar venda.');
+    }
+    return await res.json();
+  },
+
+  async deleteFinancialPayment(paymentId) {
+    const res = await fetch(`${API_BASE}/admin/financial/payments/${paymentId}`, {
+      method: 'DELETE',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro ao excluir venda.' }));
+      throw new Error(err.detail || 'Erro ao excluir venda.');
+    }
+    return await res.json();
+  },
+
+  async seedFinancialDemo() {
+    const res = await fetch(`${API_BASE}/admin/financial/seed-demo`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao carregar dados demonstrativos.');
+    return await res.json();
+  },
+
+  async clearFinancialDemo() {
+    const res = await fetch(`${API_BASE}/admin/financial/clear-demo`, {
+      method: 'DELETE',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error('Erro ao limpar dados demonstrativos.');
+    return await res.json();
+  },
+
   async activateTenantSubscription(tenantId, days = 30, planType = 'monthly') {
     const res = await fetch(`${API_BASE}/admin/tenants/${tenantId}/activate-subscription?days=${encodeURIComponent(days)}&plan_type=${encodeURIComponent(planType)}`, {
       method: 'POST',
