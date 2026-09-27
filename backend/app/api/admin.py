@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, List, Optional
 from ..engine.weights import get_active_weights, update_active_weights
 from ..engine.evaluator import reevaluate_all_snapshots
-from ..models import WeightsConfigModel, TenantModel, TenantCreateModel, TenantUpdateModel, SystemSettingsModel
+from ..models import WeightsConfigModel, TenantModel, TenantCreateModel, TenantUpdateModel, SystemSettingsModel, PaymentCreateModel
 from ..database import get_db_connection, DB_PATH, get_system_setting, set_system_setting
 from ..auth import require_admin, generate_clean_key
 import os
@@ -281,7 +281,7 @@ def add_trial_days(tenant_id: int, days: int = 7):
 
 @router.post("/tenants/{tenant_id}/activate-subscription")
 def activate_subscription(tenant_id: int, days: int = 30, plan_type: str = "monthly"):
-    """Ativa a assinatura do usuário por X dias (Mensal: 30d, Trimestral: 90d, Semestral: 180d, Anual: 365d, etc.)."""
+    """Ativa a assinatura do usuário por X dias (Mensal: 30d, Trimestral: 90d, Semestral: 180d, Anual: 365d, etc.) e registra faturamento."""
     import time
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -310,6 +310,24 @@ def activate_subscription(tenant_id: int, days: int = 30, plan_type: str = "mont
             WHERE id = ?
         """, (new_expire_str, plan_type, tenant_id))
 
+        # Registra a transação financeira
+        plan_prices = {
+            "monthly": 14.90,
+            "quarterly": 37.00,
+            "semiannual": 67.00,
+            "yearly": 97.00,
+            "lifetime": 297.00,
+        }
+        amount = plan_prices.get(plan_type, round((14.90 / 30.0) * days, 2))
+        created_now = time.strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            cursor.execute("""
+                INSERT INTO subscription_payments (tenant_id, customer_name, plan_type, amount, days, payment_method, status, created_at)
+                VALUES (?, ?, ?, ?, ?, 'activation', 'completed', ?)
+            """, (tenant_id, row["name"], plan_type, amount, days, created_now))
+        except Exception as pay_err:
+            print(f"Aviso ao registrar pagamento: {pay_err}")
+
         plan_labels = {
             "monthly": "Mensal (30 dias)",
             "quarterly": "Trimestral (90 dias)",
@@ -323,8 +341,290 @@ def activate_subscription(tenant_id: int, days: int = 30, plan_type: str = "mont
             "message": f"Assinatura {label} ativada com sucesso para '{row['name']}'.",
             "subscription_expires_at": new_expire_str,
             "days_added": days,
-            "plan_type": plan_type
+            "plan_type": plan_type,
+            "amount": amount
         }
+
+
+# ============================================================================
+# RELATÓRIOS FINANCEIROS E FATURAMENTO (AGRUPAMENTO POR DIA, SEMANA E MÊS)
+# ============================================================================
+
+@router.post("/financial/payments")
+def create_payment(data: PaymentCreateModel):
+    """Registra uma transação/venda manual no sistema."""
+    import time
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        customer_name = data.customer_name or "Cliente Direto"
+        if data.tenant_id:
+            cursor.execute("SELECT name FROM tenants WHERE id = ?", (data.tenant_id,))
+            t_row = cursor.fetchone()
+            if t_row:
+                customer_name = t_row["name"]
+
+        created_at = data.created_at or time.strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("""
+            INSERT INTO subscription_payments (tenant_id, customer_name, plan_type, amount, days, payment_method, status, notes, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?)
+        """, (data.tenant_id, customer_name, data.plan_type, float(data.amount), data.days, data.payment_method or "pix", data.notes, created_at))
+
+        # Se tenant_id foi informado, estende o acesso do usuário
+        if data.tenant_id:
+            now_ts = time.time()
+            cursor.execute("SELECT trial_expires_at, subscription_status FROM tenants WHERE id = ?", (data.tenant_id,))
+            tr = cursor.fetchone()
+            start_ts = now_ts
+            if tr and tr["trial_expires_at"] and tr.get("subscription_status") == "active":
+                try:
+                    cur_ts = time.mktime(time.strptime(tr["trial_expires_at"], "%Y-%m-%d %H:%M:%S"))
+                    if cur_ts > now_ts:
+                        start_ts = cur_ts
+                except Exception:
+                    pass
+            new_expire = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_ts + (data.days * 86400)))
+            cursor.execute("""
+                UPDATE tenants 
+                SET trial_expires_at = ?, subscription_status = 'active', plan_type = ?, status = 'active'
+                WHERE id = ?
+            """, (new_expire, data.plan_type, data.tenant_id))
+
+        return {"message": "Venda registrada com sucesso."}
+
+
+@router.delete("/financial/payments/{payment_id}")
+def delete_payment(payment_id: int):
+    """Exclui um registro de pagamento/venda."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM subscription_payments WHERE id = ?", (payment_id,))
+        return {"message": "Pagamento excluído com sucesso."}
+
+
+@router.get("/financial/report")
+def get_financial_report(group_by: str = "week", range_days: int = 90):
+    """
+    Retorna o relatório financeiro agrupado por dia, semana ou mês.
+    Ideal para visualização de faturamento sem poluição visual no gráfico.
+    """
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+
+    group_by = group_by.lower()
+    if group_by not in ["day", "week", "month"]:
+        group_by = "week"
+
+    now = datetime.now()
+    cutoff_date = None
+    if range_days and range_days > 0:
+        cutoff_date = (now - timedelta(days=range_days)).strftime("%Y-%m-%d 00:00:00")
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        query = "SELECT * FROM subscription_payments"
+        params = []
+        if cutoff_date:
+            query += " WHERE created_at >= ?"
+            params.append(cutoff_date)
+        query += " ORDER BY created_at ASC"
+        cursor.execute(query, tuple(params))
+        payments = [dict(r) for r in cursor.fetchall()]
+
+        cursor.execute("SELECT COUNT(*) FROM tenants WHERE subscription_status = 'active' AND role != 'admin'")
+        active_subscribers = cursor.fetchone()[0] or 0
+
+    total_rev = 0.0
+    month_rev = 0.0
+    week_rev = 0.0
+    today_rev = 0.0
+    today_str = now.strftime("%Y-%m-%d")
+    current_month_str = now.strftime("%Y-%m")
+    current_week_str = f"{now.isocalendar().year}-W{now.isocalendar().week:02d}"
+
+    plan_counts = defaultdict(int)
+    plan_amounts = defaultdict(float)
+
+    groups = {}
+
+    for p in payments:
+        amt = float(p.get("amount") or 0.0)
+        c_at = str(p.get("created_at") or "")[:19]
+        p_type = p.get("plan_type") or "monthly"
+
+        total_rev += amt
+        plan_counts[p_type] += 1
+        plan_amounts[p_type] += amt
+
+        try:
+            dt = datetime.strptime(c_at, "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            try:
+                dt = datetime.strptime(c_at[:10], "%Y-%m-%d")
+            except Exception:
+                dt = now
+
+        p_date_str = dt.strftime("%Y-%m-%d")
+        p_month_str = dt.strftime("%Y-%m")
+        p_week_str = f"{dt.isocalendar().year}-W{dt.isocalendar().week:02d}"
+
+        if p_date_str == today_str:
+            today_rev += amt
+        if p_month_str == current_month_str:
+            month_rev += amt
+        if p_week_str == current_week_str:
+            week_rev += amt
+
+        if group_by == "day":
+            g_key = p_date_str
+            g_label = dt.strftime("%d/%m")
+            d_start = p_date_str
+            d_end = p_date_str
+        elif group_by == "week":
+            g_key = p_week_str
+            first_day = datetime(dt.isocalendar().year, 1, 4)
+            w_start = first_day + timedelta(weeks=dt.isocalendar().week - 1, days=-first_day.weekday())
+            w_end = w_start + timedelta(days=6)
+            g_label = f"Semana {dt.isocalendar().week} ({w_start.strftime('%d/%m')} - {w_end.strftime('%d/%m')})"
+            d_start = w_start.strftime("%Y-%m-%d")
+            d_end = w_end.strftime("%Y-%m-%d")
+        else:  # month
+            g_key = p_month_str
+            months_pt = {
+                1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr", 5: "Mai", 6: "Jun",
+                7: "Jul", 8: "Ago", 9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
+            }
+            g_label = f"{months_pt.get(dt.month, dt.strftime('%b'))}/{dt.year}"
+            d_start = f"{p_month_str}-01"
+            d_end = f"{p_month_str}-28"
+
+        if g_key not in groups:
+            groups[g_key] = {
+                "key": g_key,
+                "label": g_label,
+                "amount": 0.0,
+                "count": 0,
+                "plans": defaultdict(int),
+                "date_start": d_start,
+                "date_end": d_end
+            }
+
+        groups[g_key]["amount"] += amt
+        groups[g_key]["count"] += 1
+        groups[g_key]["plans"][p_type] += 1
+
+    sorted_keys = sorted(groups.keys())
+    chart_labels = [groups[k]["label"] for k in sorted_keys]
+    chart_revenues = [round(groups[k]["amount"], 2) for k in sorted_keys]
+    chart_counts = [groups[k]["count"] for k in sorted_keys]
+
+    table_data = []
+    for k in reversed(sorted_keys):
+        g = groups[k]
+        table_data.append({
+            "key": g["key"],
+            "label": g["label"],
+            "amount": round(g["amount"], 2),
+            "count": g["count"],
+            "avg_ticket": round(g["amount"] / g["count"], 2) if g["count"] > 0 else 0.0,
+            "plans": dict(g["plans"]),
+            "date_start": g["date_start"],
+            "date_end": g["date_end"]
+        })
+
+    recent = []
+    for p in reversed(payments[-25:]):
+        recent.append({
+            "id": p["id"],
+            "tenant_id": p.get("tenant_id"),
+            "customer_name": p.get("customer_name") or "Cliente",
+            "plan_type": p.get("plan_type"),
+            "amount": round(float(p.get("amount") or 0.0), 2),
+            "days": p.get("days"),
+            "payment_method": p.get("payment_method") or "pix",
+            "created_at": str(p.get("created_at") or "")[:19]
+        })
+
+    avg_ticket = round(total_rev / len(payments), 2) if payments else 0.0
+
+    return {
+        "group_by": group_by,
+        "range_days": range_days,
+        "summary": {
+            "total_revenue": round(total_rev, 2),
+            "month_revenue": round(month_rev, 2),
+            "week_revenue": round(week_rev, 2),
+            "today_revenue": round(today_rev, 2),
+            "total_transactions": len(payments),
+            "active_subscribers": active_subscribers,
+            "average_ticket": avg_ticket,
+            "plans_distribution": {
+                k: {"count": plan_counts[k], "amount": round(plan_amounts[k], 2)}
+                for k in plan_counts
+            }
+        },
+        "chart": {
+            "labels": chart_labels,
+            "revenues": chart_revenues,
+            "counts": chart_counts
+        },
+        "table": table_data,
+        "recent_payments": recent
+    }
+
+
+@router.post("/financial/seed-demo")
+def seed_financial_demo():
+    """Popula dados realistas de demonstração para visualização imediata do dashboard financeiro."""
+    import time
+    from datetime import datetime, timedelta
+
+    demo_sales = [
+        # Julho
+        ("Carlos Eduardo", "monthly", 14.90, 30, "pix", -75),
+        ("Marcos Roberto", "quarterly", 37.00, 90, "pix", -70),
+        ("Juliana Mendes", "monthly", 14.90, 30, "cartao", -65),
+        ("Felipe Antunes", "yearly", 97.00, 365, "pix", -62),
+        # Agosto
+        ("Rodrigo Lima", "monthly", 14.90, 30, "pix", -50),
+        ("Lucas Silveira", "quarterly", 37.00, 90, "pix", -45),
+        ("Fabio Henrique", "semiannual", 67.00, 180, "pix", -40),
+        ("Rafael Santos", "monthly", 14.90, 30, "cartao", -38),
+        ("Bruno Martins", "yearly", 97.00, 365, "pix", -32),
+        ("Anderson Costa", "monthly", 14.90, 30, "pix", -30),
+        # Setembro
+        ("Diego Ferreira", "quarterly", 37.00, 90, "pix", -25),
+        ("Thiago Barbosa", "monthly", 14.90, 30, "pix", -21),
+        ("Leandro Pires", "semiannual", 67.00, 180, "pix", -18),
+        ("Vinicius Mendes", "yearly", 97.00, 365, "cartao", -14),
+        ("Fernando Gomes", "monthly", 14.90, 30, "pix", -10),
+        ("Guilherme Neves", "quarterly", 37.00, 90, "pix", -7),
+        ("Eduardo Moreira", "monthly", 14.90, 30, "pix", -4),
+        ("Matheus Souza", "semiannual", 67.00, 180, "pix", -2),
+        ("Gustavo Carvalho", "monthly", 14.90, 30, "pix", 0),
+    ]
+
+    now = datetime.now()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        for name, plan, amt, days, method, day_offset in demo_sales:
+            sale_date = (now + timedelta(days=day_offset)).strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute("""
+                INSERT INTO subscription_payments (customer_name, plan_type, amount, days, payment_method, status, notes, created_at)
+                VALUES (?, ?, ?, ?, ?, 'completed', 'Venda Demonstrativa', ?)
+            """, (name, plan, amt, days, method, sale_date))
+
+    return {"message": f"{len(demo_sales)} vendas demonstrativas inseridas com sucesso."}
+
+
+@router.delete("/financial/clear-demo")
+def clear_financial_demo():
+    """Remove vendas demonstrativas."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM subscription_payments WHERE notes = 'Venda Demonstrativa'")
+        return {"message": "Dados de demonstração removidos com sucesso."}
+
 
 
 @router.get("/settings", response_model=SystemSettingsModel)
