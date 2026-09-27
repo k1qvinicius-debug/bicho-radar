@@ -11,7 +11,7 @@ from .domain import format_milhar, get_group_for_number, extract_dezena, extract
 class DrawResultCreate(BaseModel):
     draw_date: str = Field(..., description="Data do sorteio (YYYY-MM-DD)")
     slot: str = Field(..., description="Horário/extração (ex: PPT, PTM, PT, LK-11, LN-10, FED, etc.)")
-    lottery: Optional[str] = Field("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)")
+    lottery: Optional[str] = Field("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL, BAHIA, MINAS)")
     prize_1: str = Field(..., description="Milhar do 1º prêmio (4 dígitos)")
     prize_2: str = Field(..., description="Milhar do 2º prêmio (4 dígitos)")
     prize_3: str = Field(..., description="Milhar do 3º prêmio (4 dígitos)")
