@@ -554,7 +554,7 @@ function getSlotMinutes(slot, dateStr = null) {
 function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
   const code = (drawSlotCode || '').toUpperCase().trim();
   if (code === 'FED' || code === 'FEDERAL') {
-    const dStr = dateStr || document.getElementById('target-date')?.value || new Date().toISOString().split('T')[0];
+    const dStr = dateStr || document.getElementById('target-date')?.value || getLocalDateStr();
     let isSunday = false;
     let isWednesday = false;
     try {
@@ -594,7 +594,9 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
   if (code.startsWith('SP-')) {
     const spMetas = {
       'SP-08': { code: 'SP-08', name: 'PT-SP 08h20 - 08:20', time: '08:20' },
+      'SP-09': { code: 'SP-09', name: 'PT-SP 09h - 09:00', time: '09:00' },
       'SP-10': { code: 'SP-10', name: 'PT-SP 10h - 10:00', time: '10:00' },
+      'SP-12': { code: 'SP-12', name: 'PT-SP 12h20 - 12:20', time: '12:20' },
       'SP-13': { code: 'SP-13', name: 'PT-SP 13h - 13:00', time: '13:00' },
       'SP-15': { code: 'SP-15', name: 'BAND-SP 15h30 - 15:30', time: '15:30' },
       'SP-17': { code: 'SP-17', name: 'PT-SP 17h - 17:00', time: '17:00' },
@@ -605,6 +607,33 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
     const h = parseInt(code.replace('SP-', ''), 10);
     const hStr = String(h).padStart(2, '0');
     return { code, name: `PT-SP ${hStr}h - ${hStr}:00`, time: `${hStr}:00` };
+  }
+  if (code.startsWith('BA-')) {
+    const baMetas = {
+      'BA-10': { code: 'BA-10', name: 'PT Bahia 10h - 10:00', time: '10:00' },
+      'BA-11': { code: 'BA-11', name: 'Federal Bahia 11h - 11:00', time: '11:00' },
+      'BA-12': { code: 'BA-12', name: 'PT Bahia 12h - 12:00', time: '12:00' },
+      'BA-15': { code: 'BA-15', name: 'PT Bahia 15h - 15:00', time: '15:00' },
+      'BA-19': { code: 'BA-19', name: 'PT Bahia 19h - 19:00', time: '19:00' },
+      'BA-21': { code: 'BA-21', name: 'Coruja Bahia - 21:00', time: '21:00' },
+    };
+    if (baMetas[code]) return baMetas[code];
+    const h = parseInt(code.replace('BA-', ''), 10);
+    const hStr = String(h).padStart(2, '0');
+    return { code, name: `PT Bahia ${hStr}h - ${hStr}:00`, time: `${hStr}:00` };
+  }
+  if (code.startsWith('MG-')) {
+    const mgMetas = {
+      'MG-12': { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00' },
+      'MG-14': { code: 'MG-14', name: 'Salvação 13h40 (Domingo) - 13:40', time: '13:40' },
+      'MG-15': { code: 'MG-15', name: 'Minas Dia 15h - 15:00', time: '15:00' },
+      'MG-19': { code: 'MG-19', name: 'Minas Noite 19h - 19:00', time: '19:00' },
+      'MG-21': { code: 'MG-21', name: 'Preferida 21h - 21:00', time: '21:00' },
+    };
+    if (mgMetas[code]) return mgMetas[code];
+    const h = parseInt(code.replace('MG-', ''), 10);
+    const hStr = String(h).padStart(2, '0');
+    return { code, name: `Minas ${hStr}h - ${hStr}:00`, time: `${hStr}:00` };
   }
   return { code, name: drawSlotCode, time: '' };
 }
@@ -4043,6 +4072,13 @@ let selectedResultDate = null;
 let allRecentDrawsByDate = {};
 let availableDatesList = [];
 
+function getLocalDateStr(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 /* ==========================================================================
    TELA 6: RESULTADOS DAS EXTRAÇÕES (TABELA MODULAR & LOTERIAS UNIFICADAS)
    ========================================================================== */
@@ -4058,7 +4094,9 @@ const OFFICIAL_LOTTERY_SLOTS = {
   ],
   SP: [
     { code: 'SP-08', name: 'PT-SP 08h20 - 08:20', time: '08:20' },
+    { code: 'SP-09', name: 'PT-SP 09h - 09:00', time: '09:00' },
     { code: 'SP-10', name: 'PT-SP 10h - 10:00', time: '10:00' },
+    { code: 'SP-12', name: 'PT-SP 12h20 - 12:20', time: '12:20' },
     { code: 'SP-13', name: 'PT-SP 13h - 13:00', time: '13:00' },
     { code: 'SP-15', name: 'BAND-SP 15h30 - 15:30', time: '15:30' },
     { code: 'SP-17', name: 'PT-SP 17h - 17:00', time: '17:00' },
@@ -4088,6 +4126,21 @@ const OFFICIAL_LOTTERY_SLOTS = {
   ],
   FEDERAL: [
     { code: 'FED', name: 'Federal (Quarta e Domingo)', time: '20:00' },
+  ],
+  BAHIA: [
+    { code: 'BA-10', name: 'PT Bahia 10h - 10:00', time: '10:00' },
+    { code: 'BA-11', name: 'Federal Bahia 11h - 11:00', time: '11:00' },
+    { code: 'BA-12', name: 'PT Bahia 12h - 12:00', time: '12:00' },
+    { code: 'BA-15', name: 'PT Bahia 15h - 15:00', time: '15:00' },
+    { code: 'BA-19', name: 'PT Bahia 19h - 19:00', time: '19:00' },
+    { code: 'BA-21', name: 'Coruja Bahia - 21:00', time: '21:00' },
+  ],
+  MINAS: [
+    { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00' },
+    { code: 'MG-14', name: 'Salvação 13h40 (Domingo) - 13:40', time: '13:40' },
+    { code: 'MG-15', name: 'Minas Dia 15h - 15:00', time: '15:00' },
+    { code: 'MG-19', name: 'Minas Noite 19h - 19:00', time: '19:00' },
+    { code: 'MG-21', name: 'Preferida 21h - 21:00', time: '21:00' },
   ]
 };
 
@@ -4103,8 +4156,8 @@ const RESULTS_LOTTERIES_CATALOG = [
 
 window.selectResultLottery = async function (lotteryCode) {
   if (!lotteryCode) return;
-  currentLottery = lotteryCode;
-  localStorage.setItem('bicho_active_lottery', lotteryCode);
+  currentLottery = lotteryCode.toUpperCase();
+  localStorage.setItem('bicho_active_lottery', currentLottery);
   _lastKnownDrawId = null;
   updateLotteryButtonsUI();
   await initSlotSelector(currentLottery);
@@ -4149,22 +4202,21 @@ async function loadDrawResults(dateOverride = null) {
   }
 
   try {
-    // 2. Busca os últimos sorteios da base para a loteria ativa
-    const resData = await api.getResults(60, 0, currentLottery);
+    // 2. Busca os últimos sorteios da base para a loteria ativa (até 100 sorteios para histórico farto)
+    const activeLotKey = (currentLottery || 'RJ').toUpperCase();
+    const resData = await api.getResults(100, 0, activeLotKey);
     const items = resData?.items || [];
 
     // Agrupa por data filtrando estritamente pela loteria ativa
-    const activeLotKey = (currentLottery || 'RJ').toUpperCase();
     allRecentDrawsByDate = {};
     items.forEach((draw) => {
-      // Federal corre estritamente às quartas-feiras e aos domingos
       if (activeLotKey === 'FEDERAL') {
         let isFedDay = false;
         try {
           const parts = draw.draw_date.split('-');
           if (parts.length === 3) {
             const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            const dow = dt.getDay(); // 0 = Domingo, 3 = Quarta
+            const dow = dt.getDay(); // 0 = Domingo, 3 = Quarta, 6 = Sábado
             if (dow === 0 || dow === 3 || dow === 6) isFedDay = true;
           }
         } catch (e) {}
@@ -4173,7 +4225,7 @@ async function loadDrawResults(dateOverride = null) {
           return;
         }
       } else if (activeLotKey === 'RJ') {
-        // No RJ, aceita sorteios do RJ e a Federal (FED) que substitui a extração das 18h às quartas
+        // No RJ, aceita sorteios do RJ e a Federal (FED)
         if (draw.lottery && draw.lottery.toUpperCase() !== 'RJ' && draw.slot !== 'FED') {
           return;
         }
@@ -4187,9 +4239,9 @@ async function loadDrawResults(dateOverride = null) {
       allRecentDrawsByDate[d][draw.slot] = draw;
     });
 
-    // Garante que a data de hoje esteja presente na lista apenas se for dia de sorteio
+    // Garante data de hoje precisa (fuso horário local)
+    const todayStr = getLocalDateStr();
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
     const todayDow = today.getDay(); // 0 = Dom, 3 = Qua
     const datesSet = new Set(Object.keys(allRecentDrawsByDate));
 
@@ -4197,7 +4249,6 @@ async function loadDrawResults(dateOverride = null) {
       if (todayDow === 0 || todayDow === 3) {
         datesSet.add(todayStr);
       }
-      // Filtra para garantir que NENHUM sábado ou outro dia entre nas pills da Federal
       availableDatesList = Array.from(datesSet)
         .filter(dateStr => {
           try {
@@ -4205,7 +4256,7 @@ async function loadDrawResults(dateOverride = null) {
             if (parts.length === 3) {
               const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
               const dow = dt.getDay();
-              return dow === 0 || dow === 3 || dow === 6; // Quarta, Sábado e Domingo
+              return dow === 0 || dow === 3 || dow === 6;
             }
           } catch (e) {}
           return false;
@@ -4258,37 +4309,71 @@ async function loadDrawResults(dateOverride = null) {
     }
 
     // 4. Determina lista de horários EXCLUSIVA da loteria ativa
-    const lotKey = (currentLottery || 'RJ').toUpperCase();
+    const lotKey = activeLotKey;
     const baseSlots = OFFICIAL_LOTTERY_SLOTS[lotKey] || OFFICIAL_LOTTERY_SLOTS.RJ;
 
     let isWed = false;
+    let isSun = false;
     try {
       const parts = selectedResultDate.split('-');
       if (parts.length === 3) {
         const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         const dow = dt.getDay(); // 0 = Dom, 3 = Qua
         if (dow === 3) isWed = true;
+        if (dow === 0) isSun = true;
       }
     } catch(e) {}
 
-    let slots = baseSlots.map(s => {
-      // No RJ às quartas, o sorteio das 18h é a Federal (FED às 20h)
-      if (lotKey === 'RJ' && isWed && s.code === 'PTN') {
-        return getFriendlySlotMeta('FED', selectedResultDate);
+    let slots = [];
+    if (lotKey === 'RJ') {
+      if (isSun) {
+        // Domingo no RJ: apenas Federal (FED 11h), PT (14h) e PTV (16h)
+        slots = [
+          getFriendlySlotMeta('FED', selectedResultDate),
+          { code: 'PT', name: 'PT - 14:20', time: '14:20' },
+          { code: 'PTV', name: 'PTV - 16:20', time: '16:20' }
+        ];
+      } else if (isWed) {
+        // Quarta no RJ: extração das 18h é a Federal (FED 20h)
+        slots = baseSlots.map(s => {
+          if (s.code === 'PTN') return getFriendlySlotMeta('FED', selectedResultDate);
+          return { ...s };
+        });
+      } else {
+        slots = baseSlots.map(s => ({ ...s }));
       }
-      return { ...s };
-    });
-
-    if (lotKey === 'FEDERAL') {
+    } else if (lotKey === 'FEDERAL') {
       slots = [getFriendlySlotMeta('FED', selectedResultDate)];
+    } else if (lotKey === 'BAHIA') {
+      if (isSun) {
+        slots = ['BA-10', 'BA-11', 'BA-12', 'BA-15'].map(c => getFriendlySlotMeta(c, selectedResultDate));
+      } else {
+        slots = baseSlots.map(s => ({ ...s }));
+      }
+    } else if (lotKey === 'MINAS') {
+      if (isSun) {
+        slots = [getFriendlySlotMeta('MG-14', selectedResultDate)];
+      } else {
+        slots = baseSlots.map(s => ({ ...s }));
+      }
+    } else if (lotKey === 'SP') {
+      if (isSun) {
+        slots = ['SP-08', 'SP-09', 'SP-10', 'SP-12', 'SP-13', 'SP-15', 'SP-17'].map(c => getFriendlySlotMeta(c, selectedResultDate));
+      } else {
+        slots = baseSlots.filter(s => !['SP-09', 'SP-12'].includes(s.code)).map(s => ({ ...s }));
+      }
+    } else {
+      slots = baseSlots.map(s => ({ ...s }));
     }
 
-    // Inclui dinamicamente apenas slots que pertencem à loteria ativa
+    // Inclui dinamicamente qualquer slot que já foi apurado na base para este dia e loteria
     const dayDraws = allRecentDrawsByDate[selectedResultDate] || {};
     Object.keys(dayDraws).forEach((drawSlotCode) => {
       const draw = dayDraws[drawSlotCode];
-      if (draw && draw.lottery && draw.lottery.toUpperCase() !== lotKey && !(lotKey === 'RJ' && draw.slot === 'FED' && isWed)) {
-        return;
+      if (draw && draw.lottery && draw.lottery.toUpperCase() !== lotKey) {
+        if (!(lotKey === 'RJ' && draw.slot === 'FED' && (isWed || isSun))) {
+          return;
+        }
       }
       if (!slots.some(s => s.code === drawSlotCode)) {
         slots.push(getFriendlySlotMeta(drawSlotCode, selectedResultDate));
@@ -4298,14 +4383,17 @@ async function loadDrawResults(dateOverride = null) {
     // Filtra estritamente para garantir que nenhum horário de outra loteria vaze
     slots = slots.filter(s => {
       if (lotKey === 'RJ') {
-        if (s.code === 'FED') return isWed;
-        if (s.code === 'PTN') return !isWed;
-        return !s.code.startsWith('SP-') && !s.code.startsWith('LK-') && !s.code.startsWith('LN-');
+        if (s.code === 'FED') return isWed || isSun;
+        if (s.code === 'PTN') return !isWed && !isSun;
+        if (isSun) return s.code === 'FED' || s.code === 'PT' || s.code === 'PTV';
+        return !s.code.startsWith('SP-') && !s.code.startsWith('LK-') && !s.code.startsWith('LN-') && !s.code.startsWith('BA-') && !s.code.startsWith('MG-');
       }
       if (lotKey === 'SP') return s.code.startsWith('SP-');
       if (lotKey === 'LOOK') return s.code.startsWith('LK-');
       if (lotKey === 'NACIONAL') return s.code.startsWith('LN-');
       if (lotKey === 'FEDERAL') return s.code === 'FED';
+      if (lotKey === 'BAHIA') return s.code.startsWith('BA-');
+      if (lotKey === 'MINAS') return s.code.startsWith('MG-');
       return true;
     });
 
