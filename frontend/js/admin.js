@@ -61,6 +61,7 @@ async function loadInitialData() {
   await Promise.all([
     loadAdminSettings(),
     loadTenantsTable(),
+    loadFinancialDashboard(),
     loadWeights(),
     loadResultsTable(),
     loadScraperMonitor()
@@ -210,6 +211,9 @@ function setupTabs() {
           tc.classList.add('hidden');
         }
       });
+      if (targetId === 'tab-financial') {
+        loadFinancialDashboard();
+      }
     });
   });
 }
@@ -999,5 +1003,480 @@ window.togglePasswordVisibility = function(inputId, btn) {
   } else {
     input.type = 'password';
     btn.textContent = '👁️';
+  }
+};
+
+// ============================================================================
+// DASHBOARD DE FATURAMENTO E RELATÓRIOS FINANCEIROS
+// ============================================================================
+
+let currentFinancialGroupBy = 'week'; // 'day', 'week', 'month'
+let currentFinancialRange = 90; // 30, 90, 180, 365, 0 (all)
+let financialChartInstance = null;
+let currentTenantsCache = [];
+
+function formatBRL(value) {
+  const num = typeof value === 'number' ? value : parseFloat(value) || 0;
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function getGroupLabelTitle(group) {
+  if (group === 'day') return 'Por Dia';
+  if (group === 'month') return 'Por Mês';
+  return 'Por Semana';
+}
+
+window.loadFinancialDashboard = async function() {
+  const tableBody = document.getElementById('fin-table-body');
+  const recentBox = document.getElementById('fin-recent-container');
+
+  try {
+    const report = await api.getFinancialReport(currentFinancialGroupBy, currentFinancialRange);
+    if (!report) return;
+
+    // 1. Atualiza KPIs
+    const kpiTotal = document.getElementById('fin-kpi-total');
+    const kpiCount = document.getElementById('fin-kpi-trans-count');
+    const kpiMonth = document.getElementById('fin-kpi-month');
+    const kpiSubs = document.getElementById('fin-kpi-subscribers');
+    const kpiTicket = document.getElementById('fin-kpi-ticket');
+
+    if (kpiTotal) kpiTotal.textContent = formatBRL(report.summary.total_revenue);
+    if (kpiCount) kpiCount.textContent = `${report.summary.total_transactions} vendas realizadas`;
+    if (kpiMonth) kpiMonth.textContent = formatBRL(report.summary.month_revenue);
+    if (kpiSubs) kpiSubs.textContent = report.summary.active_subscribers;
+    if (kpiTicket) kpiTicket.textContent = formatBRL(report.summary.average_ticket);
+
+    // 2. Atualiza Títulos
+    const chartTitle = document.getElementById('fin-chart-title');
+    const tableGroupName = document.getElementById('fin-table-group-name');
+    if (chartTitle) chartTitle.textContent = `Evolução do Faturamento (${getGroupLabelTitle(currentFinancialGroupBy)})`;
+    if (tableGroupName) tableGroupName.textContent = getGroupLabelTitle(currentFinancialGroupBy);
+
+    // 3. Renderiza Gráfico
+    renderFinancialChart(report.chart.labels, report.chart.revenues, report.chart.counts, currentFinancialGroupBy);
+
+    // 4. Renderiza Tabela Detalhada
+    renderFinancialTable(report.table);
+
+    // 5. Renderiza Vendas Recentes
+    renderFinancialRecent(report.recent_payments);
+
+  } catch (err) {
+    console.error('Erro ao carregar dashboard financeiro:', err);
+    if (tableBody) {
+      tableBody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-rose-400 font-sans">Erro ao carregar dados financeiros: ${err.message}</td></tr>`;
+    }
+  }
+};
+
+window.setFinancialGroupBy = function(mode) {
+  currentFinancialGroupBy = mode;
+
+  // Atualiza visual dos botões de agrupamento
+  const btnDay = document.getElementById('btn-group-day');
+  const btnWeek = document.getElementById('btn-group-week');
+  const btnMonth = document.getElementById('btn-group-month');
+
+  [btnDay, btnWeek, btnMonth].forEach(b => {
+    if (b) {
+      b.classList.remove('bg-indigo-600', 'text-white', 'shadow');
+      b.classList.add('text-slate-400', 'hover:text-slate-200');
+    }
+  });
+
+  const activeBtn = mode === 'day' ? btnDay : (mode === 'month' ? btnMonth : btnWeek);
+  if (activeBtn) {
+    activeBtn.classList.remove('text-slate-400', 'hover:text-slate-200');
+    activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow');
+  }
+
+  loadFinancialDashboard();
+};
+
+window.setFinancialRange = function(rangeValue) {
+  currentFinancialRange = parseInt(rangeValue) || 90;
+  loadFinancialDashboard();
+};
+
+function renderFinancialChart(labels, revenues, counts, groupBy) {
+  const canvas = document.getElementById('financial-chart');
+  if (!canvas) return;
+
+  // Se Chart.js não estiver disponível, exibe aviso limpo
+  if (typeof Chart === 'undefined') {
+    canvas.parentElement.innerHTML = '<div class="h-full flex items-center justify-center text-xs text-slate-400">Biblioteca de gráficos carregando...</div>';
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+  if (financialChartInstance) {
+    financialChartInstance.destroy();
+  }
+
+  // Gradiente de preenchimento moderno
+  const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+  gradient.addColorStop(0, 'rgba(16, 185, 129, 0.40)');
+  gradient.addColorStop(0.8, 'rgba(16, 185, 129, 0.02)');
+  gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+  // Se não houver dados, exibe vazio
+  if (!labels || labels.length === 0) {
+    financialChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Sem dados'],
+        datasets: [{
+          data: [0],
+          borderColor: '#10B981',
+          borderWidth: 2,
+          fill: true,
+          backgroundColor: gradient
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+    return;
+  }
+
+  financialChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Faturamento (R$)',
+        data: revenues,
+        countsData: counts,
+        borderColor: '#10B981',
+        borderWidth: 2.5,
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#10B981',
+        pointBorderColor: '#0f172a',
+        pointBorderWidth: 2,
+        pointRadius: labels.length > 25 ? 2.5 : 4.5,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: '#34d399',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          titleColor: '#f8fafc',
+          bodyColor: '#e2e8f0',
+          borderColor: 'rgba(16, 185, 129, 0.4)',
+          borderWidth: 1,
+          padding: 10,
+          boxPadding: 4,
+          callbacks: {
+            label: function(context) {
+              const val = context.parsed.y || 0;
+              const idx = context.dataIndex;
+              const qtd = counts[idx] || 0;
+              return [
+                ` Faturamento: ${formatBRL(val)}`,
+                ` Assinaturas: ${qtd}`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            color: 'rgba(255, 255, 255, 0.05)',
+            drawBorder: false,
+          },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 10, family: 'monospace' },
+            maxRotation: labels.length > 15 ? 45 : 0,
+            autoSkip: true,
+            maxTicksLimit: 14
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(255, 255, 255, 0.05)',
+            drawBorder: false,
+          },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 10, family: 'monospace' },
+            callback: function(value) {
+              return 'R$ ' + value;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderFinancialTable(tableData) {
+  const tbody = document.getElementById('fin-table-body');
+  if (!tbody) return;
+
+  if (!tableData || tableData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-500 font-sans">Nenhum dado financeiro para o período selecionado.</td></tr>';
+    return;
+  }
+
+  const planBadges = {
+    monthly: '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">Mensal</span>',
+    quarterly: '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">Trimestral</span>',
+    semiannual: '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">Semestral</span>',
+    yearly: '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Anual</span>',
+    lifetime: '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">Vitalício</span>',
+  };
+
+  tbody.innerHTML = tableData.map(row => {
+    let plansHtml = '';
+    if (row.plans && Object.keys(row.plans).length > 0) {
+      plansHtml = Object.entries(row.plans).map(([p, count]) => {
+        const badge = planBadges[p] || `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-300 border border-slate-700">${p}</span>`;
+        return `<span class="inline-flex items-center gap-1">${badge} <strong class="text-white text-[10px]">x${count}</strong></span>`;
+      }).join(' ');
+    } else {
+      plansHtml = '<span class="text-slate-500 text-[10px]">---</span>';
+    }
+
+    return `
+      <tr class="hover:bg-slate-900/50 transition-colors">
+        <td class="py-2.5 px-3">
+          <div class="font-bold text-white text-xs">${row.label}</div>
+          <div class="text-[10px] text-slate-500 font-sans">${row.date_start} a ${row.date_end}</div>
+        </td>
+        <td class="py-2.5 px-3">
+          <span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-xs font-bold font-mono">
+            ${row.count}
+          </span>
+        </td>
+        <td class="py-2.5 px-3 text-right">
+          <span class="font-bold text-emerald-400 text-xs sm:text-sm">
+            ${formatBRL(row.amount)}
+          </span>
+        </td>
+        <td class="py-2.5 px-3 text-right text-slate-300 text-xs">
+          ${formatBRL(row.avg_ticket)}
+        </td>
+        <td class="py-2.5 px-3">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            ${plansHtml}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderFinancialRecent(recentList) {
+  const container = document.getElementById('fin-recent-container');
+  if (!container) return;
+
+  if (!recentList || recentList.length === 0) {
+    container.innerHTML = '<p class="text-xs text-slate-500 py-4 text-center">Nenhuma transação recente encontrada.</p>';
+    return;
+  }
+
+  const planLabels = {
+    monthly: 'Mensal',
+    quarterly: 'Trimestral',
+    semiannual: 'Semestral',
+    yearly: 'Anual',
+    lifetime: 'Vitalício VIP'
+  };
+
+  const methodBadges = {
+    pix: '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40">📱 PIX</span>',
+    cartao: '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40">💳 Cartão</span>',
+    boleto: '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">📄 Boleto</span>',
+    activation: '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">👑 Ativação Admin</span>',
+  };
+
+  container.innerHTML = recentList.map(p => {
+    const pLabel = planLabels[p.plan_type] || p.plan_type;
+    const mBadge = methodBadges[p.payment_method] || `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-300 border border-slate-700">${p.payment_method}</span>`;
+
+    return `
+      <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex items-center justify-between gap-3 transition-all">
+        <div class="min-w-0 space-y-0.5">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h4 class="font-black text-xs text-white truncate max-w-[180px] sm:max-w-none">${p.customer_name}</h4>
+            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">${pLabel} (${p.days}d)</span>
+            ${mBadge}
+          </div>
+          <div class="text-[10px] text-slate-400 font-mono">
+            <span>📅 ${p.created_at}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0">
+          <div class="text-right">
+            <span class="font-black text-emerald-400 text-xs sm:text-sm font-mono">${formatBRL(p.amount)}</span>
+          </div>
+          <button type="button" onclick="deleteFinancialPayment(${p.id})"
+            class="px-2 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 font-bold text-[10px] transition-all cursor-pointer" title="Excluir Transação">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.openManualPaymentModal = async function() {
+  const modal = document.getElementById('modal-manual-payment');
+  const tenantSelect = document.getElementById('modal-pay-tenant-id');
+  if (!modal) return;
+
+  // Carrega opções de testadores cadastrados
+  if (tenantSelect) {
+    tenantSelect.innerHTML = '<option value="">-- Cliente Avulso / Não cadastrado --</option>';
+    try {
+      if (!currentTenantsCache || currentTenantsCache.length === 0) {
+        currentTenantsCache = await api.getTenants();
+      }
+      currentTenantsCache.forEach(t => {
+        if (t.role !== 'admin') {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = `${t.name} (${t.phone || t.email || 'Sem contato'})`;
+          tenantSelect.appendChild(opt);
+        }
+      });
+    } catch (e) {
+      console.warn('Aviso ao carregar testadores no modal:', e);
+    }
+  }
+
+  modal.classList.remove('hidden');
+};
+
+window.closeManualPaymentModal = function() {
+  const modal = document.getElementById('modal-manual-payment');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.handleSelectTenantForPayment = function(select) {
+  const tenantId = select.value;
+  const nameInput = document.getElementById('modal-pay-customer-name');
+  if (!tenantId) return;
+
+  const found = (currentTenantsCache || []).find(t => String(t.id) === String(tenantId));
+  if (found && nameInput) {
+    nameInput.value = found.name;
+  }
+};
+
+window.handleSelectPlanTypeChange = function(select) {
+  const pType = select.value;
+  const amountInput = document.getElementById('modal-pay-amount');
+  const daysInput = document.getElementById('modal-pay-days');
+
+  const prices = {
+    monthly: { amount: 14.90, days: 30 },
+    quarterly: { amount: 37.00, days: 90 },
+    semiannual: { amount: 67.00, days: 180 },
+    yearly: { amount: 97.00, days: 365 },
+  };
+
+  if (prices[pType]) {
+    if (amountInput) amountInput.value = prices[pType].amount.toFixed(2);
+    if (daysInput) daysInput.value = prices[pType].days;
+  }
+};
+
+window.handleManualPaymentSubmit = async function(event) {
+  event.preventDefault();
+  const btn = document.getElementById('btn-submit-manual-payment');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+  }
+
+  const tenantIdVal = document.getElementById('modal-pay-tenant-id')?.value;
+  const tenantId = tenantIdVal ? parseInt(tenantIdVal) : null;
+  const customerName = document.getElementById('modal-pay-customer-name')?.value?.trim();
+  const planType = document.getElementById('modal-pay-plan-type')?.value;
+  const amount = parseFloat(document.getElementById('modal-pay-amount')?.value) || 0;
+  const days = parseInt(document.getElementById('modal-pay-days')?.value) || 30;
+  const method = document.getElementById('modal-pay-method')?.value || 'pix';
+  const notes = document.getElementById('modal-pay-notes')?.value?.trim() || '';
+
+  try {
+    await api.createFinancialPayment({
+      tenant_id: tenantId,
+      customer_name: customerName,
+      plan_type: planType,
+      amount: amount,
+      days: days,
+      payment_method: method,
+      notes: notes
+    });
+
+    showToast('Venda registrada com sucesso!', 'success');
+    closeManualPaymentModal();
+    await loadFinancialDashboard();
+    if (tenantId && typeof loadTenantsTable === 'function') {
+      await loadTenantsTable();
+    }
+  } catch (err) {
+    showToast('Erro ao registrar venda: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Salvar Venda';
+    }
+  }
+};
+
+window.deleteFinancialPayment = async function(paymentId) {
+  if (!confirm('Deseja realmente excluir esta transação?')) return;
+  try {
+    await api.deleteFinancialPayment(paymentId);
+    showToast('Transação excluída com sucesso!', 'success');
+    await loadFinancialDashboard();
+  } catch (err) {
+    showToast('Erro ao excluir transação: ' + err.message, 'error');
+  }
+};
+
+window.seedFinancialDemo = async function() {
+  try {
+    await api.seedFinancialDemo();
+    showToast('Vendas de demonstração inseridas com sucesso!', 'success');
+    await loadFinancialDashboard();
+  } catch (err) {
+    showToast('Erro ao inserir dados: ' + err.message, 'error');
+  }
+};
+
+window.clearFinancialDemo = async function() {
+  if (!confirm('Deseja remover todas as vendas de demonstração?')) return;
+  try {
+    await api.clearFinancialDemo();
+    showToast('Dados de demonstração removidos!', 'success');
+    await loadFinancialDashboard();
+  } catch (err) {
+    showToast('Erro ao limpar demonstração: ' + err.message, 'error');
   }
 };
