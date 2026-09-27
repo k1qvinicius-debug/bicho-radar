@@ -24,6 +24,9 @@ def get_default_next_slot(lottery: str = "RJ") -> str:
     Verifica no banco quais sorteios já foram apurados hoje para a loteria
     e avança automaticamente para o primeiro horário pendente.
     """
+    eff_lot = (lottery or "RJ").upper()
+    if eff_lot == "FEDERAL":
+        return "FED"
     from ..domain import get_lottery_slots
     slots = get_lottery_slots(lottery)
     if not slots:
@@ -125,6 +128,8 @@ def get_prediction(
     effective_date = target_date or datetime.now().strftime("%Y-%m-%d")
     effective_lottery = (lottery or "RJ").upper()
     effective_slot = (target_slot or get_default_next_slot(effective_lottery)).upper()
+    if effective_lottery == "FEDERAL" and effective_slot not in ("FED", "FEDERAL"):
+        effective_slot = "FED"
     effective_strat = (strategy or "hybrid").lower()
 
     cache_key = f"{effective_lottery}_{effective_date}_{effective_slot}_{effective_strat}"
@@ -158,6 +163,8 @@ def get_fixed_animal_closure(
     effective_date = target_date or datetime.now().strftime("%Y-%m-%d")
     effective_lottery = (lottery or "RJ").upper()
     effective_slot = (target_slot or get_default_next_slot(effective_lottery)).upper()
+    if effective_lottery == "FEDERAL" and effective_slot not in ("FED", "FEDERAL"):
+        effective_slot = "FED"
 
     cache_key = f"{effective_lottery}_{effective_date}_{effective_slot}_{group}"
     cached = get_cached_fixed_animal(cache_key)
