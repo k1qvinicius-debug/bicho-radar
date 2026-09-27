@@ -692,6 +692,11 @@ async function initSlotSelector(lottery = currentLottery) {
       currentSlotName.textContent = selectedOpt.textContent;
     }
 
+    const headerSlotName = document.getElementById('header-slot-name');
+    if (headerSlotName && selectedOpt) {
+      headerSlotName.textContent = selectedOpt.textContent;
+    }
+
     renderSlotPillsUI(slots, defaultSlot);
   } catch (err) {
     console.error('Erro ao inicializar horários:', err);
@@ -823,6 +828,11 @@ window.selectSlotFromPill = async function(slotCode) {
     const currentSlotName = document.getElementById('current-slot-name');
     if (currentSlotName && selectedOpt) {
       currentSlotName.textContent = selectedOpt.textContent;
+    }
+
+    const headerSlotName = document.getElementById('header-slot-name');
+    if (headerSlotName && selectedOpt) {
+      headerSlotName.textContent = selectedOpt.textContent;
     }
   }
   updateSlotPillsUI(slotCode);
@@ -984,8 +994,8 @@ window.toggleLotteryAccordion = function(lotteryCode, forceOpen = null) {
 };
 
 window.navigateTo = async function(lotteryCode, screenName) {
-  if (lotteryCode && lotteryCode !== currentLottery) {
-    await switchLottery(lotteryCode);
+  if (lotteryCode) {
+    await switchLottery(lotteryCode, true);
   }
   if (screenName) {
     switchScreen(screenName);
@@ -1038,8 +1048,9 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
   }
 };
 
-window.switchLottery = async function(lotteryCode) {
-  if (!lotteryCode || lotteryCode === currentLottery) {
+window.switchLottery = async function(lotteryCode, force = false) {
+  if (!lotteryCode) return;
+  if (!force && lotteryCode === currentLottery) {
     return;
   }
   currentLottery = lotteryCode;
@@ -1244,7 +1255,12 @@ async function loadPrediction(forceRefresh = false) {
   const loadingEl = document.getElementById('loading-state');
   const contentEl = document.getElementById('content-state');
   const dateVal = document.getElementById('target-date')?.value || '';
-  const slotVal = document.getElementById('target-slot')?.value || '';
+  let slotVal = document.getElementById('target-slot')?.value || '';
+  if (currentLottery === 'FEDERAL' && (!slotVal || slotVal !== 'FED')) {
+    slotVal = 'FED';
+    const targetSlotEl = document.getElementById('target-slot');
+    if (targetSlotEl) targetSlotEl.value = 'FED';
+  }
   const cacheKey = getPredictionCacheKey(currentLottery, dateVal, slotVal, currentStrategy);
 
   // 1. Resposta INSTANTÂNEA via Cache (0ms - sem travar a tela)
@@ -4030,7 +4046,7 @@ async function loadDrawResults(dateOverride = null) {
           if (parts.length === 3) {
             const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
             const dow = dt.getDay(); // 0 = Domingo, 3 = Quarta
-            if (dow === 0 || dow === 3) isFedDay = true;
+            if (dow === 0 || dow === 3 || dow === 6) isFedDay = true;
           }
         } catch (e) {}
         if (!isFedDay) return;
@@ -4070,7 +4086,7 @@ async function loadDrawResults(dateOverride = null) {
             if (parts.length === 3) {
               const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
               const dow = dt.getDay();
-              return dow === 0 || dow === 3; // Somente Domingo e Quarta
+              return dow === 0 || dow === 3 || dow === 6; // Quarta, Sábado e Domingo
             }
           } catch (e) {}
           return false;
