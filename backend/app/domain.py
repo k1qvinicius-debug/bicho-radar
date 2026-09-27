@@ -129,6 +129,36 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
         "slots": [
             {"code": "FED", "name": "Federal 20h (Quarta) • 11h (Domingo)", "time": "20:00", "order": 1},
         ]
+    },
+    "BAHIA": {
+        "code": "BAHIA",
+        "name": "Bahia (Paratodos)",
+        "short_name": "Bahia",
+        "badge": "☀️ Bahia",
+        "icon": "☀️",
+        "color": "orange",
+        "slots": [
+            {"code": "BA-10", "name": "PT Bahia 10h - 10:00", "time": "10:00", "order": 1},
+            {"code": "BA-12", "name": "PT Bahia 12h - 12:00", "time": "12:00", "order": 2},
+            {"code": "BA-15", "name": "PT Bahia 15h - 15:00", "time": "15:00", "order": 3},
+            {"code": "BA-19", "name": "PT Bahia 19h - 19:00", "time": "19:00", "order": 4},
+            {"code": "BA-21", "name": "Coruja Bahia - 21:00", "time": "21:00", "order": 5},
+        ]
+    },
+    "MINAS": {
+        "code": "MINAS",
+        "name": "Minas Gerais",
+        "short_name": "Minas Gerais",
+        "badge": "🔺 Minas",
+        "icon": "🔺",
+        "color": "rose",
+        "slots": [
+            {"code": "MG-12", "name": "Alvorada 12h - 12:00", "time": "12:00", "order": 1},
+            {"code": "MG-14", "name": "Salvação 13h40 (Domingo) - 13:40", "time": "13:40", "order": 2},
+            {"code": "MG-15", "name": "Minas Dia 15h - 15:00", "time": "15:00", "order": 3},
+            {"code": "MG-19", "name": "Minas Noite 19h - 19:00", "time": "19:00", "order": 4},
+            {"code": "MG-21", "name": "Preferida 21h - 21:00", "time": "21:00", "order": 5},
+        ]
     }
 }
 
@@ -162,6 +192,34 @@ def get_lottery_slots(lottery_code: Optional[str] = "RJ", target_date: Optional[
         else:
             return [{"code": "FED", "name": "Federal 20h (Quarta e Sábado)", "time": "20:00", "order": 1}]
 
+    elif lot_code == "BAHIA":
+        if dow == 6:  # Domingo na Bahia
+            return [
+                {"code": "BA-10", "name": "PT Bahia 10h - 10:00", "time": "10:00", "order": 1},
+                {"code": "BA-12", "name": "PT Bahia 12h - 12:00", "time": "12:00", "order": 2},
+            ]
+        else:
+            return [
+                {"code": "BA-10", "name": "PT Bahia 10h - 10:00", "time": "10:00", "order": 1},
+                {"code": "BA-12", "name": "PT Bahia 12h - 12:00", "time": "12:00", "order": 2},
+                {"code": "BA-15", "name": "PT Bahia 15h - 15:00", "time": "15:00", "order": 3},
+                {"code": "BA-19", "name": "PT Bahia 19h - 19:00", "time": "19:00", "order": 4},
+                {"code": "BA-21", "name": "Coruja Bahia - 21:00", "time": "21:00", "order": 5},
+            ]
+
+    elif lot_code == "MINAS":
+        if dow == 6:  # Domingo em Minas Gerais (Salvação)
+            return [
+                {"code": "MG-14", "name": "Salvação 13h40 (Domingo) - 13:40", "time": "13:40", "order": 1},
+            ]
+        else:
+            return [
+                {"code": "MG-12", "name": "Alvorada 12h - 12:00", "time": "12:00", "order": 1},
+                {"code": "MG-15", "name": "Minas Dia 15h - 15:00", "time": "15:00", "order": 2},
+                {"code": "MG-19", "name": "Minas Noite 19h - 19:00", "time": "19:00", "order": 3},
+                {"code": "MG-21", "name": "Preferida 21h - 21:00", "time": "21:00", "order": 4},
+            ]
+
     elif lot_code == "RJ":
         pass
 
@@ -181,7 +239,11 @@ def infer_lottery_from_slot(slot: Optional[str], default: Optional[str] = None) 
         return "NACIONAL"
     if s in ("FED", "FEDERAL") or s.startswith("FED"):
         return "FEDERAL"
-    if s in ("PPT", "PTM", "PT", "PTV", "PTN", "COR", "ALV") or s.startswith("RJ"):
+    if s.startswith("BA") or "BAHIA" in s:
+        return "BAHIA"
+    if s.startswith("MG") or "MINAS" in s or s.startswith("ALV"):
+        return "MINAS"
+    if s in ("PPT", "PTM", "PT", "PTV", "PTN", "COR") or s.startswith("RJ"):
         return "RJ"
     if default:
         return default.upper()
@@ -238,6 +300,16 @@ def get_slot_order_weight(slot: Optional[str], draw_date: Optional[str] = None) 
         "SP-17": 17 * 60,
         "SP-19": 19 * 60,
         "SP-20": 20 * 60,
+        "BA-10": 10 * 60,
+        "BA-12": 12 * 60,
+        "BA-15": 15 * 60,
+        "BA-19": 19 * 60,
+        "BA-21": 21 * 60,
+        "MG-12": 12 * 60,
+        "MG-14": 13 * 60 + 40,
+        "MG-15": 15 * 60,
+        "MG-19": 19 * 60,
+        "MG-21": 21 * 60,
     }
     if slot_upper in fixed_weights:
         return fixed_weights[slot_upper]
