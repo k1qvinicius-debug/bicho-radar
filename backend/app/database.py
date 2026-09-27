@@ -611,6 +611,8 @@ def init_db() -> None:
             cursor.execute("UPDATE analysis_snapshots SET lottery = 'NACIONAL' WHERE target_slot LIKE 'LN%' AND (lottery IS NULL OR lottery != 'NACIONAL')")
             cursor.execute("UPDATE analysis_snapshots SET lottery = 'FEDERAL' WHERE target_slot IN ('FED', 'FEDERAL') AND (lottery IS NULL OR lottery != 'FEDERAL')")
             cursor.execute("UPDATE analysis_snapshots SET lottery = 'RJ' WHERE target_slot IN ('PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR', 'ALV') AND (lottery IS NULL OR lottery != 'RJ')")
+            cursor.execute("UPDATE analysis_snapshots SET lottery = 'BAHIA' WHERE (target_slot LIKE 'BA-%' OR target_slot LIKE 'BAHIA%') AND (lottery IS NULL OR lottery != 'BAHIA')")
+            cursor.execute("UPDATE analysis_snapshots SET lottery = 'MINAS' WHERE (target_slot LIKE 'MG-%' OR target_slot LIKE 'MINAS%') AND (lottery IS NULL OR lottery != 'MINAS')")
         except Exception as norm_err:
             logger.warning(f"Aviso ao normalizar loterias em analysis_snapshots: {norm_err}")
 
