@@ -35,7 +35,7 @@ def calculate_atrasados_from_db(lottery_code: str = "RJ") -> List[Dict[str, Any]
     multiplier = 6
     if lot_code in ["LOOK", "NACIONAL"]:
         multiplier = 8
-    elif lot_code == "SP":
+    elif lot_code in ["SP", "BAHIA", "MINAS"]:
         multiplier = 5
     elif lot_code == "FEDERAL":
         multiplier = 2
