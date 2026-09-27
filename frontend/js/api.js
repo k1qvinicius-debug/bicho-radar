@@ -19,12 +19,29 @@ function getAuthHeaders() {
 function notifyTrialExpiredIfForbidden(status, errData) {
   if (status === 403) {
     const detail = (errData && errData.detail) ? String(errData.detail) : '';
-    if (detail.includes('TRIAL_EXPIRED') || detail.includes('expirou') || detail.includes('testeção') || detail.includes('dispositivo') || detail.includes('rede')) {
+    if (detail.includes('TRIAL_EXPIRED') || detail.includes('expirou') || detail.includes('teste') || detail.includes('dispositivo') || detail.includes('rede')) {
       if (typeof window.showTrialExpiredModal === 'function') {
         window.showTrialExpiredModal();
       } else if (typeof window.showVipPlansModal === 'function') {
         window.showVipPlansModal();
       }
+    }
+  }
+}
+
+function handleAuthError(status, errData) {
+  if (status === 403) {
+    notifyTrialExpiredIfForbidden(status, errData);
+  } else if (status === 401) {
+    try {
+      if (typeof api !== 'undefined' && typeof api.logout === 'function') {
+        api.logout();
+      }
+      if (typeof updateAuthUI === 'function') {
+        updateAuthUI();
+      }
+    } catch (e) {
+      console.warn('Erro ao resetar sessão expirada:', e);
     }
   }
 }
@@ -195,18 +212,26 @@ const api = {
         if (data.token) {
           this.setToken(data.token);
         }
+        const isExpired = Boolean(
+          data.subscription_status === 'expired' || 
+          (data.trial_info && data.trial_info.is_expired && data.role !== 'admin')
+        );
         const tenantData = {
           id: data.id,
           name: data.name,
           email: data.email,
           phone: data.phone,
           role: data.role,
-          subscription_status: data.subscription_status,
+          subscription_status: isExpired ? 'expired' : data.subscription_status,
           trial_days_remaining: (data.trial_info && data.trial_info.days_remaining !== undefined) ? data.trial_info.days_remaining : null,
+          is_expired: isExpired,
           is_admin: data.is_admin
         };
         this.setCurrentTenant(tenantData);
-        return { authenticated: true, tenant: tenantData, token: data.token };
+        if (isExpired && typeof window.showTrialExpiredModal === 'function') {
+          window.showTrialExpiredModal();
+        }
+        return { authenticated: true, tenant: tenantData, token: data.token, is_expired: isExpired };
       }
       return { authenticated: false };
     } catch {
@@ -514,7 +539,11 @@ const api = {
     const res = await fetch(url, {
       headers: { ...getAuthHeaders() },
     });
-    if (!res.ok) throw new Error('Erro ao carregar análise preditiva.');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro ao carregar análise preditiva.' }));
+      handleAuthError(res.status, err);
+      throw new Error(err.detail || 'Erro ao carregar análise preditiva.');
+    }
     return await res.json();
   },
 
@@ -529,7 +558,11 @@ const api = {
     const res = await fetch(url, {
       headers: { ...getAuthHeaders() },
     });
-    if (!res.ok) throw new Error('Erro ao carregar fechamento com bicho fixo.');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro ao carregar fechamento com bicho fixo.' }));
+      handleAuthError(res.status, err);
+      throw new Error(err.detail || 'Erro ao carregar fechamento com bicho fixo.');
+    }
     return await res.json();
   },
 
