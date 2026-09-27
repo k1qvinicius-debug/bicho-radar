@@ -370,6 +370,11 @@ def check_session(tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_
     from ..auth import calculate_trial_info, create_token_for_tenant
     trial_info = tenant.get("trial_info") or calculate_trial_info(tenant)
     fresh_token = create_token_for_tenant(tenant)
+
+    sub_status = tenant.get("subscription_status", "trial")
+    if trial_info.get("is_expired") and tenant.get("role") != "admin":
+        sub_status = "expired"
+
     return {
         "authenticated": True,
         "token": fresh_token,
@@ -378,7 +383,7 @@ def check_session(tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_
         "email": tenant.get("email"),
         "phone": tenant.get("phone"),
         "role": tenant["role"],
-        "subscription_status": tenant.get("subscription_status", "trial"),
+        "subscription_status": sub_status,
         "trial_info": trial_info,
         "is_admin": tenant.get("role") == "admin"
     }
