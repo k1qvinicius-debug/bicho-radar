@@ -109,8 +109,8 @@ def seed_other_lotteries(num_days: int = 35) -> Dict[str, int]:
     rnd = random.Random(1337)
     inserted_by_lottery = {}
 
-    other_lotteries = ["LOOK", "NACIONAL", "SP", "FEDERAL"]
-    lot_seeds = {"LOOK": 4242, "NACIONAL": 1337, "SP": 8888, "FEDERAL": 9999}
+    other_lotteries = ["LOOK", "NACIONAL", "SP", "FEDERAL", "BAHIA", "MINAS"]
+    lot_seeds = {"LOOK": 4242, "NACIONAL": 1337, "SP": 8888, "FEDERAL": 9999, "BAHIA": 7777, "MINAS": 3333}
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
