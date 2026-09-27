@@ -117,7 +117,7 @@ def get_prediction(
     target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD). Padrão: hoje"),
     target_slot: Optional[str] = Query(None, description="Horário alvo (PPT, PTM, PT, LK-11, LN-10, etc.)"),
     strategy: Optional[str] = Query("hybrid", description="Estratégia: hybrid, frequency, delay, puxada"),
-    lottery: Optional[str] = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    lottery: Optional[str] = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL, BAHIA, MINAS)"),
     tenant: Dict[str, Any] = Depends(require_tenant),
 ):
     """
@@ -514,7 +514,7 @@ def get_active_lottery_picks_endpoint(
 
     engine = StatisticalEngine()
     lottery_picks = {}
-    lotteries_to_check = ["RJ", "LOOK", "NACIONAL", "SP", "FEDERAL"]
+    lotteries_to_check = ["RJ", "LOOK", "NACIONAL", "SP", "FEDERAL", "BAHIA", "MINAS"]
 
     for lot in lotteries_to_check:
         try:
@@ -552,7 +552,7 @@ def get_active_lottery_picks_endpoint(
 
 @router.get("/transition-matrix", response_model=Dict[str, Any])
 def get_transition_matrix_endpoint(
-    lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL, BAHIA, MINAS)"),
     from_slot: Optional[str] = Query(None, description="Horário anterior de origem"),
     from_group: Optional[int] = Query(None, ge=1, le=25, description="Grupo do 1º prêmio anterior (1 a 25)"),
     target_slot: Optional[str] = Query(None, description="Horário alvo"),
@@ -587,7 +587,7 @@ def get_transition_matrix_endpoint(
 def get_puxadas_endpoint(
     target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD). Padrão: hoje"),
     target_slot: Optional[str] = Query(None, description="Horário alvo"),
-    lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL, BAHIA, MINAS)"),
     tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
     """
@@ -601,7 +601,7 @@ def get_puxadas_endpoint(
 @router.get("/centena-master", response_model=Dict[str, Any])
 def get_centena_master_endpoint(
     target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD). Padrão: hoje"),
-    lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    lottery: str = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL, BAHIA, MINAS)"),
     tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
     """
@@ -614,7 +614,7 @@ def get_centena_master_endpoint(
 
 @router.get("/pattern-breaks", response_model=Dict[str, Any])
 def get_pattern_breaks_endpoint(
-    lottery: Optional[str] = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL)"),
+    lottery: Optional[str] = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL, BAHIA, MINAS)"),
     limit: int = Query(30, ge=1, le=100, description="Quantidade de quebras recentes"),
     tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
