@@ -417,11 +417,25 @@ def init_db() -> None:
                 UNIQUE(draw_date, slot, lottery)
             );
             """)
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pb_lottery ON pattern_breaks_history(lottery);")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pb_date_slot ON pattern_breaks_history(draw_date, slot);")
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS subscription_payments (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER REFERENCES tenants(id) ON DELETE SET NULL,
+                customer_name TEXT,
+                plan_type TEXT NOT NULL,
+                amount REAL NOT NULL,
+                days INTEGER NOT NULL,
+                payment_method TEXT DEFAULT 'pix',
+                status TEXT DEFAULT 'completed',
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_tenant ON subscription_payments(tenant_id);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_created ON subscription_payments(created_at);")
 
             # Ativa Row Level Security (RLS) para proteger o acesso direto via Supabase REST API
-            for tbl in ["draw_results", "engine_weights", "analysis_snapshots", "analysis_evaluations", "bichocerto_atrasados", "tenants", "system_settings", "pattern_breaks_history"]:
+            for tbl in ["draw_results", "engine_weights", "analysis_snapshots", "analysis_evaluations", "bichocerto_atrasados", "tenants", "system_settings", "pattern_breaks_history", "subscription_payments"]:
                 cursor.execute(f"ALTER TABLE {tbl} ENABLE ROW LEVEL SECURITY;")
 
 
@@ -601,8 +615,22 @@ def init_db() -> None:
                 UNIQUE(draw_date, slot, lottery)
             );
             """)
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pb_lottery ON pattern_breaks_history(lottery);")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pb_date_slot ON pattern_breaks_history(draw_date, slot);")
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS subscription_payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tenant_id INTEGER REFERENCES tenants(id) ON DELETE SET NULL,
+                customer_name TEXT,
+                plan_type TEXT NOT NULL,
+                amount REAL NOT NULL,
+                days INTEGER NOT NULL,
+                payment_method TEXT DEFAULT 'pix',
+                status TEXT DEFAULT 'completed',
+                notes TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_tenant ON subscription_payments(tenant_id);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_created ON subscription_payments(created_at);")
 
         # Normalização canônica das loterias para snapshots e avaliações baseadas nos horários
         try:
