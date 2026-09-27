@@ -1297,7 +1297,16 @@ async function loadPrediction(forceRefresh = false) {
     prefetchAdjacentSlots(currentLottery, slotVal);
   } catch (err) {
     if (reqSeq === _activePredictionReqSeq && api.isLoggedIn()) {
-      showToast('Erro ao carregar análise: ' + err.message, 'error');
+      const msg = err && err.message ? err.message : '';
+      if (msg.includes('TRIAL_EXPIRED') || msg.includes('período de teste') || msg.includes('encerrou') || msg.includes('expirou')) {
+        if (typeof window.showTrialExpiredModal === 'function') {
+          window.showTrialExpiredModal();
+        }
+      } else if (msg.includes('não autorizado') || msg.includes('login') || msg.includes('Chave')) {
+        showToast('Sua sessão expirou. Faça login para continuar.', 'warning');
+      } else {
+        showToast('Erro ao carregar análise: ' + msg, 'error');
+      }
     }
   } finally {
     if (reqSeq === _activePredictionReqSeq) {
@@ -4476,7 +4485,7 @@ async function initTenantAuth() {
 
   // Verifica se o usuário atual está com teste expirado
   const tenant = api.getCurrentTenant();
-  if (tenant && tenant.role !== 'admin' && (tenant.subscription_status === 'expired' || (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining <= 0))) {
+  if (tenant && tenant.role !== 'admin' && (tenant.is_expired || tenant.subscription_status === 'expired' || (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0))) {
     showTrialExpiredModal();
     return;
   }
