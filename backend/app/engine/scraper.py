@@ -24,6 +24,8 @@ BICHOCERTO_LOTTERY_URLS = {
     "LOOK": "https://bichocerto.com/resultados/lk/look/",
     "NACIONAL": "https://bichocerto.com/resultados/ln/loteria-nacional/",
     "SP": "https://bichocerto.com/resultados/sp/pt-band/",
+    "BAHIA": "https://bichocerto.com/resultados/ba/para-todos/",
+    "MINAS": "https://bichocerto.com/resultados/mg/minas-gerais/",
 }
 
 MONTHS_PT = {
@@ -82,7 +84,7 @@ def sync_rj_and_federal(url: str = TARGET_URL_RJ) -> Dict[str, Any]:
     if not tables:
         return {"updated_slots": [], "evaluations": 0, "error": "Nenhuma tabela encontrada no RJ"}
 
-    title_text = soup.title.string if soup.title else ""
+    title_text = str(soup.title.string) if (soup.title and soup.title.string) else ""
     draw_ids_to_evaluate: List[int] = []
     updated_slots = []
 
@@ -244,12 +246,12 @@ def sync_bichocerto_lottery(lottery_code: str, url: str) -> Dict[str, Any]:
         return {"updated_slots": [], "evaluations": 0, "error": f"Erro {lottery_code}: {e}"}
 
     soup = BeautifulSoup(r.text, "html.parser")
-    cards = soup.find_all("div", id=lambda x: x and x.startswith("div_display_"))
+    cards = soup.find_all("div", id=lambda x: bool(x and x.startswith("div_display_")))
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
         for card in cards:
-            header_el = card.find("div", class_=lambda c: c and "bg-secondary" in c)
+            header_el = card.find("div", class_=lambda c: bool(c and "bg-secondary" in c))
             header_text = header_el.get_text(" ", strip=True) if header_el else ""
 
             # Extrai hora da extração
@@ -274,15 +276,89 @@ def sync_bichocerto_lottery(lottery_code: str, url: str) -> Dict[str, Any]:
             draw_dow = draw_dt.weekday()
 
             if lottery_code == "LOOK":
-                slot_code = f"LK-{hour_num:02d}"
+                if hour_num in [7, 8]:
+                    slot_code = "LK-07"
+                elif hour_num in [9, 10]:
+                    slot_code = "LK-09"
+                elif hour_num in [11, 12, 13]:
+                    slot_code = "LK-11"
+                elif hour_num in [14, 15]:
+                    slot_code = "LK-14"
+                elif hour_num in [16, 17]:
+                    slot_code = "LK-16"
+                elif hour_num in [18, 19, 20]:
+                    slot_code = "LK-18"
+                elif hour_num in [21, 22]:
+                    slot_code = "LK-21"
+                elif hour_num in [23, 0]:
+                    slot_code = "LK-23"
+                else:
+                    slot_code = f"LK-{hour_num:02d}"
             elif lottery_code == "NACIONAL":
-                slot_code = f"LN-{hour_num:02d}"
+                if hour_num in [2, 3]:
+                    slot_code = "LN-02"
+                elif hour_num in [7, 8, 9]:
+                    slot_code = "LN-08"
+                elif hour_num in [10, 11]:
+                    slot_code = "LN-10"
+                elif hour_num in [12, 13, 14]:
+                    slot_code = "LN-12"
+                elif hour_num in [15, 16]:
+                    slot_code = "LN-15"
+                elif hour_num in [17, 18]:
+                    slot_code = "LN-17"
+                elif hour_num in [19, 20]:
+                    slot_code = "LN-19"
+                elif hour_num in [21, 22]:
+                    slot_code = "LN-21"
+                elif hour_num in [23, 0, 1]:
+                    slot_code = "LN-23"
+                else:
+                    slot_code = f"LN-{hour_num:02d}"
             elif lottery_code == "SP":
-                # SP suporta estritamente os 7 horários oficiais:
-                # 08:20 (SP-08), 10:00 (SP-10), 13:00 (SP-13), 15:30 (SP-15), 17:00 (SP-17), 19:00 (SP-19), 20:00 (SP-20)
-                if hour_num not in [8, 10, 13, 15, 17, 19, 20]:
-                    continue
-                slot_code = f"SP-{hour_num:02d}"
+                if hour_num in [8, 9]:
+                    slot_code = "SP-08"
+                elif hour_num in [10, 11]:
+                    slot_code = "SP-10"
+                elif hour_num in [12, 13, 14]:
+                    slot_code = "SP-13"
+                elif hour_num in [15, 16]:
+                    slot_code = "SP-15"
+                elif hour_num in [17, 18]:
+                    slot_code = "SP-17"
+                elif hour_num == 19:
+                    slot_code = "SP-19"
+                elif hour_num in [20, 21]:
+                    slot_code = "SP-20"
+                else:
+                    slot_code = f"SP-{hour_num:02d}"
+            elif lottery_code in ["BAHIA", "BA"]:
+                if hour_num in [9, 10]:
+                    slot_code = "BA-10"
+                elif hour_num in [11, 12, 13]:
+                    slot_code = "BA-12"
+                elif hour_num in [14, 15, 16]:
+                    slot_code = "BA-15"
+                elif hour_num in [18, 19, 20]:
+                    slot_code = "BA-19"
+                elif hour_num in [21, 22]:
+                    slot_code = "BA-21"
+                else:
+                    slot_code = f"BA-{hour_num:02d}"
+            elif lottery_code in ["MINAS", "MG"]:
+                h_low = header_text.lower()
+                if "alvorada" in h_low or hour_num in [11, 12]:
+                    slot_code = "MG-12"
+                elif "salvação" in h_low or "salvacao" in h_low or hour_num in [13, 14]:
+                    slot_code = "MG-14"
+                elif "minas dia" in h_low or hour_num in [15, 16]:
+                    slot_code = "MG-15"
+                elif "minas noite" in h_low or hour_num in [18, 19, 20]:
+                    slot_code = "MG-19"
+                elif "preferida" in h_low or hour_num in [21, 22]:
+                    slot_code = "MG-21"
+                else:
+                    slot_code = f"MG-{hour_num:02d}"
             else:
                 slot_code = f"{lottery_code}-{hour_num:02d}"
 
@@ -532,7 +608,36 @@ def fetch_and_sync_results(target_lottery: Optional[str] = None) -> Dict[str, An
         all_updated_slots.extend(sp_res.get("updated_slots", []))
         total_evaluations += sp_res.get("evaluations", 0)
 
+    # 5. Bahia (Paratodos)
+    if lot_filter in ["ALL", "BAHIA", "BA"]:
+        ba_res = sync_bichocerto_lottery("BAHIA", BICHOCERTO_LOTTERY_URLS["BAHIA"])
+        all_updated_slots.extend(ba_res.get("updated_slots", []))
+        total_evaluations += ba_res.get("evaluations", 0)
+
+    # 6. Minas Gerais
+    if lot_filter in ["ALL", "MINAS", "MG"]:
+        mg_res = sync_bichocerto_lottery("MINAS", BICHOCERTO_LOTTERY_URLS["MINAS"])
+        all_updated_slots.extend(mg_res.get("updated_slots", []))
+        total_evaluations += mg_res.get("evaluations", 0)
+
     unique_slots = list(dict.fromkeys(all_updated_slots))
+
+    lot_names = {
+        "ALL": "Todas as Loterias (RJ, Federal, Look, Nacional, SP)",
+        "RJ": "Rio de Janeiro (RJ)",
+        "LOOK": "Look Goiás",
+        "NACIONAL": "Loteria Nacional",
+        "SP": "São Paulo",
+        "FEDERAL": "Loteria Federal",
+        "BAHIA": "Bahia (Paratodos)",
+        "MINAS": "Minas Gerais"
+    }
+    lot_label = lot_names.get(lot_filter, lot_filter)
+
+    if len(unique_slots) > 0:
+        msg = f"Sincronização concluída! {len(unique_slots)} nova(s) extração(ões) atualizada(s) para {lot_label}."
+    else:
+        msg = f"A base de {lot_label} já está 100% atualizada com todos os resultados oficiais disponíveis até o momento!"
 
     return {
         "success": True,
@@ -541,5 +646,5 @@ def fetch_and_sync_results(target_lottery: Optional[str] = None) -> Dict[str, An
         "draws_synced": len(unique_slots),
         "updated_slots": unique_slots,
         "evaluations_triggered": total_evaluations,
-        "message": f"Resultados sincronizados com sucesso! {len(unique_slots)} extrações atualizadas (RJ, Federal, Look, Nacional, SP).",
+        "message": msg,
     }
