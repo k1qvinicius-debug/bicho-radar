@@ -311,3 +311,14 @@ class LoginResponseModel(BaseModel):
     token: str
     tenant: Dict[str, Any]
 
+
+class PaymentCreateModel(BaseModel):
+    tenant_id: Optional[int] = None
+    customer_name: Optional[str] = None
+    plan_type: str = "monthly"
+    amount: float
+    days: int = 30
+    payment_method: Optional[str] = "pix"
+    notes: Optional[str] = None
+    created_at: Optional[str] = None
+
