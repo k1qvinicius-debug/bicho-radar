@@ -6789,27 +6789,32 @@ window.selectMatrizAnimal = async function(groupNum) {
           </div>
         </div>
 
-        <!-- Presença nos Palpites Oficiais das Loterias (Próximo Horário) -->
+        <!-- Presença nos Palpites Oficiais das Loterias (Bancas Diárias & Federal Separada) -->
         ${(function() {
           const animalMatches = (typeof window.getAnimalActiveLotteries === 'function')
             ? window.getAnimalActiveLotteries(groupNum)
             : [];
 
+          const dailyLots = ['RJ', 'LOOK', 'NACIONAL', 'SP'];
+          const fedMatch = animalMatches.find(m => m.lottery === 'FEDERAL');
+          const dailyMatchesCount = animalMatches.filter(m => m.lottery !== 'FEDERAL').length;
+
           return `
-            <div class="pt-3 border-t border-slate-800/80 space-y-2">
+            <div class="pt-3 border-t border-slate-800/80 space-y-2.5">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-white flex items-center gap-1.5">
-                  <span>🎰</span> <span>Presença nos Palpites Oficiais das Loterias:</span>
+                  <span>🎰</span> <span>Presença nos Palpites das Bancas Diárias:</span>
                 </span>
                 <span class="text-[11px] text-slate-400">
-                  ${animalMatches.length > 0
-                    ? `<span class="text-emerald-400 font-bold">🔥 Palpite Ativo em ${animalMatches.length} ${animalMatches.length === 1 ? 'loteria' : 'loterias'}</span>`
+                  ${dailyMatchesCount > 0
+                    ? `<span class="text-emerald-400 font-bold">🔥 Palpite Ativo no próximo horário</span>`
                     : '<span class="text-slate-500">Exclusivo na Chave Mestra</span>'}
                 </span>
               </div>
 
-              <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                ${['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL'].map(lot => {
+              <!-- 4 Bancas Diárias (RJ, LOOK, NACIONAL, SP) -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                ${dailyLots.map(lot => {
                   const match = animalMatches.find(m => m.lottery === lot);
                   const lotData = (window._currentActiveLotteryPicks || {})[lot];
                   const slotName = (lotData && (lotData.slot_name || lotData.slot)) || 'Próximo';
@@ -6845,6 +6850,26 @@ window.selectMatrizAnimal = async function(groupNum) {
                     `;
                   }
                 }).join('')}
+              </div>
+
+              <!-- Card Separado: Loteria Federal (Oficial Caixa) -->
+              <div class="p-2.5 rounded-xl border ${fedMatch ? 'bg-amber-950/40 border-amber-500/60 shadow-sm' : 'bg-slate-950/40 border-slate-800/60 opacity-80'} flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-xl">🏛️</span>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-black text-white">Loteria Federal (Oficial Caixa)</span>
+                      ${fedMatch ? `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Top #${fedMatch.rank} Recomendação</span>` : '<span class="text-[9px] text-slate-400 font-mono">Quarta e Sábado</span>'}
+                    </div>
+                    <span class="text-[10px] ${fedMatch ? 'text-amber-200/90 font-medium' : 'text-slate-400'} block">
+                      ${fedMatch ? `🔥 Este bicho é recomendação oficial no sorteio da Federal (${fedMatch.slot_name || 'FED'})!` : 'Sorteios oficiais da Caixa Econômica Federal'}
+                    </span>
+                  </div>
+                </div>
+                <button type="button" onclick="navigateToLotteryPrediction(event, 'FEDERAL', 'FED')"
+                  class="py-1 px-3 rounded-lg ${fedMatch ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold'} text-[10px] flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm cursor-pointer shrink-0">
+                  <span>🏛️</span> <span>Ver Palpites da Federal</span>
+                </button>
               </div>
             </div>
           `;
