@@ -92,12 +92,14 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
         "color": "cyan",
         "slots": [
             {"code": "SP-08", "name": "PT-SP 08h20 - 08:20", "time": "08:20", "order": 1},
-            {"code": "SP-10", "name": "PT-SP 10h - 10:00", "time": "10:00", "order": 2},
-            {"code": "SP-13", "name": "PT-SP 13h - 13:00", "time": "13:00", "order": 3},
-            {"code": "SP-15", "name": "BAND-SP 15h30 - 15:30", "time": "15:30", "order": 4},
-            {"code": "SP-17", "name": "PT-SP 17h - 17:00", "time": "17:00", "order": 5},
-            {"code": "SP-19", "name": "PT-SP 19h - 19:00", "time": "19:00", "order": 6},
-            {"code": "SP-20", "name": "PTN-SP 20h - 20:00", "time": "20:00", "order": 7},
+            {"code": "SP-09", "name": "PT-SP 09h - 09:00", "time": "09:00", "order": 2},
+            {"code": "SP-10", "name": "PT-SP 10h - 10:00", "time": "10:00", "order": 3},
+            {"code": "SP-12", "name": "PT-SP 12h20 - 12:20", "time": "12:20", "order": 4},
+            {"code": "SP-13", "name": "PT-SP 13h - 13:00", "time": "13:00", "order": 5},
+            {"code": "SP-15", "name": "BAND-SP 15h30 - 15:30", "time": "15:30", "order": 6},
+            {"code": "SP-17", "name": "PT-SP 17h - 17:00", "time": "17:00", "order": 7},
+            {"code": "SP-19", "name": "PT-SP 19h - 19:00", "time": "19:00", "order": 8},
+            {"code": "SP-20", "name": "PTN-SP 20h - 20:00", "time": "20:00", "order": 9},
         ]
     },
     "NACIONAL": {
@@ -139,10 +141,11 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
         "color": "orange",
         "slots": [
             {"code": "BA-10", "name": "PT Bahia 10h - 10:00", "time": "10:00", "order": 1},
-            {"code": "BA-12", "name": "PT Bahia 12h - 12:00", "time": "12:00", "order": 2},
-            {"code": "BA-15", "name": "PT Bahia 15h - 15:00", "time": "15:00", "order": 3},
-            {"code": "BA-19", "name": "PT Bahia 19h - 19:00", "time": "19:00", "order": 4},
-            {"code": "BA-21", "name": "Coruja Bahia - 21:00", "time": "21:00", "order": 5},
+            {"code": "BA-11", "name": "Federal Bahia 11h - 11:00", "time": "11:00", "order": 2},
+            {"code": "BA-12", "name": "PT Bahia 12h - 12:00", "time": "12:00", "order": 3},
+            {"code": "BA-15", "name": "PT Bahia 15h - 15:00", "time": "15:00", "order": 4},
+            {"code": "BA-19", "name": "PT Bahia 19h - 19:00", "time": "19:00", "order": 5},
+            {"code": "BA-21", "name": "Coruja Bahia - 21:00", "time": "21:00", "order": 6},
         ]
     },
     "MINAS": {
@@ -196,7 +199,9 @@ def get_lottery_slots(lottery_code: Optional[str] = "RJ", target_date: Optional[
         if dow == 6:  # Domingo na Bahia
             return [
                 {"code": "BA-10", "name": "PT Bahia 10h - 10:00", "time": "10:00", "order": 1},
-                {"code": "BA-12", "name": "PT Bahia 12h - 12:00", "time": "12:00", "order": 2},
+                {"code": "BA-11", "name": "Federal Bahia 11h - 11:00", "time": "11:00", "order": 2},
+                {"code": "BA-12", "name": "PT Bahia 12h - 12:00", "time": "12:00", "order": 3},
+                {"code": "BA-15", "name": "PT Bahia 15h - 15:00", "time": "15:00", "order": 4},
             ]
         else:
             return [
@@ -220,8 +225,44 @@ def get_lottery_slots(lottery_code: Optional[str] = "RJ", target_date: Optional[
                 {"code": "MG-21", "name": "Preferida 21h - 21:00", "time": "21:00", "order": 4},
             ]
 
+    elif lot_code == "SP":
+        if dow == 6:  # Domingo em São Paulo
+            return [
+                {"code": "SP-08", "name": "PT-SP 08h20 - 08:20", "time": "08:20", "order": 1},
+                {"code": "SP-09", "name": "PT-SP 09h - 09:00", "time": "09:00", "order": 2},
+                {"code": "SP-10", "name": "PT-SP 10h - 10:00", "time": "10:00", "order": 3},
+                {"code": "SP-12", "name": "PT-SP 12h20 - 12:20", "time": "12:20", "order": 4},
+                {"code": "SP-13", "name": "PT-SP 13h - 13:00", "time": "13:00", "order": 5},
+                {"code": "SP-15", "name": "BAND-SP 15h30 - 15:30", "time": "15:30", "order": 6},
+                {"code": "SP-17", "name": "PT-SP 17h - 17:00", "time": "17:00", "order": 7},
+            ]
+        else:
+            return [
+                {"code": "SP-08", "name": "PT-SP 08h20 - 08:20", "time": "08:20", "order": 1},
+                {"code": "SP-10", "name": "PT-SP 10h - 10:00", "time": "10:00", "order": 2},
+                {"code": "SP-13", "name": "PT-SP 13h - 13:00", "time": "13:00", "order": 3},
+                {"code": "SP-15", "name": "BAND-SP 15h30 - 15:30", "time": "15:30", "order": 4},
+                {"code": "SP-17", "name": "PT-SP 17h - 17:00", "time": "17:00", "order": 5},
+                {"code": "SP-19", "name": "PT-SP 19h - 19:00", "time": "19:00", "order": 6},
+                {"code": "SP-20", "name": "PTN-SP 20h - 20:00", "time": "20:00", "order": 7},
+            ]
+
     elif lot_code == "RJ":
-        pass
+        if dow == 6:  # Domingo no RJ: Federal 11h, PT 14h, PTV 16h
+            return [
+                {"code": "FED", "name": "Federal 11h (Domingo) - 11:00", "time": "11:00", "order": 1},
+                {"code": "PT", "name": "PT - 14:20", "time": "14:20", "order": 2},
+                {"code": "PTV", "name": "PTV - 16:20", "time": "16:20", "order": 3},
+            ]
+        elif dow == 2:  # Quarta-feira no RJ: PTN substituído por Federal 20h
+            return [
+                {"code": "PPT", "name": "PPT - 09:20", "time": "09:20", "order": 1},
+                {"code": "PTM", "name": "PTM - 11:20", "time": "11:20", "order": 2},
+                {"code": "PT", "name": "PT - 14:20", "time": "14:20", "order": 3},
+                {"code": "PTV", "name": "PTV - 16:20", "time": "16:20", "order": 4},
+                {"code": "FED", "name": "Federal 20h (Quarta) - 20:00", "time": "20:00", "order": 5},
+                {"code": "COR", "name": "Coruja - 21:20", "time": "21:20", "order": 6},
+            ]
 
     return slots
 
@@ -294,13 +335,16 @@ def get_slot_order_weight(slot: Optional[str], draw_date: Optional[str] = None) 
         "LK-21": 21 * 60 + 20,
         "LK-23": 23 * 60 + 20,
         "SP-08": 8 * 60 + 20,
+        "SP-09": 9 * 60,
         "SP-10": 10 * 60,
+        "SP-12": 12 * 60 + 20,
         "SP-13": 13 * 60,
         "SP-15": 15 * 60 + 30,
         "SP-17": 17 * 60,
         "SP-19": 19 * 60,
         "SP-20": 20 * 60,
         "BA-10": 10 * 60,
+        "BA-11": 11 * 60,
         "BA-12": 12 * 60,
         "BA-15": 15 * 60,
         "BA-19": 19 * 60,
