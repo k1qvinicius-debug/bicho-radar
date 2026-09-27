@@ -157,8 +157,10 @@ def get_lottery_slots(lottery_code: Optional[str] = "RJ", target_date: Optional[
             return [{"code": "FED", "name": "Federal 11h (Domingo) - 11:00", "time": "11:00", "order": 1}]
         elif dow == 2:  # Quarta às 20h00
             return [{"code": "FED", "name": "Federal 20h (Quarta) - 20:00", "time": "20:00", "order": 1}]
+        elif dow == 5:  # Sábado às 20h00
+            return [{"code": "FED", "name": "Federal 20h (Sábado) - 20:00", "time": "20:00", "order": 1}]
         else:
-            return [{"code": "FED", "name": "Federal (Quarta e Domingo)", "time": "20:00", "order": 1}]
+            return [{"code": "FED", "name": "Federal 20h (Quarta e Sábado)", "time": "20:00", "order": 1}]
 
     elif lot_code == "RJ":
         # Às quartas (dow=2), a extração das 18h no RJ é a Loteria Federal das 20h
