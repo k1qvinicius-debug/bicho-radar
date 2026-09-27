@@ -639,6 +639,21 @@ async function initSlotSelector(lottery = currentLottery) {
         } else {
           slots = [{ code: 'FED', name: 'Federal 20h (Quarta e Sábado) - 20:00', time: '20:00', order: 1 }];
         }
+      } else if (lottery === 'BAHIA') {
+        slots = [
+          { code: 'BA-10', name: 'PT Bahia 10h - 10:00', time: '10:00', order: 1 },
+          { code: 'BA-12', name: 'PT Bahia 12h - 12:00', time: '12:00', order: 2 },
+          { code: 'BA-15', name: 'PT Bahia 15h - 15:00', time: '15:00', order: 3 },
+          { code: 'BA-19', name: 'PT Bahia 19h - 19:00', time: '19:00', order: 4 },
+          { code: 'BA-21', name: 'Coruja Bahia - 21:00', time: '21:00', order: 5 },
+        ];
+      } else if (lottery === 'MINAS') {
+        slots = [
+          { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00', order: 1 },
+          { code: 'MG-15', name: 'Minas Dia 15h - 15:00', time: '15:00', order: 2 },
+          { code: 'MG-19', name: 'Minas Noite 19h - 19:00', time: '19:00', order: 3 },
+          { code: 'MG-21', name: 'Preferida 21h - 21:00', time: '21:00', order: 4 },
+        ];
       } else {
         slots = [
           { code: 'PPT', name: 'PPT - 09:20', time: '09:20' },
@@ -961,21 +976,27 @@ function updateLotteryButtonsUI() {
     'LOOK': 'Look (LOOK)',
     'NACIONAL': 'Loteria Nacional',
     'SP': 'São Paulo (SP)',
-    'FEDERAL': 'Loteria Federal'
+    'FEDERAL': 'Loteria Federal',
+    'BAHIA': 'Bahia (Paratodos)',
+    'MINAS': 'Minas Gerais'
   };
   const pureNames = {
     'RJ': 'Rio de Janeiro',
     'LOOK': 'Look',
     'NACIONAL': 'Loteria Nacional',
     'SP': 'São Paulo',
-    'FEDERAL': 'Loteria Federal'
+    'FEDERAL': 'Loteria Federal',
+    'BAHIA': 'Bahia',
+    'MINAS': 'Minas Gerais'
   };
   const lotIcons = {
     'RJ': '🌴',
     'LOOK': '🌾',
     'NACIONAL': '🇧🇷',
     'SP': '🏙️',
-    'FEDERAL': '🏛️'
+    'FEDERAL': '🏛️',
+    'BAHIA': '☀️',
+    'MINAS': '🔺'
   };
 
   const badge = document.getElementById('active-lottery-badge');
@@ -1159,7 +1180,9 @@ window.switchLottery = async function(lotteryCode, force = false) {
     'LOOK': 'Look',
     'NACIONAL': 'Nacional',
     'SP': 'São Paulo',
-    'FEDERAL': 'Federal'
+    'FEDERAL': 'Federal',
+    'BAHIA': 'Bahia',
+    'MINAS': 'Minas Gerais'
   };
   showToast(`Loteria alterada para ${lotLabels[lotteryCode] || lotteryCode}!`, 'info');
 };
@@ -4073,7 +4096,9 @@ const RESULTS_LOTTERIES_CATALOG = [
   { code: 'LOOK', name: 'Look', state: 'LK', icon: '🎯' },
   { code: 'SP', name: 'São Paulo', state: 'SP', icon: '🏙️' },
   { code: 'NACIONAL', name: 'Loteria Nacional', state: 'BR', icon: '🇧🇷' },
-  { code: 'FEDERAL', name: 'Loteria Federal', state: 'FED', icon: '⚖️' },
+  { code: 'FEDERAL', name: 'Loteria Federal', state: 'FED', icon: '🏛️' },
+  { code: 'BAHIA', name: 'Bahia', state: 'BA', icon: '☀️' },
+  { code: 'MINAS', name: 'Minas Gerais', state: 'MG', icon: '🔺' },
 ];
 
 window.selectResultLottery = async function (lotteryCode) {
@@ -6238,7 +6263,7 @@ window.navigateToLotteryPrediction = async function(event, lottery, slot) {
 window.getAnimalActiveLotteries = function(groupNum) {
   const picks = window._currentActiveLotteryPicks || {};
   const matches = [];
-  const order = ['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL'];
+  const order = ['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL', 'BAHIA', 'MINAS'];
   
   order.forEach(lot => {
     const lotData = picks[lot];
@@ -6919,7 +6944,7 @@ window.selectMatrizAnimal = async function(groupNum) {
             ? window.getAnimalActiveLotteries(groupNum)
             : [];
 
-          const dailyLots = ['RJ', 'LOOK', 'NACIONAL', 'SP'];
+          const dailyLots = ['RJ', 'LOOK', 'NACIONAL', 'SP', 'BAHIA', 'MINAS'];
           const fedMatch = animalMatches.find(m => m.lottery === 'FEDERAL');
           const dailyMatchesCount = animalMatches.filter(m => m.lottery !== 'FEDERAL').length;
 
