@@ -132,6 +132,8 @@ def get_metrics_by_lottery():
             "NACIONAL": {"name": "Loteria Nacional", "emoji": "🇧🇷", "color": "cyan", "badge": "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"},
             "SP": {"name": "São Paulo", "emoji": "🏙️", "color": "purple", "badge": "bg-purple-500/20 text-purple-300 border-purple-500/40"},
             "FEDERAL": {"name": "Loteria Federal", "emoji": "🏛️", "color": "amber", "badge": "bg-amber-500/20 text-amber-300 border-amber-500/40"},
+            "BAHIA": {"name": "Bahia", "emoji": "☀️", "color": "orange", "badge": "bg-orange-500/20 text-orange-300 border-orange-500/40"},
+            "MINAS": {"name": "Minas Gerais", "emoji": "🔺", "color": "rose", "badge": "bg-rose-500/20 text-rose-300 border-rose-500/40"},
         }
 
         result = []
