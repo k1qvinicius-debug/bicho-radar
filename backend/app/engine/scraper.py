@@ -316,11 +316,15 @@ def sync_bichocerto_lottery(lottery_code: str, url: str) -> Dict[str, Any]:
                 else:
                     slot_code = f"LN-{hour_num:02d}"
             elif lottery_code == "SP":
-                if hour_num in [8, 9]:
+                if hour_num == 8:
                     slot_code = "SP-08"
+                elif hour_num == 9:
+                    slot_code = "SP-09"
                 elif hour_num in [10, 11]:
                     slot_code = "SP-10"
-                elif hour_num in [12, 13, 14]:
+                elif hour_num == 12:
+                    slot_code = "SP-12"
+                elif hour_num in [13, 14]:
                     slot_code = "SP-13"
                 elif hour_num in [15, 16]:
                     slot_code = "SP-15"
@@ -335,7 +339,9 @@ def sync_bichocerto_lottery(lottery_code: str, url: str) -> Dict[str, Any]:
             elif lottery_code in ["BAHIA", "BA"]:
                 if hour_num in [9, 10]:
                     slot_code = "BA-10"
-                elif hour_num in [11, 12, 13]:
+                elif hour_num == 11:
+                    slot_code = "BA-11"
+                elif hour_num in [12, 13]:
                     slot_code = "BA-12"
                 elif hour_num in [14, 15, 16]:
                     slot_code = "BA-15"
