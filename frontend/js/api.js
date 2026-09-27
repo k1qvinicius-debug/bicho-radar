@@ -639,7 +639,7 @@ const api = {
   async getResults(limit = 20, offset = 0, slotOrLottery = null, startDate = null, endDate = null, lottery = null) {
     let slot = null;
     let lot = lottery;
-    const knownLotteries = ['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL'];
+    const knownLotteries = ['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL', 'BAHIA', 'MINAS'];
     if (slotOrLottery && knownLotteries.includes(slotOrLottery)) {
       lot = slotOrLottery;
     } else if (slotOrLottery) {
