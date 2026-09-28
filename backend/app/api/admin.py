@@ -198,6 +198,15 @@ def update_tenant(tenant_id: int, data: TenantUpdateModel):
         if data.expires_at is not None:
             updates.append("expires_at = ?")
             params.append(data.expires_at)
+        if data.trial_expires_at is not None:
+            updates.append("trial_expires_at = ?")
+            params.append(data.trial_expires_at)
+        if data.subscription_status is not None:
+            updates.append("subscription_status = ?")
+            params.append(data.subscription_status)
+        if data.plan_type is not None:
+            updates.append("plan_type = ?")
+            params.append(data.plan_type)
 
         if updates:
             params.append(tenant_id)
@@ -223,6 +232,9 @@ def update_tenant(tenant_id: int, data: TenantUpdateModel):
             status=updated["status"],
             notes=updated["notes"],
             expires_at=updated["expires_at"],
+            trial_expires_at=updated.get("trial_expires_at"),
+            subscription_status=updated.get("subscription_status", "active"),
+            plan_type=updated.get("plan_type", "free"),
             last_active_at=updated["last_active_at"],
             created_at=updated["created_at"] or "",
             snapshots_count=updated["snapshots_count"] or 0
@@ -250,6 +262,30 @@ def delete_tenant(tenant_id: int):
         cursor.execute("DELETE FROM analysis_snapshots WHERE tenant_id = ?", (tenant_id,))
         cursor.execute("DELETE FROM tenants WHERE id = ?", (tenant_id,))
         return {"message": f"Testador '{row['name']}' removido com sucesso."}
+
+
+@router.post("/tenants/{tenant_id}/expire-trial")
+def expire_tenant_trial(tenant_id: int):
+    """Encerra imediatamente o período de degustação do usuário, bloqueando acesso e exibindo tela de planos."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+        expired_date = "2026-09-27 12:00:00"
+        cursor.execute("""
+            UPDATE tenants 
+            SET trial_expires_at = ?, subscription_status = 'expired'
+            WHERE id = ?
+        """, (expired_date, tenant_id))
+
+        return {
+            "message": f"Período de degustação de '{row['name']}' encerrado com sucesso. O usuário foi bloqueado e será direcionado à tela de planos.",
+            "subscription_status": "expired",
+            "trial_expires_at": expired_date
+        }
 
 
 @router.post("/tenants/{tenant_id}/add-trial")
