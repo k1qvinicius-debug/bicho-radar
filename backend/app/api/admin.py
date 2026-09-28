@@ -609,6 +609,23 @@ def get_financial_report(group_by: str = "week", range_days: int = 90):
     }
 
 
+@router.post("/financial/clear")
+def clear_financial_data():
+    """Zera todo o histórico financeiro, transações de teste e assinaturas demonstrativas."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM subscription_payments")
+        # Também reseta usuários de teste que foram ativados como demonstração
+        cursor.execute("""
+            UPDATE tenants 
+            SET subscription_status = 'expired', plan_type = 'free', trial_expires_at = '2026-09-27 12:00:00'
+            WHERE role != 'admin' AND plan_type != 'lifetime' AND (subscription_status = 'active' OR id = 185)
+        """)
+        return {
+            "message": "Histórico de faturamento e vendas zerado com sucesso. Tudo limpo para as vendas reais!"
+        }
+
+
 @router.post("/financial/seed-demo")
 def seed_financial_demo():
     """Popula dados realistas de demonstração para visualização imediata do dashboard financeiro."""
