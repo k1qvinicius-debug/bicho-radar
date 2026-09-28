@@ -117,51 +117,83 @@ def list_tenants():
 
 @router.post("/tenants", response_model=TenantModel)
 def create_tenant(data: TenantCreateModel):
-    """Cria um novo testador gerando chave de acesso única para compartilhamento."""
+    """Cria um novo cliente gerando chave de acesso única para compartilhamento."""
     name = data.name.strip()
     if not name:
-        raise HTTPException(status_code=400, detail="O nome do testador é obrigatório.")
+        raise HTTPException(status_code=400, detail="O nome do cliente é obrigatório.")
 
-    # Se chave não for informada, gera uma chave limpa (ex: teste-7a8b9c)
-    key = data.tenant_key.strip() if data.tenant_key and data.tenant_key.strip() else generate_clean_key()
+    # Se chave não for informada, gera uma chave limpa (ex: vip-7a8b9c)
+    key = data.tenant_key.strip() if data.tenant_key and data.tenant_key.strip() else generate_clean_key("vip")
+
+    import time
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    days = data.days if data.days and data.days > 0 else 5
+    trial_expire_ts = time.time() + (days * 86400)
+    trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
+    
+    plan_type = data.plan_type or "free"
+    sub_status = "active" if plan_type != "free" else (data.subscription_status or "trial")
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT id FROM tenants WHERE tenant_key = ?", (key,))
         if cursor.fetchone():
-            raise HTTPException(status_code=400, detail=f"A chave '{key}' já está em uso por outro testador.")
+            raise HTTPException(status_code=400, detail=f"A chave/senha '{key}' já está em uso por outro cliente.")
 
         cursor.execute("""
-            INSERT INTO tenants (name, email, phone, tenant_key, role, status, notes, expires_at)
-            VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
+            INSERT INTO tenants (
+                name, email, phone, tenant_key, password, role, status,
+                subscription_status, plan_type, trial_started_at, trial_expires_at,
+                notes, expires_at, created_at, last_active_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             name,
             data.email.strip().lower() if data.email else None,
             data.phone.strip() if data.phone else None,
             key,
+            key,
             data.role or "tester",
+            sub_status,
+            plan_type,
+            now_str,
+            trial_expire_str,
             data.notes.strip() if data.notes else None,
-            data.expires_at
+            trial_expire_str,
+            now_str,
+            now_str
         ))
         new_id = cursor.lastrowid
 
         cursor.execute("SELECT * FROM tenants WHERE id = ?", (new_id,))
         row = cursor.fetchone()
 
+        from ..auth import calculate_trial_info
+        t_dict = dict(row)
+        t_dict["subscription_status"] = sub_status
+        t_dict["plan_type"] = plan_type
+        t_dict["trial_expires_at"] = trial_expire_str
+        t_info = calculate_trial_info(t_dict)
+
         return TenantModel(
             id=row["id"],
             name=row["name"],
             email=row.get("email"),
             phone=row.get("phone"),
-            password=row.get("password"),
+            password=row.get("password") or key,
             tenant_key=row["tenant_key"],
             role=row["role"],
             status=row["status"],
             notes=row["notes"],
-            expires_at=row["expires_at"],
+            expires_at=trial_expire_str,
+            trial_started_at=now_str,
+            trial_expires_at=trial_expire_str,
+            subscription_status=sub_status,
+            plan_type=plan_type,
             last_active_at=row["last_active_at"],
-            created_at=row["created_at"] or "",
-            snapshots_count=0
+            created_at=row["created_at"] or now_str,
+            snapshots_count=0,
+            trial_days_remaining=t_info["days_remaining"]
         )
 
 
