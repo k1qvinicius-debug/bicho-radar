@@ -236,6 +236,22 @@ def update_tenant(tenant_id: int, data: TenantUpdateModel):
         if data.subscription_status is not None:
             updates.append("subscription_status = ?")
             params.append(data.subscription_status)
+            if data.subscription_status == "trial" and data.trial_expires_at is None:
+                import time
+                now_ts = time.time()
+                cur_expire = row.get("trial_expires_at")
+                is_cur_expired = True
+                if cur_expire:
+                    try:
+                        cur_ts = time.mktime(time.strptime(str(cur_expire).split(".")[0], "%Y-%m-%d %H:%M:%S"))
+                        if cur_ts > now_ts:
+                            is_cur_expired = False
+                    except Exception:
+                        pass
+                if is_cur_expired:
+                    new_exp_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(now_ts + (5 * 86400)))
+                    updates.append("trial_expires_at = ?")
+                    params.append(new_exp_str)
         if data.plan_type is not None:
             updates.append("plan_type = ?")
             params.append(data.plan_type)
@@ -321,7 +337,7 @@ def expire_tenant_trial(tenant_id: int):
 
 
 @router.post("/tenants/{tenant_id}/add-trial")
-def add_trial_days(tenant_id: int, days: int = 7):
+def add_trial_days(tenant_id: int, days: int = 5):
     """Adiciona mais dias de teste ao usuário selecionado."""
     import time
     with get_db_connection() as conn:
@@ -331,13 +347,23 @@ def add_trial_days(tenant_id: int, days: int = 7):
         if not row:
             raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
-        # Novo prazo: time.time() + (days * 86400)
-        new_expire_ts = time.time() + (days * 86400)
+        now_ts = time.time()
+        start_ts = now_ts
+        current_expire_str = row["trial_expires_at"]
+        if current_expire_str:
+            try:
+                cur_ts = time.mktime(time.strptime(str(current_expire_str).split(".")[0], "%Y-%m-%d %H:%M:%S"))
+                if cur_ts > now_ts:
+                    start_ts = cur_ts
+            except Exception:
+                pass
+
+        new_expire_ts = start_ts + (days * 86400)
         new_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(new_expire_ts))
 
         cursor.execute("""
             UPDATE tenants 
-            SET trial_expires_at = ?, subscription_status = 'trial', status = 'active'
+            SET trial_expires_at = ?, subscription_status = 'trial', plan_type = 'free', status = 'active'
             WHERE id = ?
         """, (new_expire_str, tenant_id))
 
