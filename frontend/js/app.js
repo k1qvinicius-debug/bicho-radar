@@ -6294,7 +6294,7 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
                   <span>${badgeLabel}</span>
                 </span>
                 <span class="text-xs sm:text-sm font-black text-white">
-                  🎯 Bateu na mosca! Nossa análise cravou em cheio!
+                  🔥 BINGO! Nossa análise cravou em cheio!
                 </span>
               </div>
               <div class="flex items-baseline gap-2 pt-0.5 flex-wrap">
