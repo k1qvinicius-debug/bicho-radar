@@ -258,14 +258,23 @@ function setupHistoryEvents() {
 
 function getCanonicalLottery(s) {
   if (!s) return 'RJ';
+  const rawLot = String(s.lottery || '').toUpperCase().trim();
+  if (rawLot === 'BAHIA' || rawLot === 'BA') return 'BAHIA';
+  if (rawLot === 'MINAS' || rawLot === 'MG') return 'MINAS';
+  if (rawLot === 'LOOK' || rawLot === 'LK') return 'LOOK';
+  if (rawLot === 'SP') return 'SP';
+  if (rawLot === 'NACIONAL' || rawLot === 'LN') return 'NACIONAL';
+  if (rawLot === 'FEDERAL' || rawLot === 'FED') return 'FEDERAL';
+
   const slot = String(s.target_slot || s.slot || '').toUpperCase().trim();
+  if (slot.startsWith('BA-') || slot.startsWith('BAHIA') || slot.includes('BAHIA')) return 'BAHIA';
+  if (slot.startsWith('MG-') || slot.startsWith('MINAS') || slot.includes('MINAS') || slot === 'ALV' || slot === 'MALV') return 'MINAS';
   if (slot.startsWith('LK-') || slot.startsWith('LOOK')) return 'LOOK';
   if (slot.startsWith('SP-') || slot.startsWith('BAND') || slot.includes('SP')) return 'SP';
   if (slot.startsWith('LN-') || slot.startsWith('NAC')) return 'NACIONAL';
   if (slot === 'FED' || slot === 'FEDERAL' || slot.startsWith('FED')) return 'FEDERAL';
-  if (['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR', 'ALV'].includes(slot) || slot.startsWith('RJ')) return 'RJ';
-  const lot = (s.lottery || '').toUpperCase();
-  return (lot && lot !== 'NULL') ? lot : 'RJ';
+  if (['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'].includes(slot) || slot.startsWith('RJ')) return 'RJ';
+  return (rawLot && rawLot !== 'NULL') ? rawLot : 'RJ';
 }
 
 function getLotteryBadge(s) {
@@ -283,6 +292,12 @@ function getLotteryBadge(s) {
   if (lot === 'FEDERAL') {
     return `<span class="px-2 py-0.5 rounded bg-amber-500/25 text-amber-300 font-bold text-[10px] uppercase border border-amber-500/50 flex items-center gap-1"><span>🏛️</span> <span>FEDERAL</span></span>`;
   }
+  if (lot === 'BAHIA') {
+    return `<span class="px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 font-bold text-[10px] uppercase border border-orange-500/40 flex items-center gap-1"><span>☀️</span> <span>BAHIA</span></span>`;
+  }
+  if (lot === 'MINAS') {
+    return `<span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold text-[10px] uppercase border border-rose-500/40 flex items-center gap-1"><span>🔺</span> <span>MINAS GERAIS</span></span>`;
+  }
   return `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px] uppercase border border-amber-500/40 flex items-center gap-1"><span>🌴</span> <span>RIO (RJ)</span></span>`;
 }
 
@@ -292,7 +307,9 @@ function computeLotteryRankingFromSnapshots(snapshots) {
     RJ: { name: 'Rio de Janeiro', emoji: '🌴', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
     NACIONAL: { name: 'Loteria Nacional', emoji: '🇧🇷', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
     SP: { name: 'São Paulo', emoji: '🏙️', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
-    FEDERAL: { name: 'Loteria Federal', emoji: '🏛️', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' }
+    FEDERAL: { name: 'Loteria Federal', emoji: '🏛️', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+    BAHIA: { name: 'Bahia', emoji: '☀️', badge: 'bg-orange-500/20 text-orange-300 border-orange-500/40' },
+    MINAS: { name: 'Minas Gerais', emoji: '🔺', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' }
   };
 
   const agg = {};
@@ -429,7 +446,9 @@ async function loadMetricsBySlot(lottery = null) {
       'RJ': 'Rio de Janeiro',
       'NACIONAL': 'Loteria Nacional',
       'SP': 'São Paulo',
-      'FEDERAL': 'Loteria Federal'
+      'FEDERAL': 'Loteria Federal',
+      'BAHIA': 'Bahia',
+      'MINAS': 'Minas Gerais'
     };
     if (lot && lotNames[lot.toUpperCase()]) {
       titleEl.innerHTML = `Desempenho por Horário: <span class="text-indigo-400 font-bold">${lotNames[lot.toUpperCase()]}</span>`;
@@ -439,7 +458,7 @@ async function loadMetricsBySlot(lottery = null) {
   }
 
   // Atualiza abas do quadro de horários
-  const slotTabs = ['all', 'look', 'rj', 'nacional', 'sp', 'federal'];
+  const slotTabs = ['all', 'look', 'rj', 'nacional', 'sp', 'federal', 'bahia', 'minas'];
   slotTabs.forEach((tabKey) => {
     const tabBtn = document.getElementById(`slot-tab-${tabKey}`);
     if (tabBtn) {
@@ -465,6 +484,8 @@ async function loadMetricsBySlot(lottery = null) {
       'NACIONAL': { name: 'Loteria Nacional', emoji: '🇧🇷', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
       'SP': { name: 'São Paulo', emoji: '🏙️', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
       'FEDERAL': { name: 'Loteria Federal', emoji: '🏛️', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+      'BAHIA': { name: 'Bahia', emoji: '☀️', badge: 'bg-orange-500/20 text-orange-300 border-orange-500/40' },
+      'MINAS': { name: 'Minas Gerais', emoji: '🔺', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
     };
 
     const renderTableRows = (items) => items.map((item) => `
@@ -533,7 +554,7 @@ async function loadMetricsBySlot(lottery = null) {
       grouped[l].push(item);
     });
 
-    const orderedLots = ['LOOK', 'RJ', 'SP', 'NACIONAL', 'FEDERAL'].filter((k) => grouped[k] && grouped[k].length > 0);
+    const orderedLots = ['LOOK', 'RJ', 'SP', 'NACIONAL', 'FEDERAL', 'BAHIA', 'MINAS'].filter((k) => grouped[k] && grouped[k].length > 0);
 
     container.innerHTML = `
       <div class="space-y-4">
@@ -937,7 +958,7 @@ window.setHistoryScoreFilter = function(scoreType) {
 window.setHistoryLotteryFilter = function(lotteryCode) {
   activeHistoryLotteryFilter = lotteryCode;
 
-  const lotteries = ['all', 'rj', 'look', 'nacional', 'sp', 'federal'];
+  const lotteries = ['all', 'rj', 'look', 'nacional', 'sp', 'federal', 'bahia', 'minas'];
   lotteries.forEach((l) => {
     const isAct = l.toUpperCase() === lotteryCode.toUpperCase() || (l === 'all' && lotteryCode === 'all');
     const btn = document.getElementById(`btn-lottery-${l}`);
@@ -966,7 +987,9 @@ window.setHistoryLotteryFilter = function(lotteryCode) {
       'RJ': 'Rio de Janeiro',
       'NACIONAL': 'Loteria Nacional',
       'SP': 'São Paulo',
-      'FEDERAL': 'Loteria Federal'
+      'FEDERAL': 'Loteria Federal',
+      'BAHIA': 'Bahia',
+      'MINAS': 'Minas Gerais'
     };
     if (lotteryCode !== 'all' && lotNames[lotteryCode.toUpperCase()]) {
       titleEl.innerHTML = `Indicadores de Assertividade: <span class="text-indigo-400 font-bold">${lotNames[lotteryCode.toUpperCase()]}</span>`;
