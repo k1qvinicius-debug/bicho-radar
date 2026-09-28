@@ -127,7 +127,7 @@ def create_tenant(data: TenantCreateModel):
 
     import time
     now_str = time.strftime("%Y-%m-%d %H:%M:%S")
-    days = data.days if data.days and data.days > 0 else 5
+    days = data.days if data.days and data.days > 0 else 3
     trial_expire_ts = time.time() + (days * 86400)
     trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
     
@@ -337,7 +337,7 @@ def expire_tenant_trial(tenant_id: int):
 
 
 @router.post("/tenants/{tenant_id}/add-trial")
-def add_trial_days(tenant_id: int, days: int = 5):
+def add_trial_days(tenant_id: int, days: int = 3):
     """Adiciona mais dias de teste ao usuário selecionado."""
     import time
     with get_db_connection() as conn:
@@ -743,7 +743,7 @@ def get_settings():
     """Retorna as configurações do sistema para o painel de administração."""
     return SystemSettingsModel(
         support_whatsapp=get_system_setting("support_whatsapp", ""),
-        trial_days=int(get_system_setting("trial_days", "5")),
+        trial_days=int(get_system_setting("trial_days", "3")),
         app_name=get_system_setting("app_name", "Bicho Master Pro"),
         google_client_id=get_system_setting("google_client_id", ""),
         plan_link_monthly=get_system_setting("plan_link_monthly", ""),
