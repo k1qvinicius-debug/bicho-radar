@@ -494,8 +494,8 @@ window.loadTenantsTable = async function() {
       const isAdmin = t.role === 'admin';
       const isActive = t.status === 'active';
       const isGoogle = t.auth_provider === 'google';
-      const isSubscriber = t.subscription_status === 'active' && t.plan_type === 'subscriber';
-      const isExpired = !isAdmin && (t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining <= 0));
+      const isSubscriber = t.subscription_status === 'active' && t.plan_type !== 'free';
+      const isExpired = !isAdmin && (t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0));
       const userPass = t.password || t.tenant_key || '---';
 
       const roleBadge = isAdmin
@@ -506,8 +506,12 @@ window.loadTenantsTable = async function() {
 
       const statusBadge = isActive
         ? (isExpired
-            ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">🔒 EXPIRADO</span>'
-            : `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">${isAdmin ? 'ATIVO' : `ATIVO (${t.trial_days_remaining !== undefined ? t.trial_days_remaining : 7}d)`}</span>`)
+            ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">🔒 EXPIRADO</span>'
+            : (isAdmin
+                ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ATIVO</span>'
+                : (isSubscriber
+                    ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ATIVO (${t.trial_days_remaining !== undefined && t.trial_days_remaining !== null ? t.trial_days_remaining : 30}d)</span>`
+                    : `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">ATIVO (${t.trial_days_remaining !== undefined && t.trial_days_remaining !== null ? t.trial_days_remaining : 5}d)</span>`)))
         : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">SUSPENSO</span>';
 
       const providerBadge = isGoogle
@@ -523,6 +527,13 @@ window.loadTenantsTable = async function() {
               title="Escolher plano (Mensal, Trimestral, Semestral, Anual) para este usuário">
               <span>⭐</span> <span>Ativar Plano</span>
             </button>
+            ${(!isAdmin && !isExpired && !isSubscriber) ? `
+              <button type="button" onclick="expireTenantTrial(${t.id}, '${t.name.replace(/'/g, "\\'")}')"
+                class="px-2 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 border border-rose-800/80 font-bold text-[11px] transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                title="Encerrar degustação imediatamente (bloquear usuário no app e direcionar para tela de planos)">
+                <span>🔒</span> <span>Expirar</span>
+              </button>
+            ` : ''}
             <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${t.name.replace(/'/g, "\'")}', this, '${t.phone || ''}', '${userPass}')"
               class="px-2 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-[11px] transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
               title="${t.phone ? 'Abrir conversa direta no WhatsApp do usuário' : 'Copiar link e senha para envio no WhatsApp'}">
@@ -713,6 +724,21 @@ Bons palpites e boas apostas!`;
       btn.disabled = false;
       btn.innerHTML = '<span>⭐</span> <span>Confirmar e Ativar Acesso</span>';
     }
+  }
+};
+
+
+
+window.expireTenantTrial = async function(id, name) {
+  if (!confirm(`Deseja realmente encerrar o período de degustação de "${name}" agora?\n\nO usuário será bloqueado no aplicativo e verá imediatamente a tela para assinar um plano.`)) {
+    return;
+  }
+  try {
+    const res = await api.expireTenantTrial(id);
+    showToast(res.message || 'Período de teste encerrado com sucesso!', 'success');
+    await loadTenantsTable();
+  } catch (err) {
+    showToast('Erro ao encerrar teste: ' + err.message, 'error');
   }
 };
 
