@@ -787,6 +787,11 @@ def get_recent_bingos():
                 continue
             seen_keys.add(unique_key)
 
+            origin = "RADAR"
+            origin_label = f"Radar do Horário ({d['lottery']} {d['target_slot']})"
+            origin_badge = "🎯 Palpite do Horário"
+            origin_desc = f"Centena gerada pelos algoritmos estatísticos de frequência e atraso específicos da banca {d['lottery']} ({d['target_slot']})."
+
             bingos.append({
                 "id": d["id"],
                 "draw_id": d.get("draw_id") or d["id"],
@@ -796,6 +801,10 @@ def get_recent_bingos():
                 "hit_number": hit_number,
                 "prize_1": p1,
                 "prize_desc": prize_desc,
+                "origin": origin,
+                "origin_label": origin_label,
+                "origin_badge": origin_badge,
+                "origin_desc": origin_desc,
                 "lottery": d["lottery"],
                 "slot": d["target_slot"],
                 "date": d["target_date"],
@@ -872,6 +881,10 @@ def get_recent_bingos():
                         "hit_number": m1,
                         "prize_1": p1,
                         "prize_desc": f"1º Prêmio ({anim['name']} - Chave Mestra • Cruzamento de Precisão)",
+                        "origin": "CHAVE_MESTRA",
+                        "origin_label": "Chave Mestra (Matriz 3x3)",
+                        "origin_badge": "⚡ Chave Mestra 3x3",
+                        "origin_desc": f"Projeção cabalística da Chave Mestra e confluência do Grid 3x3 do Dia ({dt}).",
                         "lottery": lot,
                         "slot": slot,
                         "date": dt,
@@ -892,6 +905,10 @@ def get_recent_bingos():
                         "hit_number": c1,
                         "prize_1": p1,
                         "prize_desc": f"1º Prêmio ({anim['name']} - Chave Mestra • Centena de Ouro)",
+                        "origin": "CHAVE_MESTRA",
+                        "origin_label": "Chave Mestra (Matriz 3x3)",
+                        "origin_badge": "⚡ Chave Mestra 3x3",
+                        "origin_desc": f"Centena de Ouro da Chave Mestra formada pelos dígitos da Matriz 3x3 do Dia ({dt}).",
                         "lottery": lot,
                         "slot": slot,
                         "date": dt,
