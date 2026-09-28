@@ -264,6 +264,8 @@ class TenantCreateModel(BaseModel):
     notes: Optional[str] = None
     expires_at: Optional[str] = None
     subscription_status: Optional[str] = "trial"
+    plan_type: Optional[str] = "free"
+    days: Optional[int] = 5
 
 
 class TenantUpdateModel(BaseModel):
