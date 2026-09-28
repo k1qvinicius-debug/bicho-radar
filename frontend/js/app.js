@@ -80,7 +80,7 @@ window.handleCompleteProfile = async function(event) {
     await api.completeProfile({ phone, password });
     closeCompleteProfileModal();
     if (typeof showToast === 'function') {
-      showToast('🎉 Perfil concluído com sucesso! Aproveite seus 5 dias grátis.', 'success');
+      showToast('🎉 Perfil concluído com sucesso! Aproveite seus 3 dias grátis.', 'success');
     }
   } catch (err) {
     if (errEl) {
@@ -4777,7 +4777,7 @@ function formatDateBR(dateStr) {
 }
 
 /* ==========================================================================
-   AUTENTICAÇÃO & SESSÃO MULTI-TENANT (GOOGLE & TESTE GRÁTIS DE 5 DIAS)
+   AUTENTICAÇÃO & SESSÃO MULTI-TENANT (GOOGLE & TESTE GRÁTIS DE 3 DIAS)
    ========================================================================== */
 async function initTenantAuth() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -4848,7 +4848,7 @@ window.showTrialExpiredModal = async function() {
         <div class="flex items-center gap-3 w-full">
           <span class="text-2xl shrink-0">🔒</span>
           <div>
-            <div class="font-black text-rose-300 text-sm sm:text-base">Seu período de teste grátis de 5 dias encerrou!</div>
+            <div class="font-black text-rose-300 text-sm sm:text-base">Seu período de teste grátis de 3 dias encerrou!</div>
             <div class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
               Para continuar gerando palpites com Inteligência Artificial, Centena Master, Cruz do Dia e fechamentos para todas as loterias, escolha um plano abaixo para liberar seu acesso imediato:
             </div>
@@ -6073,7 +6073,7 @@ window.copyAllCentenaMaster = function(btn) {
 
 
 // ===================================================================
-// AUTENTICAÇÃO PROFISSIONAL: ABAS, SENHA E CADASTRO 5 DIAS
+// AUTENTICAÇÃO PROFISSIONAL: ABAS, SENHA E CADASTRO 3 DIAS
 // ===================================================================
 
 window.switchAuthGateTab = function(tab) {
@@ -6152,7 +6152,7 @@ window.handleMainRegister = async function(event) {
   if (errEl) errEl.classList.add('hidden');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span>⏳</span> <span>Ativando 5 Dias Grátis...</span>';
+    btn.innerHTML = '<span>⏳</span> <span>Ativando 3 Dias Grátis...</span>';
   }
 
   try {
@@ -6164,7 +6164,7 @@ window.handleMainRegister = async function(event) {
     });
 
     if (typeof showToast === 'function') {
-      showToast('🎉 Bem-vindo! Seus 5 dias de Teste VIP foram ativados com sucesso.', 'success');
+      showToast('🎉 Bem-vindo! Seus 3 dias de Teste VIP foram ativados com sucesso.', 'success');
     }
     updateAuthUI();
     updateHomeScreenData();
@@ -6177,7 +6177,7 @@ window.handleMainRegister = async function(event) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<span>🚀</span> <span>Ativar Meus 5 Dias Grátis Agora</span>';
+      btn.innerHTML = '<span>🚀</span> <span>Ativar Meus 3 Dias Grátis Agora</span>';
     }
   }
 };
@@ -6204,7 +6204,7 @@ window.closePlansModal = function() {
   );
 
   if (isExpired) {
-    showToast('🔒 Seu período de teste de 5 dias encerrou. Escolha um plano abaixo para continuar!', 'warning');
+    showToast('🔒 Seu período de teste de 3 dias encerrou. Escolha um plano abaixo para continuar!', 'warning');
     return;
   }
 
