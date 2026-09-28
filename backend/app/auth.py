@@ -224,18 +224,19 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
 
 def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email: str, phone: Optional[str] = None) -> Optional[str]:
     """
-    Verifica se o IP, dispositivo (device_id) ou telefone já criou uma conta de teste no sistema.
-    Retorna uma mensagem de erro caso o abuso seja detectado, ou None se estiver liberado.
+    Verifica abuso no cadastro de novos testes gratuitos:
+    - Permite múltiplos usuários na mesma rede (Wi-Fi, 4G, CGNAT celular).
+    - Bloqueia WhatsApp duplicado.
+    - Bloqueia apenas ataques de bots com mais de 25 cadastros do mesmo IP em 24h.
     Administrador Master nunca é bloqueado.
     """
     if not current_email:
         return None
     email_clean = current_email.strip().lower()
-    if email_clean in ("k1qvinicius@gmail.com", "admin", "admin@bichomasterpro.tech"):
+    if email_clean in ("k1qvinicius@gmail.com", "k1qvinicius.cs@gmail.com", "admin", "admin@bichomasterpro.tech"):
         return None
 
     ip_clean = (ip or "").strip()
-    device_clean = (device_id or "").strip()
     phone_digits = re.sub(r"\D", "", phone or "")
 
     with get_db_connection() as conn:
@@ -254,33 +255,17 @@ def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email
             if row:
                 return "Este número de WhatsApp já possui cadastro de teste. Acesse a aba 'Já Sou Membro' para entrar ou chame o suporte."
 
-        # 2. Verifica por Device ID (impressão digital do dispositivo/navegador)
-        if device_clean:
+        # 2. Proteção contra bots / flood abusivo por IP (máximo de 25 contas por IP em 24h)
+        if ip_clean and ip_clean not in ("127.0.0.1", "::1", "localhost", "172.17.0.1", "172.18.0.1", "172.19.0.1", "172.20.0.1"):
             cursor.execute("""
-                SELECT email, name, subscription_status, created_at
-                FROM tenants
-                WHERE device_id = ?
-                  AND role != 'admin'
-                  AND LOWER(COALESCE(email, '')) != ?
-                ORDER BY id ASC LIMIT 1
-            """, (device_clean, email_clean))
-            row = cursor.fetchone()
-            if row:
-                return "O período de teste grátis de 5 dias já foi utilizado neste dispositivo. Para continuar utilizando as ferramentas e palpites, escolha um dos nossos Planos VIP."
-
-        # 3. Verifica por IP de Registro ou Último IP (da mesma rede)
-        if ip_clean and ip_clean not in ("127.0.0.1", "::1", "localhost"):
-            cursor.execute("""
-                SELECT email, name, subscription_status, created_at
-                FROM tenants
+                SELECT COUNT(*) FROM tenants
                 WHERE (registration_ip = ? OR last_ip = ?)
                   AND role != 'admin'
-                  AND LOWER(COALESCE(email, '')) != ?
-                ORDER BY id ASC LIMIT 1
-            """, (ip_clean, ip_clean, email_clean))
-            row = cursor.fetchone()
-            if row:
-                return "O período de teste grátis de 5 dias já foi utilizado nesta rede/conexão de internet. Para continuar utilizando, escolha um dos nossos Planos VIP."
+                  AND created_at >= datetime('now', '-24 hours')
+            """, (ip_clean, ip_clean))
+            count_row = cursor.fetchone()
+            if count_row and count_row[0] >= 25:
+                return "Limite de novos cadastros temporariamente atingido para esta conexão. Por favor, contate o suporte no WhatsApp."
 
     return None
 
