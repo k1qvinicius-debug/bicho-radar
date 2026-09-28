@@ -305,8 +305,8 @@ const api = {
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Erro ao criar testador.' }));
-      throw new Error(err.detail || 'Erro ao criar testador.');
+      const err = await res.json().catch(() => ({ detail: 'Erro ao cadastrar cliente.' }));
+      throw new Error(err.detail || 'Erro ao cadastrar cliente.');
     }
     return await res.json();
   },
