@@ -379,6 +379,18 @@ const api = {
   },
 
   // Relatórios Financeiros e Faturamento
+    async clearFinancialData() {
+    const res = await fetch(`${API_BASE}/admin/financial/clear`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders() }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Erro ao zerar dados financeiros.');
+    }
+    return await res.json();
+  },
+
   async getFinancialReport(groupBy = 'week', rangeDays = 90) {
     const params = new URLSearchParams({ group_by: groupBy, range_days: rangeDays });
     const res = await fetch(`${API_BASE}/admin/financial/report?${params.toString()}`, {
