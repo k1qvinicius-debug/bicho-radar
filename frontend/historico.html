@@ -129,7 +129,7 @@
         </button>
       </div>
 
-      <div id="lottery-ranking-container" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+      <div id="lottery-ranking-container" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5">
         <div class="text-xs text-slate-500 col-span-full py-2 text-center animate-pulse">Carregando ranking das loterias...</div>
       </div>
     </div>
@@ -151,6 +151,8 @@
           <button type="button" onclick="setHistoryLotteryFilter('SP')" id="slot-tab-sp" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🏙️ SP</button>
           <button type="button" onclick="setHistoryLotteryFilter('NACIONAL')" id="slot-tab-nacional" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🇧🇷 Nacional</button>
           <button type="button" onclick="setHistoryLotteryFilter('FEDERAL')" id="slot-tab-federal" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🏛️ Federal</button>
+          <button type="button" onclick="setHistoryLotteryFilter('BAHIA')" id="slot-tab-bahia" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">☀️ Bahia</button>
+          <button type="button" onclick="setHistoryLotteryFilter('MINAS')" id="slot-tab-minas" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-all text-xs cursor-pointer">🔺 Minas</button>
         </div>
       </div>
       <div id="slot-metrics-container">
@@ -201,6 +203,14 @@
             <button type="button" onclick="setHistoryLotteryFilter('FEDERAL')" id="btn-lottery-federal"
               class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
               🏛️ Federal
+            </button>
+            <button type="button" onclick="setHistoryLotteryFilter('BAHIA')" id="btn-lottery-bahia"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              ☀️ Bahia
+            </button>
+            <button type="button" onclick="setHistoryLotteryFilter('MINAS')" id="btn-lottery-minas"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 transition-all">
+              🔺 Minas Gerais
             </button>
           </div>
         </div>
@@ -400,6 +410,6 @@
   </div>
 
   <script src="/js/api.js?v=1790367946"></script>
-  <script src="/js/history.js?v=1790604137"></script>
+  <script src="/js/history.js?v=1790627200"></script>
 </body>
 </html>
