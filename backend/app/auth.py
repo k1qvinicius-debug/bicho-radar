@@ -102,7 +102,7 @@ def generate_clean_key(prefix: str = "teste") -> str:
     return f"{prefix}-{rand}"
 
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
@@ -257,12 +257,13 @@ def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email
 
         # 2. Proteção contra bots / flood abusivo por IP (máximo de 25 contas por IP em 24h)
         if ip_clean and ip_clean not in ("127.0.0.1", "::1", "localhost", "172.17.0.1", "172.18.0.1", "172.19.0.1", "172.20.0.1"):
+            cutoff = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
             cursor.execute("""
                 SELECT COUNT(*) FROM tenants
                 WHERE (registration_ip = ? OR last_ip = ?)
                   AND role != 'admin'
-                  AND created_at >= datetime('now', '-24 hours')
-            """, (ip_clean, ip_clean))
+                  AND created_at >= ?
+            """, (ip_clean, ip_clean, cutoff))
             count_row = cursor.fetchone()
             if count_row and count_row[0] >= 25:
                 return "Limite de novos cadastros temporariamente atingido para esta conexão. Por favor, contate o suporte no WhatsApp."
