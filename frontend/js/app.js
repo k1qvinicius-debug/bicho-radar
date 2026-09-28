@@ -159,7 +159,24 @@ window.addEventListener('hashchange', () => {
    NAVEGAÇÃO PRINCIPAL EM TELAS NORMAIS (SINGLE PAGE VIEWS)
    Telas: 'home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados'
    ========================================================================== */
-window.switchScreen = function(screenName, updateHash = true) {
+window./* Helper para validar se o slot pertence a respectiva loteria */
+function doesSlotBelongToLottery(slotCode, lotteryCode) {
+  if (!slotCode || !lotteryCode) return false;
+  const s = slotCode.toUpperCase().trim();
+  const lot = lotteryCode.toUpperCase().trim();
+  if (lot === 'FEDERAL') return s === 'FED' || s.startsWith('FED');
+  if (lot === 'SP') return s.startsWith('SP-') || s.startsWith('BAND') || s.includes('SP');
+  if (lot === 'LOOK') return s.startsWith('LK-') || s.startsWith('LOOK');
+  if (lot === 'NACIONAL') return s.startsWith('LN-') || s.startsWith('NAC');
+  if (lot === 'BAHIA') return s.startsWith('BA-') || s.includes('BAHIA');
+  if (lot === 'MINAS') return s.startsWith('MG-') || s.includes('MINAS') || s === 'ALV' || s === 'MALV';
+  if (lot === 'RJ') return ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'].includes(s) || s.startsWith('RJ');
+  return true;
+}
+window.doesSlotBelongToLottery = doesSlotBelongToLottery;
+window._userSelectedSlot = null;
+
+switchScreen = function(screenName, updateHash = true) {
   const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   if (!screens.includes(screenName)) screenName = 'home';
 
@@ -213,11 +230,9 @@ window.switchScreen = function(screenName, updateHash = true) {
       // Sincronização garantida: se a tela aberta for Palpites e os horários no DOM pertencerem a outra banca, sincroniza imediatamente
       const firstPill = document.querySelector('#lottery-slots-pills .slot-pill-btn');
       const pillSlot = firstPill ? firstPill.getAttribute('data-slot') : null;
-      const isPillFed = pillSlot === 'FED';
-      const isLotFed = currentLottery === 'FEDERAL';
-      const hasMismatch = (isLotFed && !isPillFed) || (!isLotFed && isPillFed) || !firstPill;
+      const hasMismatch = !firstPill || !doesSlotBelongToLottery(pillSlot, currentLottery);
       if (hasMismatch) {
-        initSlotSelector(currentLottery).then(() => {
+        initSlotSelector(currentLottery, window._userSelectedSlot).then(() => {
           if (typeof loadPrediction === 'function') loadPrediction();
         });
       }
@@ -652,7 +667,7 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
   return { code, name: drawSlotCode, time: '' };
 }
 
-async function initSlotSelector(lottery = currentLottery) {
+async function initSlotSelector(lottery = currentLottery, preferredSlot = null) {
   const slotSelect = document.getElementById('target-slot');
   if (!slotSelect) return;
 
@@ -796,7 +811,11 @@ async function initSlotSelector(lottery = currentLottery) {
 
     let defaultSlot = slots[0].code;
 
-    if (isToday) {
+    if (preferredSlot && slots.some(s => s.code === preferredSlot)) {
+      defaultSlot = preferredSlot;
+    } else if (window._userSelectedSlot && slots.some(s => s.code === window._userSelectedSlot)) {
+      defaultSlot = window._userSelectedSlot;
+    } else if (isToday) {
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
       // Encontra o próximo horário alvo que ainda não foi apurado hoje e não passou
@@ -856,6 +875,8 @@ async function initSlotSelector(lottery = currentLottery) {
   }
 }
 
+window.initSlotSelector = initSlotSelector;
+
 /* ==========================================================================
    MONITOR EM TEMPO REAL: DETECÇÃO INSTANTÂNEA DE NOVAS APURAÇÕES
    ========================================================================== */
@@ -898,12 +919,17 @@ function startInstantResultsMonitor() {
         // 2. Recarrega os resultados
         await loadDrawResults();
 
-        // 3. Atualiza o seletor de horários para avançar automaticamente para o próximo pendente
-        await initSlotSelector(currentLottery);
-
-        // 4. Recarrega palpites instantaneamente com a nova base apurada
-        if (api.isLoggedIn()) {
-          await loadPrediction(true);
+        // 3. Atualiza o seletor de horários (apenas avança se o usuário não cravou um horário anterior)
+        if (!window._userSelectedSlot) {
+          await initSlotSelector(currentLottery);
+          if (api.isLoggedIn()) {
+            await loadPrediction(true);
+          }
+        } else {
+          // Atualiza apenas os palpites do horário cravado pelo usuário com a nova apuração
+          if (api.isLoggedIn()) {
+            await loadPrediction(true);
+          }
         }
 
         // 5. Se o modal/tela de puxadas estiver aberto, atualiza imediatamente
@@ -921,6 +947,10 @@ function startInstantResultsMonitor() {
         showToast(`⚡ Novo resultado apurado: ${latest.slot} - ${p1} ${animalInfo}! Palpites e Puxadas atualizados instantaneamente.`, 'success');
       } else {
         // Verifica periodicamente se o horário do slot atualmente selecionado já expirou no relógio de hoje
+        // IMPORTANTE: Se o usuário cravou manualmente um horário anterior para ver palpites passados, NÃO reseta!
+        if (window._userSelectedSlot) {
+          return;
+        }
         const targetDate = document.getElementById('target-date')?.value || null;
         const now = new Date();
         const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -967,11 +997,18 @@ window.toggleLotteryFilterCard = function() {
 };
 
 window.selectSlotFromPill = async function(slotCode) {
+  window._userSelectedSlot = slotCode; // Crava o horário selecionado pelo usuário
   const slotSelect = document.getElementById('target-slot');
   if (slotSelect) {
+    let selectedOpt = Array.from(slotSelect.options).find(o => o.value === slotCode);
+    if (!selectedOpt) {
+      selectedOpt = document.createElement('option');
+      selectedOpt.value = slotCode;
+      selectedOpt.textContent = slotCode;
+      slotSelect.appendChild(selectedOpt);
+    }
     slotSelect.value = slotCode;
-    const selectedOpt = Array.from(slotSelect.options).find(o => o.value === slotCode);
-    if (selectedOpt) selectedOpt.selected = true;
+    selectedOpt.selected = true;
 
     const homeNextSlot = document.getElementById('home-next-slot-name');
     if (homeNextSlot && selectedOpt) {
@@ -1214,13 +1251,12 @@ window.switchLottery = async function(lotteryCode, force = false) {
   // Verifica se o estado visual das pílulas de horário bate com a loteria desejada
   const firstPill = document.querySelector('#lottery-slots-pills .slot-pill-btn');
   const pillSlot = firstPill ? firstPill.getAttribute('data-slot') : null;
-  const isPillFed = pillSlot === 'FED';
-  const isLotFed = lotteryCode === 'FEDERAL';
-  const hasMismatch = (isLotFed && !isPillFed) || (!isLotFed && isPillFed) || !firstPill;
+  const hasMismatch = !firstPill || !doesSlotBelongToLottery(pillSlot, lotteryCode);
 
   if (!force && !hasMismatch && lotteryCode === currentLottery) {
     return;
   }
+  window._userSelectedSlot = null; // Reseta seleção cravada ao mudar de banca
   currentLottery = lotteryCode;
   window.currentLottery = lotteryCode;
   localStorage.setItem('bicho_active_lottery', lotteryCode);
@@ -1297,6 +1333,7 @@ function setupEventListeners() {
   const slotSelect = document.getElementById('target-slot');
   if (slotSelect) {
     slotSelect.addEventListener('change', () => {
+      window._userSelectedSlot = slotSelect.value;
       updateSlotPillsUI(slotSelect.value);
       loadPrediction();
       loadDrawResults();
@@ -4688,6 +4725,7 @@ window.selectResultDate = function(dateStr) {
 };
 
 window.selectSlotForPrediction = function(slotCode, dateStr = null) {
+  window._userSelectedSlot = slotCode;
   switchMainTab('palpites');
   const targetSlotEl = document.getElementById('target-slot');
   if (targetSlotEl) {
