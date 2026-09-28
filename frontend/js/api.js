@@ -138,7 +138,6 @@ const api = {
     }
     if (!res.ok) {
       const detail = (data && data.detail) ? data.detail : 'Falha ao cadastrar perfil.';
-      notifyTrialExpiredIfForbidden(res.status, data || {});
       throw new Error(detail);
     }
     if (!data || !data.token) {
