@@ -122,7 +122,6 @@ def seed_other_lotteries(num_days: int = 35) -> Dict[str, int]:
                 inserted_by_lottery[lot] = cnt
                 continue
 
-            slots = [s["code"] for s in get_lottery_slots(lot)]
             count_inserted = 0
 
             for d in range(num_days + 1):
@@ -133,6 +132,8 @@ def seed_other_lotteries(num_days: int = 35) -> Dict[str, int]:
                 # Federal só corre quarta (2) e domingo (6)
                 if lot == "FEDERAL" and weekday not in [2, 6]:
                     continue
+
+                slots = [s["code"] for s in get_lottery_slots(lot, target_date=date_str)]
 
                 for slot in slots:
                     if cur_date == datetime.now().date() and slot == slots[-1]:
