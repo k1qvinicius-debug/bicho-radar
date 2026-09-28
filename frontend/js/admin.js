@@ -1,3 +1,8 @@
+function escapeJsString(str) {
+  if (!str) return '';
+  return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 /**
  * Lógica do Painel Administrativo - Bicho Analytics
  * Gerencia autenticação master, multi-tenants, resultados e calibração de pesos.
@@ -473,129 +478,305 @@ window.deleteDraw = async function (id) {
 };
 
 // =========================================================================
-// GESTÃO DE TESTADORES / MULTI-TENANTS
+// GESTÃO PROFISSIONAL DE CLIENTES & ASSINANTES (SAAS)
 // =========================================================================
+
+let allTenantsList = [];
+let currentTenantFilter = 'all'; // 'all' | 'subscribers' | 'trial' | 'expired'
+let currentTenantSearch = '';
+
+window.setTenantFilter = function(filterType, btnEl) {
+  currentTenantFilter = filterType;
+  
+  // Atualiza classes visuais dos botões de filtro
+  document.querySelectorAll('.btn-tenant-filter').forEach(btn => {
+    btn.classList.remove('bg-indigo-600', 'text-white', 'shadow');
+    btn.classList.add('bg-slate-800', 'text-slate-300');
+  });
+  if (btnEl) {
+    btnEl.classList.remove('bg-slate-800', 'text-slate-300');
+    btnEl.classList.add('bg-indigo-600', 'text-white', 'shadow');
+  }
+  
+  window.renderFilteredClientsList();
+};
+
+window.handleClientSearch = function(query) {
+  currentTenantSearch = (query || '').toLowerCase().trim();
+  window.renderFilteredClientsList();
+};
 
 window.loadTenantsTable = async function() {
   const container = document.getElementById('tenants-table-container');
+  const adminsContainer = document.getElementById('admins-list-container');
   const countEl = document.getElementById('tenants-count');
   if (!container) return;
 
   try {
     const tenants = await api.getTenants();
-    if (countEl) countEl.textContent = tenants.length;
+    allTenantsList = tenants || [];
 
-    if (tenants.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 py-6 text-center">Nenhum testador cadastrado ainda.</p>';
-      return;
+    // 1. Separar Administradores Master dos Clientes Comuns
+    const admins = allTenantsList.filter(t => t.role === 'admin');
+    const clients = allTenantsList.filter(t => t.role !== 'admin');
+
+    // 2. Renderizar Administradores Master na seção de topo exclusiva
+    if (adminsContainer) {
+      if (admins.length === 0) {
+        adminsContainer.innerHTML = '<p class="text-xs text-amber-200/60 py-2">Nenhum administrador adicional configurado.</p>';
+      } else {
+        adminsContainer.innerHTML = admins.map(adm => {
+          const userPass = adm.password || adm.tenant_key || '---';
+          const isGoogle = adm.auth_provider === 'google';
+          return `
+            <div class="p-3 rounded-xl bg-slate-950/75 border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-md hover:border-amber-500/50 transition-all">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-lg shadow-md shrink-0">
+                  👑
+                </div>
+                <div class="space-y-0.5 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h4 class="font-black text-sm text-amber-200 truncate">${adm.name}</h4>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      👑 MASTER ADMIN
+                    </span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      ATIVO
+                    </span>
+                    ${isGoogle ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30">🌐 Google</span>' : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Manual</span>'}
+                  </div>
+                  <div class="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+                    ${adm.email ? `<span class="text-slate-300 font-mono text-[11px]">${adm.email}</span>` : ''}
+                    ${adm.phone ? `<span class="text-slate-400 font-mono text-[11px]">📱 ${adm.phone}</span>` : ''}
+                    <span class="text-slate-600">•</span>
+                    <span class="inline-flex items-center gap-1">
+                      <span class="text-amber-400 font-bold">Senha Master:</span>
+                      <button type="button" onclick="copySimpleText('${userPass}', 'Senha Master')" title="Copiar senha master"
+                        class="font-mono font-black text-amber-200 bg-slate-900 px-2 py-0.5 rounded border border-amber-500/40 hover:border-amber-300 hover:text-white transition-colors cursor-pointer text-xs shadow-sm">
+                        ${userPass} 📋
+                      </button>
+                    </span>
+                    <span class="text-slate-600">•</span>
+                    <span>Análises: <strong class="text-indigo-300 font-mono">${adm.snapshots_count}</strong></span>
+                    <span class="text-slate-600">•</span>
+                    <span>Último Acesso: <span class="font-mono text-slate-300">${adm.last_active_at ? adm.last_active_at.replace(/^2026-/, '') : 'Nunca'}</span></span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="text-[11px] font-bold text-amber-400/90 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 flex items-center gap-1">
+                  <span>🛡️</span> <span>Conta Master Protegida</span>
+                </span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
 
-    container.innerHTML = tenants.map(t => {
-      const isAdmin = t.role === 'admin';
-      const isActive = t.status === 'active';
-      const isGoogle = t.auth_provider === 'google';
-      const isSubscriber = t.subscription_status === 'active' && t.plan_type !== 'free';
-      const isExpired = !isAdmin && (t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0));
-      const userPass = t.password || t.tenant_key || '---';
+    // 3. Atualizar KPIs de Clientes
+    const totalClients = clients.length;
+    const subscribers = clients.filter(t => t.subscription_status === 'active' && t.plan_type !== 'free');
+    const expired = clients.filter(t => t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0));
+    const trial = clients.filter(t => !expired.includes(t) && !subscribers.includes(t));
 
-      const roleBadge = isAdmin
-        ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">👑 MASTER ADMIN</span>'
-        : isSubscriber
-        ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">⭐ ASSINANTE</span>'
-        : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">TESTE VIP</span>';
+    const statTotalEl = document.getElementById('stat-total-clients');
+    const statSubEl = document.getElementById('stat-subscribers');
+    const statTrialEl = document.getElementById('stat-trial-clients');
+    const statExpEl = document.getElementById('stat-expired-clients');
 
-      const statusBadge = isActive
-        ? (isExpired
-            ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">🔒 EXPIRADO</span>'
-            : (isAdmin
-                ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ATIVO</span>'
-                : (isSubscriber
-                    ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ATIVO (${t.trial_days_remaining !== undefined && t.trial_days_remaining !== null ? t.trial_days_remaining : 30}d)</span>`
-                    : `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">ATIVO (${t.trial_days_remaining !== undefined && t.trial_days_remaining !== null ? t.trial_days_remaining : 5}d)</span>`)))
-        : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">SUSPENSO</span>';
+    if (statTotalEl) statTotalEl.textContent = totalClients;
+    if (statSubEl) statSubEl.textContent = subscribers.length;
+    if (statTrialEl) statTrialEl.textContent = trial.length;
+    if (statExpEl) statExpEl.textContent = expired.length;
 
-      const providerBadge = isGoogle
-        ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30">🌐 Google</span>'
-        : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Manual</span>';
+    // Atualizar badges dos filtros
+    const fcAll = document.getElementById('filter-count-all');
+    const fcSub = document.getElementById('filter-count-subscribers');
+    const fcTrial = document.getElementById('filter-count-trial');
+    const fcExp = document.getElementById('filter-count-expired');
 
-      const actionsHtml = isAdmin
-        ? '<span class="text-[10px] text-slate-500 italic">Conta Master</span>'
-        : `
-          <div class="flex items-center gap-1 flex-wrap">
-            <button type="button" onclick="openPlanActivationModal(${t.id}, '${t.name.replace(/'/g, "\\'")}', '${t.phone || ''}', '${userPass}')"
-              class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-              title="Escolher plano (Mensal, Trimestral, Semestral, Anual) para este usuário">
-              <span>⭐</span> <span>Ativar Plano</span>
-            </button>
-            ${(!isAdmin && !isExpired && !isSubscriber) ? `
-              <button type="button" onclick="expireTenantTrial(${t.id}, '${t.name.replace(/'/g, "\\'")}')"
-                class="px-2 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 border border-rose-800/80 font-bold text-[11px] transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-                title="Encerrar período de teste imediatamente (bloquear usuário no app e direcionar para tela de planos)">
-                <span>🔒</span> <span>Expirar</span>
+    if (fcAll) fcAll.textContent = totalClients;
+    if (fcSub) fcSub.textContent = subscribers.length;
+    if (fcTrial) fcTrial.textContent = trial.length;
+    if (fcExp) fcExp.textContent = expired.length;
+
+    // 4. Renderizar Lista de Clientes com Filtros Ativos
+    window.renderFilteredClientsList();
+
+  } catch (err) {
+    if (container) {
+      container.innerHTML = `<p class="text-xs text-rose-400 py-6 text-center">Erro ao carregar clientes: ${err.message}</p>`;
+    }
+  }
+};
+
+window.renderFilteredClientsList = function() {
+  const container = document.getElementById('tenants-table-container');
+  const countEl = document.getElementById('tenants-count');
+  if (!container) return;
+
+  const clients = allTenantsList.filter(t => t.role !== 'admin');
+
+  // Filtragem por status/categoria
+  let filtered = clients.filter(t => {
+    const isSub = t.subscription_status === 'active' && t.plan_type !== 'free';
+    const isExp = t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0);
+    const isTrial = !isExp && !isSub;
+
+    if (currentTenantFilter === 'subscribers') return isSub;
+    if (currentTenantFilter === 'trial') return isTrial;
+    if (currentTenantFilter === 'expired') return isExp;
+    return true; // 'all'
+  });
+
+  // Filtragem por busca em tempo real
+  if (currentTenantSearch) {
+    filtered = filtered.filter(t => {
+      const q = currentTenantSearch;
+      const matchName = (t.name || '').toLowerCase().includes(q);
+      const matchPhone = (t.phone || '').toLowerCase().includes(q);
+      const matchEmail = (t.email || '').toLowerCase().includes(q);
+      const matchNotes = (t.notes || '').toLowerCase().includes(q);
+      const matchKey = (t.tenant_key || '').toLowerCase().includes(q);
+      return matchName || matchPhone || matchEmail || matchNotes || matchKey;
+    });
+  }
+
+  if (countEl) {
+    countEl.textContent = `${filtered.length} de ${clients.length}`;
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800">
+        <span class="text-2xl block mb-2">🔍</span>
+        <p class="text-xs text-slate-400 font-semibold">Nenhum cliente encontrado com os filtros atuais.</p>
+        <p class="text-[11px] text-slate-500 mt-1">Experimente mudar o filtro acima ou limpar o campo de busca.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(t => {
+    const isActive = t.status === 'active';
+    const isGoogle = t.auth_provider === 'google';
+    const isSubscriber = t.subscription_status === 'active' && t.plan_type !== 'free';
+    const isExpired = t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0);
+    const userPass = t.password || t.tenant_key || '---';
+
+    let planBadge = '';
+    if (isSubscriber) {
+      const planName = t.plan_type === 'monthly' ? 'MENSAL' : (t.plan_type === 'trimestral' ? 'TRIMESTRAL' : (t.plan_type === 'semestral' ? 'SEMESTRAL' : (t.plan_type === 'anual' ? 'ANUAL' : 'VIP')));
+      planBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">⭐ ASSINANTE ${planName}</span>`;
+    } else if (isExpired) {
+      planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">🔒 TESTE EXPIRADO</span>';
+    } else {
+      const days = t.trial_days_remaining !== undefined && t.trial_days_remaining !== null ? t.trial_days_remaining : 5;
+      planBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">⏳ TESTE VIP (${days}d restantes)</span>`;
+    }
+
+    const statusBadge = isActive
+      ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ATIVO</span>'
+      : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">SUSPENSO</span>';
+
+    const providerBadge = isGoogle
+      ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30">🌐 Google</span>'
+      : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Manual</span>';
+
+    return `
+      <div class="p-3 sm:p-3.5 rounded-xl bg-slate-900/85 border ${isSubscriber ? 'border-emerald-500/30 bg-emerald-950/10' : (isExpired ? 'border-rose-500/30 bg-rose-950/10' : 'border-slate-800')} hover:border-slate-700 flex flex-col lg:flex-row lg:items-center justify-between gap-3 transition-all shadow-sm">
+        <div class="space-y-1.5 min-w-0">
+          <!-- Linha 1: Nome, Contatos e Badges -->
+          <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+            <h4 class="font-black text-xs sm:text-sm text-white truncate max-w-[200px]">${t.name}</h4>
+            ${t.email ? `<span class="text-[11px] text-indigo-300 font-mono bg-indigo-950/40 px-1.5 py-0.2 rounded border border-indigo-900/50 truncate max-w-[220px]">${t.email}</span>` : ''}
+            ${t.phone ? `<a href="https://wa.me/55${t.phone.replace(/\D/g, '')}" target="_blank" class="text-[11px] text-emerald-400 font-mono bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-800/80 hover:bg-emerald-900/60 transition-colors inline-flex items-center gap-0.5 font-bold" title="Conversar no WhatsApp">📱 ${t.phone}</a>` : '<span class="text-[10px] text-slate-500 font-mono italic">Sem tel</span>'}
+            ${providerBadge}
+            ${planBadge}
+            ${statusBadge}
+          </div>
+
+          <!-- Linha 2: Senha Real, Análises, Último Acesso e Notas -->
+          <div class="flex items-center gap-2 text-[11px] text-slate-400 flex-wrap">
+            <span class="inline-flex items-center gap-1">
+              <span class="text-amber-400 font-bold">🔑 Senha:</span>
+              <button type="button" onclick="copySimpleText('${userPass}', 'Senha')" title="Clique para copiar a senha deste cliente"
+                class="font-mono font-black text-amber-200 bg-slate-950 px-2 py-0.5 rounded border border-amber-500/40 hover:border-amber-300 hover:text-white transition-colors cursor-pointer text-xs shadow-sm">
+                ${userPass} 📋
               </button>
+            </span>
+            ${(t.tenant_key && t.password && t.tenant_key !== t.password) ? `<span class="text-[10px] text-slate-600 font-mono hidden sm:inline" title="Chave Técnica">(${t.tenant_key})</span>` : ''}
+
+            <span class="text-slate-700">•</span>
+            <span>Análises: <strong class="text-indigo-300 font-mono">${t.snapshots_count}</strong></span>
+
+            <span class="text-slate-700">•</span>
+            <span>Acesso: <span class="font-mono text-slate-300">${t.last_active_at ? t.last_active_at.replace(/^2026-/, '') : 'Nunca'}</span></span>
+
+            ${t.notes ? `
+              <span class="text-slate-700">•</span>
+              <span class="text-[10px] text-slate-500 italic truncate max-w-[200px]" title="${t.notes}">📝 ${t.notes}</span>
             ` : ''}
-            <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${t.name.replace(/'/g, "\'")}', this, '${t.phone || ''}', '${userPass}')"
-              class="px-2 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-[11px] transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-              title="${t.phone ? 'Abrir conversa direta no WhatsApp do usuário' : 'Copiar link e senha para envio no WhatsApp'}">
-              <span>📲</span> <span>WhatsApp</span>
-            </button>
-            <button type="button" onclick="toggleTenantStatus(${t.id}, '${t.status}')"
-              class="px-2 py-1 rounded-lg ${isActive ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60 hover:bg-amber-900/60' : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60'} font-bold text-[11px] transition-all cursor-pointer" title="${isActive ? 'Suspender' : 'Reativar'}">
-              ${isActive ? '⏸️' : '▶️'}
-            </button>
-            <button type="button" onclick="deleteTenantAccount(${t.id}, '${t.name.replace(/'/g, "\'")}')"
-              class="px-2 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 font-bold text-[11px] transition-all cursor-pointer" title="Excluir">
-              🗑️
-            </button>
-          </div>
-        `;
-
-      return `
-        <div class="p-2 sm:p-2.5 rounded-xl bg-slate-900/85 border border-slate-800 hover:border-slate-700 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 transition-all">
-          <div class="space-y-1 min-w-0">
-            <!-- Linha 1: Nome, Contatos e Badges -->
-            <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-              <h4 class="font-black text-xs sm:text-sm text-white truncate max-w-[200px]">${t.name}</h4>
-              ${t.email ? `<span class="text-[11px] text-indigo-300 font-mono bg-indigo-950/40 px-1.5 py-0.2 rounded border border-indigo-900/50 truncate max-w-[220px]">${t.email}</span>` : ''}
-              ${t.phone ? `<a href="https://wa.me/55${t.phone.replace(/\D/g, '')}" target="_blank" class="text-[11px] text-emerald-400 font-mono bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-800/80 hover:bg-emerald-900/60 transition-colors inline-flex items-center gap-0.5 font-bold" title="Conversar no WhatsApp">📱 ${t.phone}</a>` : '<span class="text-[10px] text-slate-500 font-mono italic">Sem tel</span>'}
-              ${providerBadge}
-              ${roleBadge}
-              ${statusBadge}
-            </div>
-
-            <!-- Linha 2: Senha Real, Análises, Último Acesso e Notas -->
-            <div class="flex items-center gap-2 text-[11px] text-slate-400 flex-wrap">
-              <span class="inline-flex items-center gap-1">
-                <span class="text-amber-400 font-bold">🔑 Senha:</span>
-                <button type="button" onclick="copySimpleText('${userPass}', 'Senha')" title="Clique para copiar a senha deste usuário"
-                  class="font-mono font-black text-amber-200 bg-slate-950 px-2 py-0.5 rounded border border-amber-500/40 hover:border-amber-300 hover:text-white transition-colors cursor-pointer text-xs shadow-sm">
-                  ${userPass} 📋
-                </button>
-              </span>
-              ${(t.tenant_key && t.password && t.tenant_key !== t.password) ? `<span class="text-[10px] text-slate-600 font-mono hidden sm:inline" title="Chave Técnica">(${t.tenant_key})</span>` : ''}
-
-              <span class="text-slate-700">•</span>
-              <span>Análises: <strong class="text-indigo-300 font-mono">${t.snapshots_count}</strong></span>
-
-              <span class="text-slate-700">•</span>
-              <span>Acesso: <span class="font-mono text-slate-300">${t.last_active_at ? t.last_active_at.replace(/^2026-/, '') : 'Nunca'}</span></span>
-
-              ${t.notes ? `
-                <span class="text-slate-700">•</span>
-                <span class="text-[10px] text-slate-500 italic truncate max-w-[200px]" title="${t.notes}">📝 ${t.notes}</span>
-              ` : ''}
-            </div>
-          </div>
-
-          <!-- Ações Compactas -->
-          <div class="pt-1.5 lg:pt-0 border-t lg:border-t-0 border-slate-800 shrink-0">
-            ${actionsHtml}
           </div>
         </div>
-      `;
-    }).join('');
+
+        <!-- Linha 3 / Ações Rápidas -->
+        <div class="pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-800 shrink-0 flex items-center gap-1.5 flex-wrap">
+          <button type="button" onclick="openPlanActivationModal(${t.id}, '${escapeJsString(t.name)}', '${t.phone || ''}', '${userPass}')"
+            class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+            title="Ativar plano VIP pago (Mensal, Trimestral, Semestral, Anual) e registrar venda">
+            <span>⭐</span> <span>Ativar Plano</span>
+          </button>
+
+          ${(!isExpired && !isSubscriber) ? `
+            <button type="button" onclick="expireTenantTrial(${t.id}, '${escapeJsString(t.name)}')"
+              class="px-2 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 border border-rose-800/80 font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+              title="Encerrar período de teste imediatamente (bloquear cliente e direcionar para tela de planos)">
+              <span>🔒</span> <span>Expirar</span>
+            </button>
+          ` : ''}
+
+          ${(isExpired) ? `
+            <button type="button" onclick="renewTenantTrialDays(${t.id}, '${escapeJsString(t.name)}', 5)"
+              class="px-2 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900/90 text-cyan-300 border border-cyan-800/80 font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+              title="Liberar mais 5 dias de teste grátis para este cliente">
+              <span>⏳</span> <span>+5d Teste</span>
+            </button>
+          ` : ''}
+
+          <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${escapeJsString(t.name)}', this, '${t.phone || ''}', '${userPass}')"
+            class="px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+            title="${t.phone ? 'Abrir conversa direta no WhatsApp do cliente com dados de login' : 'Copiar link e senha para envio no WhatsApp'}">
+            <span>📲</span> <span>WhatsApp</span>
+          </button>
+
+          <button type="button" onclick="toggleTenantStatus(${t.id}, '${t.status}')"
+            class="px-2 py-1.5 rounded-lg ${isActive ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60 hover:bg-amber-900/60' : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60'} font-bold text-xs transition-all cursor-pointer" title="${isActive ? 'Suspender cliente' : 'Reativar cliente'}">
+            ${isActive ? '⏸️' : '▶️'}
+          </button>
+
+          <button type="button" onclick="deleteTenantAccount(${t.id}, '${escapeJsString(t.name)}')"
+            class="px-2 py-1.5 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 font-bold text-xs transition-all cursor-pointer" title="Excluir cliente">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+window.renewTenantTrialDays = async function(tenantId, tenantName, days = 5) {
+  if (!confirm(`Deseja conceder mais ${days} dias de Teste VIP para o cliente '${tenantName}'?`)) return;
+  try {
+    const res = await api.updateTenant(tenantId, {
+      subscription_status: 'trial',
+      plan_type: 'free'
+    });
+    showToast(`Teste VIP renovado por mais ${days} dias para ${tenantName}!`, 'success');
+    await window.loadTenantsTable();
   } catch (err) {
-    container.innerHTML = `<p class="text-xs text-rose-400 py-6 text-center">Erro ao carregar testadores: ${err.message}</p>`;
+    showToast('Erro ao renovar teste: ' + err.message, 'error');
   }
 };
 
@@ -768,27 +949,35 @@ window.handleCreateTenant = async function(event) {
   const phone = document.getElementById('tenant-phone')?.value;
   const key = document.getElementById('tenant-key')?.value;
   const notes = document.getElementById('tenant-notes')?.value;
+  const planVal = document.getElementById('tenant-plan-select')?.value || 'free:5';
   const btn = document.getElementById('btn-create-tenant');
 
-  if (!name) return;
+  if (!name || !name.trim()) return;
   btn.disabled = true;
-  btn.textContent = 'Gerando...';
+  btn.textContent = 'Cadastrando...';
+
+  const [planType, daysStr] = planVal.split(':');
+  const days = parseInt(daysStr, 10) || 5;
 
   try {
-    const payload = { name };
+    const payload = {
+      name: name.trim(),
+      plan_type: planType,
+      days: days
+    };
     if (phone && phone.trim()) payload.phone = phone.trim();
     if (key && key.trim()) payload.tenant_key = key.trim();
     if (notes && notes.trim()) payload.notes = notes.trim();
 
     const created = await api.createTenant(payload);
-    showToast(`Testador '${created.name}' criado com sucesso!`, 'success');
+    showToast(`Cliente '${created.name}' cadastrado com sucesso!`, 'success');
     document.getElementById('form-add-tenant').reset();
-    await loadTenantsTable();
+    await window.loadTenantsTable();
   } catch (err) {
-    showToast('Erro ao criar testador: ' + err.message, 'error');
+    showToast('Erro ao cadastrar cliente: ' + err.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Gerar Acesso e Link de Teste';
+    btn.textContent = 'Cadastrar e Liberar Acesso';
   }
 };
 
