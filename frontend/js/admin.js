@@ -737,7 +737,7 @@ window.renderFilteredClientsList = function() {
             </button>
           ` : ''}
 
-          ${(isExpired) ? `
+          ${(!isSubscriber) ? `
             <button type="button" onclick="renewTenantTrialDays(${t.id}, '${escapeJsString(t.name)}', 5)"
               class="px-2 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900/90 text-cyan-300 border border-cyan-800/80 font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
               title="Liberar mais 5 dias de teste grátis para este cliente">
@@ -769,11 +769,8 @@ window.renderFilteredClientsList = function() {
 window.renewTenantTrialDays = async function(tenantId, tenantName, days = 5) {
   if (!confirm(`Deseja conceder mais ${days} dias de Teste VIP para o cliente '${tenantName}'?`)) return;
   try {
-    const res = await api.updateTenant(tenantId, {
-      subscription_status: 'trial',
-      plan_type: 'free'
-    });
-    showToast(`Teste VIP renovado por mais ${days} dias para ${tenantName}!`, 'success');
+    const res = await api.addTenantTrial(tenantId, days);
+    showToast(res.message || `Teste VIP renovado por mais ${days} dias para ${tenantName}!`, 'success');
     await window.loadTenantsTable();
   } catch (err) {
     showToast('Erro ao renovar teste: ' + err.message, 'error');
