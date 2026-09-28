@@ -625,7 +625,7 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
   if (code.startsWith('MG-')) {
     const mgMetas = {
       'MG-12': { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00' },
-      'MG-14': { code: 'MG-14', name: 'Salvação 13h40 (Domingo) - 13:40', time: '13:40' },
+      'MG-14': { code: 'MG-14', name: 'Salvação 13h40 - 13:40', time: '13:40' },
       'MG-15': { code: 'MG-15', name: 'Minas Dia 15h - 15:00', time: '15:00' },
       'MG-19': { code: 'MG-19', name: 'Minas Noite 19h - 19:00', time: '19:00' },
       'MG-21': { code: 'MG-21', name: 'Preferida 21h - 21:00', time: '21:00' },
@@ -669,20 +669,51 @@ async function initSlotSelector(lottery = currentLottery) {
           slots = [{ code: 'FED', name: 'Federal 20h (Quarta e Sábado) - 20:00', time: '20:00', order: 1 }];
         }
       } else if (lottery === 'BAHIA') {
-        slots = [
-          { code: 'BA-10', name: 'PT Bahia 10h - 10:00', time: '10:00', order: 1 },
-          { code: 'BA-12', name: 'PT Bahia 12h - 12:00', time: '12:00', order: 2 },
-          { code: 'BA-15', name: 'PT Bahia 15h - 15:00', time: '15:00', order: 3 },
-          { code: 'BA-19', name: 'PT Bahia 19h - 19:00', time: '19:00', order: 4 },
-          { code: 'BA-21', name: 'Coruja Bahia - 21:00', time: '21:00', order: 5 },
-        ];
+        const now = new Date();
+        let dow = now.getDay();
+        if (targetDate) {
+          try {
+            const parts = targetDate.split('-');
+            if (parts.length === 3) dow = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getDay();
+          } catch (e) {}
+        }
+        if (dow === 0) {
+          slots = [
+            { code: 'BA-10', name: 'PT Bahia 10h - 10:00', time: '10:00', order: 1 },
+            { code: 'BA-11', name: 'Federal Bahia 11h - 11:00', time: '11:00', order: 2 },
+            { code: 'BA-12', name: 'PT Bahia 12h - 12:00', time: '12:00', order: 3 },
+            { code: 'BA-15', name: 'PT Bahia 15h - 15:00', time: '15:00', order: 4 },
+          ];
+        } else {
+          slots = [
+            { code: 'BA-10', name: 'PT Bahia 10h - 10:00', time: '10:00', order: 1 },
+            { code: 'BA-12', name: 'PT Bahia 12h - 12:00', time: '12:00', order: 2 },
+            { code: 'BA-15', name: 'PT Bahia 15h - 15:00', time: '15:00', order: 3 },
+            { code: 'BA-19', name: 'PT Bahia 19h - 19:00', time: '19:00', order: 4 },
+            { code: 'BA-21', name: 'Coruja Bahia - 21:00', time: '21:00', order: 5 },
+          ];
+        }
       } else if (lottery === 'MINAS') {
-        slots = [
-          { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00', order: 1 },
-          { code: 'MG-15', name: 'Minas Dia 15h - 15:00', time: '15:00', order: 2 },
-          { code: 'MG-19', name: 'Minas Noite 19h - 19:00', time: '19:00', order: 3 },
-          { code: 'MG-21', name: 'Preferida 21h - 21:00', time: '21:00', order: 4 },
-        ];
+        const now = new Date();
+        let dow = now.getDay();
+        if (targetDate) {
+          try {
+            const parts = targetDate.split('-');
+            if (parts.length === 3) dow = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getDay();
+          } catch (e) {}
+        }
+        if (dow === 0) {
+          slots = [
+            { code: 'MG-14', name: 'Salvação 13h40 - 13:40', time: '13:40', order: 1 },
+          ];
+        } else {
+          slots = [
+            { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00', order: 1 },
+            { code: 'MG-15', name: 'Minas Dia 15h - 15:00', time: '15:00', order: 2 },
+            { code: 'MG-19', name: 'Minas Noite 19h - 19:00', time: '19:00', order: 3 },
+            { code: 'MG-21', name: 'Preferida 21h - 21:00', time: '21:00', order: 4 },
+          ];
+        }
       } else {
         slots = [
           { code: 'PPT', name: 'PPT - 09:20', time: '09:20' },
@@ -4129,7 +4160,6 @@ const OFFICIAL_LOTTERY_SLOTS = {
   ],
   BAHIA: [
     { code: 'BA-10', name: 'PT Bahia 10h - 10:00', time: '10:00' },
-    { code: 'BA-11', name: 'Federal Bahia 11h - 11:00', time: '11:00' },
     { code: 'BA-12', name: 'PT Bahia 12h - 12:00', time: '12:00' },
     { code: 'BA-15', name: 'PT Bahia 15h - 15:00', time: '15:00' },
     { code: 'BA-19', name: 'PT Bahia 19h - 19:00', time: '19:00' },
@@ -4137,7 +4167,6 @@ const OFFICIAL_LOTTERY_SLOTS = {
   ],
   MINAS: [
     { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00' },
-    { code: 'MG-14', name: 'Salvação 13h40 (Domingo) - 13:40', time: '13:40' },
     { code: 'MG-15', name: 'Minas Dia 15h - 15:00', time: '15:00' },
     { code: 'MG-19', name: 'Minas Noite 19h - 19:00', time: '19:00' },
     { code: 'MG-21', name: 'Preferida 21h - 21:00', time: '21:00' },
@@ -4348,13 +4377,13 @@ async function loadDrawResults(dateOverride = null) {
       if (isSun) {
         slots = ['BA-10', 'BA-11', 'BA-12', 'BA-15'].map(c => getFriendlySlotMeta(c, selectedResultDate));
       } else {
-        slots = baseSlots.map(s => ({ ...s }));
+        slots = baseSlots.filter(s => s.code !== 'BA-11').map(s => ({ ...s }));
       }
     } else if (lotKey === 'MINAS') {
       if (isSun) {
         slots = [getFriendlySlotMeta('MG-14', selectedResultDate)];
       } else {
-        slots = baseSlots.map(s => ({ ...s }));
+        slots = baseSlots.filter(s => s.code !== 'MG-14').map(s => ({ ...s }));
       }
     } else if (lotKey === 'SP') {
       if (isSun) {
