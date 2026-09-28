@@ -105,7 +105,7 @@
         <span>⚡</span> <span>Robô Auto-Sync</span>
       </button>
       <button data-tab-target="tab-tenants" class="px-3 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow whitespace-nowrap flex items-center gap-1.5">
-        <span>👥</span> <span>Testadores (Multi-Tenants)</span>
+        <span>👥</span> <span>Clientes & Assinantes</span>
       </button>
       <button data-tab-target="tab-financial" id="btn-tab-financial" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 whitespace-nowrap flex items-center gap-1.5 transition-all">
         <span>💰</span> <span>Faturamento & Finanças</span>
@@ -215,129 +215,239 @@
     </div>
 
         <!-- =========================================================================
-         NOVA ABA: GESTÃO DE TESTADORES / MULTI-TENANTS
+         ABA: GESTÃO DE CLIENTES & ASSINANTES VIP (SAAS)
          ========================================================================= -->
     <div id="tab-tenants" class="tab-content card-glass p-4 sm:p-5 space-y-5">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+      <!-- Cabeçalho Principal -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
           <h2 class="text-base font-black text-white flex items-center gap-2">
-            <span>👥</span> Gestão de Testadores & Multi-Tenants
+            <span>👥</span> Gestão de Clientes & Assinaturas SaaS
           </h2>
           <p class="text-xs text-slate-400 mt-0.5">
-            Crie links e chaves exclusivas para compartilhar a plataforma com seus testadores convidados sem dar acesso ao painel admin.
+            Controle central de clientes, assinantes VIP, períodos de teste e liberação de acessos exclusivos.
           </p>
         </div>
-        <button type="button" onclick="loadTenantsTable()" class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors">
-          🔄 Atualizar Lista
+        <button type="button" onclick="loadTenantsTable()" class="self-start sm:self-auto px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95">
+          <span>🔄</span> <span>Atualizar Lista</span>
         </button>
       </div>
 
-      <!-- Configuração de Suporte / WhatsApp de Vendas (Pós-Teste) -->
-      <div class="p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 space-y-3">
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-            <span>📱</span> WhatsApp para Suporte & Ativação de Membros
-          </h3>
-          <span id="whatsapp-saved-badge" class="hidden text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">✓ Configurações salvas!</span>
-        </div>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Configure seu número de WhatsApp abaixo. Quando os 5 dias de teste grátis do usuário terminarem, ele verá a tela de renovação com o botão direcionando diretamente para você.
-        </p>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-          <div class="sm:col-span-2">
-            <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Seu WhatsApp (com DDD)</label>
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-xs font-mono">🇧🇷 +55</span>
-              <input type="text" id="admin-whatsapp-input" placeholder="Ex: 21999998888 ou 11988887777"
-                class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-14 pr-3 py-2 text-xs text-slate-100 font-mono font-bold focus:border-emerald-500 focus:outline-none" />
+      <!-- SEÇÃO EXCLUSIVA: ADMINISTRADORES MASTER DO SISTEMA (Separados dos clientes normais) -->
+      <div class="p-4 rounded-xl bg-gradient-to-r from-amber-950/30 via-slate-900 to-slate-900 border border-amber-500/30 shadow-lg shadow-amber-950/20 space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-2.5 border-b border-amber-500/20">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">👑</span>
+            <div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-amber-300">
+                Administradores Master do Sistema
+              </h3>
+              <p class="text-[11px] text-slate-400">
+                Acesso total e irrestrito ao painel, robôs de auto-sync, faturamento e calibragem de pesos.
+              </p>
             </div>
           </div>
-          <div>
-            <button type="button" onclick="saveAdminSettings()" id="btn-save-settings"
-              class="w-full px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-              <span>💾</span> <span>Salvar WhatsApp</span>
-            </button>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            Acesso Irrestrito / Protegido
+          </span>
+        </div>
+        <div id="admins-list-container" class="space-y-2">
+          <!-- Renderizado via JS -->
+          <div class="text-center py-3 text-xs text-amber-300/60 animate-pulse">Carregando administradores...</div>
+        </div>
+      </div>
+
+      <!-- CARDS DE MÉTRICAS RÁPIDAS (KPIS DE CLIENTES) -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 shadow-sm">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Total de Clientes</span>
+          <div class="flex items-center justify-between">
+            <span id="stat-total-clients" class="text-xl font-black text-white font-mono">0</span>
+            <span class="text-base text-slate-500">👥</span>
+          </div>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/90 border border-emerald-500/30 shadow-sm shadow-emerald-950/20">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block mb-1">Assinantes VIP</span>
+          <div class="flex items-center justify-between">
+            <span id="stat-subscribers" class="text-xl font-black text-emerald-300 font-mono">0</span>
+            <span class="text-base text-emerald-400">⭐</span>
+          </div>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/90 border border-cyan-500/30 shadow-sm shadow-cyan-950/20">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 block mb-1">Em Teste VIP</span>
+          <div class="flex items-center justify-between">
+            <span id="stat-trial-clients" class="text-xl font-black text-cyan-300 font-mono">0</span>
+            <span class="text-base text-cyan-400">⏳</span>
+          </div>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/90 border border-rose-500/30 shadow-sm shadow-rose-950/20">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-rose-400 block mb-1">Expirados / Bloq.</span>
+          <div class="flex items-center justify-between">
+            <span id="stat-expired-clients" class="text-xl font-black text-rose-300 font-mono">0</span>
+            <span class="text-base text-rose-400">🔒</span>
           </div>
         </div>
       </div>
 
-            <!-- Configuração de Google Sign-In (OAuth Client ID) -->
-      <div class="p-4 rounded-xl bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 space-y-3">
+      <!-- FORMULÁRIO DE CADASTRO DE CLIENTE / ASSINANTE -->
+      <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800/90 space-y-3">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-            <span>🔑</span> Google OAuth Client ID (Login em 1 Clique com Contas Salvas no Navegador)
+            <span>➕</span> Cadastrar Novo Cliente / Assinante
           </h3>
-          <span id="google-saved-badge" class="hidden text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">✓ Salvo com sucesso!</span>
+          <span class="text-[11px] text-slate-500">Escolha o plano de entrada para liberar o acesso</span>
         </div>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Para que o navegador abra automaticamente a janela oficial do Google com a conta salva no Chrome (sem precisar digitar nada), cole seu <strong>Client ID</strong> gerado no Google Cloud Console abaixo.
-        </p>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-          <div class="sm:col-span-2">
-            <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Google Client ID</label>
-            <input type="text" id="admin-google-client-id-input" placeholder="Ex: 1234567890-abcdefg.apps.googleusercontent.com"
-              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono focus:border-indigo-500 focus:outline-none" />
-          </div>
-          <div>
-            <button type="button" onclick="saveAdminGoogleSettings()" id="btn-save-google-settings"
-              class="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-              <span>💾</span> <span>Salvar Client ID</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-<!-- Formulário de Criação de Testador -->
-      <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800/90 space-y-3">
-        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-          <span>➕</span> Cadastrar Novo Testador Convidado
-        </h3>
         <form id="form-add-tenant" onsubmit="handleCreateTenant(event)" class="space-y-3">
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <div>
-              <label class="block text-[11px] font-bold text-slate-400 mb-1">Nome do Testador *</label>
-              <input type="text" id="tenant-name" required placeholder="Ex: Carlos"
+          <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+            <div class="sm:col-span-1">
+              <label class="block text-[11px] font-bold text-slate-300 mb-1">Plano Inicial *</label>
+              <select id="tenant-plan-select"
+                class="w-full bg-slate-950 border border-indigo-500/50 rounded-lg p-2 text-xs text-indigo-300 font-bold focus:border-indigo-400 focus:outline-none">
+                <option value="free:5">⏳ Teste VIP (5 dias)</option>
+                <option value="monthly:30">⭐ Assinante Mensal (30 dias)</option>
+                <option value="trimestral:90">⭐ Assinante Trimestral (90 dias)</option>
+                <option value="semestral:180">⭐ Assinante Semestral (180 dias)</option>
+                <option value="anual:365">👑 Assinante Anual (365 dias)</option>
+              </select>
+            </div>
+            <div class="sm:col-span-1">
+              <label class="block text-[11px] font-bold text-slate-300 mb-1">Nome do Cliente *</label>
+              <input type="text" id="tenant-name" required placeholder="Ex: Carlos Silva"
                 class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-semibold focus:border-indigo-500 focus:outline-none" />
             </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-400 mb-1">WhatsApp / Telefone</label>
+            <div class="sm:col-span-1">
+              <label class="block text-[11px] font-bold text-slate-300 mb-1">WhatsApp / Telefone</label>
               <input type="text" id="tenant-phone" placeholder="Ex: (11) 98765-4321"
                 class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-semibold focus:border-indigo-500 focus:outline-none" />
             </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-400 mb-1">Chave / Senha (opcional)</label>
-              <input type="text" id="tenant-key" placeholder="Deixe em branco p/ gerar automática"
+            <div class="sm:col-span-1">
+              <label class="block text-[11px] font-bold text-slate-300 mb-1">Senha (opcional)</label>
+              <input type="text" id="tenant-key" placeholder="Em branco p/ gerar automática"
                 class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-mono focus:border-indigo-500 focus:outline-none" />
             </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-400 mb-1">Notas / Observação</label>
-              <input type="text" id="tenant-notes" placeholder="Ex: Grupo VIP"
+            <div class="sm:col-span-1">
+              <label class="block text-[11px] font-bold text-slate-300 mb-1">Notas / Observação</label>
+              <input type="text" id="tenant-notes" placeholder="Ex: VIP WhatsApp / Indicado"
                 class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none" />
             </div>
           </div>
 
           <div class="flex justify-end pt-1">
             <button type="submit" id="btn-create-tenant"
-              class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all active:scale-95 flex items-center gap-1.5">
-              <span>🚀</span> <span>Gerar Acesso e Link de Teste</span>
+              class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer">
+              <span>🚀</span> <span>Cadastrar e Liberar Acesso</span>
             </button>
           </div>
         </form>
       </div>
 
-      <!-- Tabela / Lista de Testadores -->
+      <!-- BARRA DE FILTROS & BUSCA EM TEMPO REAL -->
+      <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <!-- Botões de Filtro -->
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <button type="button" onclick="setTenantFilter('all', this)" class="btn-tenant-filter px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow whitespace-nowrap cursor-pointer transition-all">
+              Todos (<span id="filter-count-all">0</span>)
+            </button>
+            <button type="button" onclick="setTenantFilter('subscribers', this)" class="btn-tenant-filter px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 whitespace-nowrap cursor-pointer transition-all">
+              ⭐ Assinantes (<span id="filter-count-subscribers">0</span>)
+            </button>
+            <button type="button" onclick="setTenantFilter('trial', this)" class="btn-tenant-filter px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 whitespace-nowrap cursor-pointer transition-all">
+              ⏳ Em Teste (<span id="filter-count-trial">0</span>)
+            </button>
+            <button type="button" onclick="setTenantFilter('expired', this)" class="btn-tenant-filter px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 whitespace-nowrap cursor-pointer transition-all">
+              🔒 Expirados (<span id="filter-count-expired">0</span>)
+            </button>
+          </div>
+
+          <!-- Campo de Busca Instantânea -->
+          <div class="relative sm:w-72">
+            <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-500 text-xs">🔍</span>
+            <input type="text" id="input-search-clients" oninput="handleClientSearch(this.value)" placeholder="Buscar cliente por nome, tel ou email..."
+              class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <!-- LISTA DE CLIENTES CADASTRADOS -->
       <div class="space-y-2">
         <div class="flex items-center justify-between">
           <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-            <span>📋</span> Testadores Cadastrados (<span id="tenants-count">0</span>)
+            <span>📋</span> Clientes & Assinantes (<span id="tenants-count">0</span>)
           </h3>
-          <span class="text-[11px] text-slate-500">Cada testador possui suas próprias análises isoladas</span>
+          <span class="text-[11px] text-slate-500">Cada cliente possui suas próprias análises isoladas e seguras</span>
         </div>
         <div id="tenants-table-container" class="space-y-1.5">
           <!-- Renderizado via JS -->
-          <div class="text-center py-8 text-xs text-slate-500">Carregando testadores...</div>
+          <div class="text-center py-8 text-xs text-slate-500">Carregando clientes...</div>
         </div>
       </div>
+
+      <!-- INTEGRAÇÕES E CONFIGURAÇÕES DE SUPORTE (Acordeão Retrátil) -->
+      <details class="group rounded-xl border border-slate-800 bg-slate-900/60 p-3 transition-all [&_summary::-webkit-details-marker]:hidden">
+        <summary class="flex cursor-pointer items-center justify-between text-xs font-bold text-slate-400 hover:text-slate-200 select-none">
+          <span class="flex items-center gap-2">
+            <span>⚙️</span> <span>Configurações de Suporte (WhatsApp & Google Sign-In)</span>
+          </span>
+          <span class="transition group-open:rotate-180 text-xs">▼</span>
+        </summary>
+        <div class="mt-4 space-y-4 pt-3 border-t border-slate-800/80">
+          <!-- WhatsApp para Suporte & Ativação de Membros -->
+          <div class="p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                <span>📱</span> WhatsApp para Suporte & Ativação de Membros
+              </h3>
+              <span id="whatsapp-saved-badge" class="hidden text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">✓ Configurações salvas!</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Configure seu número de WhatsApp abaixo. Quando os dias de teste do cliente terminarem, o sistema exibirá o botão de renovação direcionando diretamente para seu atendimento.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+              <div class="sm:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Seu WhatsApp (com DDD)</label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-xs font-mono">🇧🇷 +55</span>
+                  <input type="text" id="admin-whatsapp-input" placeholder="Ex: 21999998888 ou 11988887777"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-14 pr-3 py-2 text-xs text-slate-100 font-mono font-bold focus:border-emerald-500 focus:outline-none" />
+                </div>
+              </div>
+              <div>
+                <button type="button" onclick="saveAdminSettings()" id="btn-save-settings"
+                  class="w-full px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                  <span>💾</span> <span>Salvar WhatsApp</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuração de Google Sign-In (OAuth Client ID) -->
+          <div class="p-4 rounded-xl bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                <span>🔑</span> Google OAuth Client ID (Login em 1 Clique)
+              </h3>
+              <span id="google-saved-badge" class="hidden text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">✓ Salvo com sucesso!</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Cole seu <strong>Client ID</strong> gerado no Google Cloud Console para ativar o login em 1 clique com contas Google no navegador.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+              <div class="sm:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Google Client ID</label>
+                <input type="text" id="admin-google-client-id-input" placeholder="Ex: 1234567890-abcdefg.apps.googleusercontent.com"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono focus:border-indigo-500 focus:outline-none" />
+              </div>
+              <div>
+                <button type="button" onclick="saveAdminGoogleSettings()" id="btn-save-google-settings"
+                  class="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                  <span>💾</span> <span>Salvar Client ID</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
     </div>
 
     <!-- ABA 1: CADASTRAR RESULTADO -->
@@ -872,8 +982,8 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=108.0"></script>
-  <script src="/js/admin.js?v=108.0"></script>
+  <script src="/js/api.js?v=1790616090"></script>
+  <script src="/js/admin.js?v=1790616090"></script>
   <!-- MODAL: REGISTRAR VENDA MANUAL / PIX -->
   <div id="modal-manual-payment" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="card-glass max-w-lg w-full p-5 sm:p-6 rounded-2xl border border-emerald-500/40 shadow-2xl space-y-4 bg-slate-900/95 text-left">
