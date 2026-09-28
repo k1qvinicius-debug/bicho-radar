@@ -266,7 +266,7 @@ def delete_tenant(tenant_id: int):
 
 @router.post("/tenants/{tenant_id}/expire-trial")
 def expire_tenant_trial(tenant_id: int):
-    """Encerra imediatamente o período de degustação do usuário, bloqueando acesso e exibindo tela de planos."""
+    """Encerra imediatamente o período de teste do usuário, bloqueando acesso e exibindo tela de planos."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,))
@@ -282,7 +282,7 @@ def expire_tenant_trial(tenant_id: int):
         """, (expired_date, tenant_id))
 
         return {
-            "message": f"Período de degustação de '{row['name']}' encerrado com sucesso. O usuário foi bloqueado e será direcionado à tela de planos.",
+            "message": f"Período de teste de '{row['name']}' encerrado com sucesso. O usuário foi bloqueado e será direcionado à tela de planos.",
             "subscription_status": "expired",
             "trial_expires_at": expired_date
         }
