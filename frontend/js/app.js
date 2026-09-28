@@ -6168,6 +6168,20 @@ window.openBingoCelebrationModal = function(b) {
     descEl.textContent = b.prize_desc || '1º Prêmio (Cabeça)';
   }
 
+  const originEl = document.getElementById('bingo-modal-origin-text');
+  const originDescEl = document.getElementById('bingo-modal-origin-desc');
+  if (originEl) {
+    const isChave = b.origin === 'CHAVE_MESTRA';
+    originEl.textContent = b.origin_label || (isChave ? '⚡ Chave Mestra (Matriz 3x3)' : `🎯 Radar do Horário (${b.lottery} ${b.slot})`);
+    originEl.className = isChave ? 'text-xs font-black text-amber-300' : 'text-xs font-black text-cyan-300';
+  }
+  if (originDescEl) {
+    const isChave = b.origin === 'CHAVE_MESTRA';
+    originDescEl.textContent = b.origin_desc || (isChave 
+      ? 'Centena de Ouro projetada pela confluência da Chave Mestra e Matriz 3x3 do Dia.'
+      : `Centena gerada pelos algoritmos estatísticos de frequência e atraso específicos da banca ${b.lottery} (${b.slot}).`);
+  }
+
   // Vibração tátil no celular para marcar a vitória
   try {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -6293,6 +6307,9 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
                 <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${badgeColor} shadow-sm flex items-center gap-1">
                   <span>${badgeLabel}</span>
                 </span>
+                <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${b.origin === 'CHAVE_MESTRA' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'} shadow-sm flex items-center gap-1">
+                  ${b.origin === 'CHAVE_MESTRA' ? '⚡ Chave Mestra 3x3' : '🎯 Radar de Horário'}
+                </span>
                 <span class="text-xs sm:text-sm font-black text-white">
                   🔥 BINGO! Nossa análise cravou em cheio!
                 </span>
@@ -6303,6 +6320,10 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
                 </span>
                 <span class="text-slate-500 text-xs">•</span>
                 <span class="text-xs font-medium text-slate-300">${b.prize_desc}</span>
+                <span class="text-slate-500 text-xs">•</span>
+                <span class="text-[10px] sm:text-[11px] font-bold ${b.origin === 'CHAVE_MESTRA' ? 'text-amber-300 bg-amber-950/70 border-amber-500/40' : 'text-cyan-300 bg-cyan-950/70 border-cyan-500/40'} px-2 py-0.5 rounded-md border shadow-sm">
+                  Origem: ${b.origin_label || (b.origin === 'CHAVE_MESTRA' ? 'Chave Mestra (Matriz 3x3)' : 'Radar do Horário')}
+                </span>
               </div>
             </div>
           </div>
