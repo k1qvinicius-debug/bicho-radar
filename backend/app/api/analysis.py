@@ -758,7 +758,7 @@ def get_recent_bingos():
                 badge = "💥 1º PRÊMIO NA CABEÇA!"
                 hit_number = p1
                 prize_desc = "1º Prêmio (Cabeça Seca)"
-                title = f"🎯 Bateu na mosca! Milhar {p1} cravada no 1º Prêmio!"
+                title = f"🔥 BINGO! Milhar {p1} cravada no 1º Prêmio!"
             elif mc > 0:
                 b_type = "MILHAR_CERCADO"
                 badge = f"🎯 MILHAR NO CERCADO ({mc}x)!"
@@ -772,13 +772,13 @@ def get_recent_bingos():
                 except Exception:
                     pass
                 prize_desc = "Cercado (1º ao 5º Prêmio)"
-                title = f"🎯 Bateu na mosca! Milhar {hit_number} no cercado!"
+                title = f"🔥 BINGO! Milhar {hit_number} no cercado!"
             elif c1:
                 b_type = "CENTENA_1ST"
                 badge = "⭐ CENTENA NO 1º PRÊMIO!"
                 hit_number = p1[-3:]
                 prize_desc = "1º Prêmio (Cabeça)"
-                title = f"🎯 Bateu na mosca! Centena {hit_number} no 1º Prêmio!"
+                title = f"🔥 BINGO! Centena {hit_number} no 1º Prêmio!"
             else:
                 continue
 
@@ -868,7 +868,7 @@ def get_recent_bingos():
                         "draw_id": d["id"],
                         "type": "MILHAR_1ST",
                         "badge": "💥 1º PRÊMIO NA CABEÇA!",
-                        "title": f"🎯 Bateu na mosca! Milhar {m1} cravada no 1º Prêmio!",
+                        "title": f"🔥 BINGO! Milhar {m1} cravada no 1º Prêmio!",
                         "hit_number": m1,
                         "prize_1": p1,
                         "prize_desc": f"1º Prêmio ({anim['name']} - Chave Mestra • Cruzamento de Precisão)",
@@ -888,7 +888,7 @@ def get_recent_bingos():
                         "draw_id": d["id"],
                         "type": "CENTENA_1ST",
                         "badge": "⭐ CENTENA NO 1º PRÊMIO!",
-                        "title": f"🎯 Bateu na mosca! Centena {c1} no 1º Prêmio!",
+                        "title": f"🔥 BINGO! Centena {c1} no 1º Prêmio!",
                         "hit_number": c1,
                         "prize_1": p1,
                         "prize_desc": f"1º Prêmio ({anim['name']} - Chave Mestra • Centena de Ouro)",
