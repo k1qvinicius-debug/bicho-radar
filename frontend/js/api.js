@@ -180,10 +180,10 @@ const api = {
   async getPublicSettings() {
     try {
       const res = await fetch(`${API_BASE}/auth/settings`);
-      if (!res.ok) return { support_whatsapp: '', trial_days: 7, app_name: 'Bicho Master' };
+      if (!res.ok) return { support_whatsapp: '', trial_days: 5, app_name: 'Bicho Master' };
       return await res.json();
     } catch {
-      return { support_whatsapp: '', trial_days: 7, app_name: 'Bicho Master' };
+      return { support_whatsapp: '', trial_days: 5, app_name: 'Bicho Master' };
     }
   },
 
@@ -214,8 +214,8 @@ const api = {
         }
         const isExpired = Boolean(
           data.subscription_status === 'expired' || 
-          (data.trial_info && data.trial_info.is_expired && data.role !== 'admin')
-        );
+          (data.trial_info && data.trial_info.is_expired && data.role !== 'admin') ||
+          (data.trial_info && data.trial_info.days_remaining !== undefined && data.trial_info.days_remaining <= 0 && data.role !== 'admin'));
         const tenantData = {
           id: data.id,
           name: data.name,
@@ -362,6 +362,18 @@ const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Erro ao estender período de teste.' }));
       throw new Error(err.detail || 'Erro ao estender dias.');
+    }
+    return await res.json();
+  },
+
+  async expireTenantTrial(tenantId) {
+    const res = await fetch(`${API_BASE}/admin/tenants/${tenantId}/expire-trial`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro ao expirar período de teste.' }));
+      throw new Error(err.detail || 'Erro ao expirar teste.');
     }
     return await res.json();
   },
