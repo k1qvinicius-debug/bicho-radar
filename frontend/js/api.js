@@ -49,16 +49,25 @@ function handleAuthError(status, errData) {
 function getOrCreateDeviceId() {
   let id = null;
   try {
-    id = localStorage.getItem('bm_device_id');
+    // 1. Busca no localStorage (chaves nova e de compatibilidade)
+    id = localStorage.getItem('bm_device_id') || localStorage.getItem('bicho_device_id');
+    // 2. Busca nos cookies caso o localStorage tenha sido limpo
     if (!id) {
-      const match = document.cookie.match(/bm_device_id=([^;]+)/);
+      const match = document.cookie.match(/(?:bm_device_id|bicho_device_id)=([^;]+)/);
       if (match) id = match[1];
     }
+    // 3. Se não existir, gera identificador único estável
     if (!id) {
-      id = 'dev_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now().toString(36);
-      localStorage.setItem('bm_device_id', id);
-      document.cookie = `bm_device_id=${id}; max-age=31536000; path=/; SameSite=Lax`;
+      const screenInfo = `${window.screen?.width || 0}x${window.screen?.height || 0}x${window.screen?.colorDepth || 0}`;
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const rawRand = Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+      id = `dev_${rawRand}_${btoa(screenInfo + '_' + tz).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10)}`;
     }
+    // 4. Salva em ambos os storages para persistência à prova de limpeza simples
+    localStorage.setItem('bm_device_id', id);
+    localStorage.setItem('bicho_device_id', id);
+    document.cookie = `bm_device_id=${id}; max-age=315360000; path=/; SameSite=Lax`;
+    document.cookie = `bicho_device_id=${id}; max-age=315360000; path=/; SameSite=Lax`;
   } catch (e) {
     id = 'dev_fallback_' + Date.now();
   }
