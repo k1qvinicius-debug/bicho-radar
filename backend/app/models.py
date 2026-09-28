@@ -272,6 +272,7 @@ class TenantUpdateModel(BaseModel):
     status: Optional[str] = None
     notes: Optional[str] = None
     expires_at: Optional[str] = None
+    trial_expires_at: Optional[str] = None
     subscription_status: Optional[str] = None
     plan_type: Optional[str] = None
 
