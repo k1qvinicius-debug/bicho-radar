@@ -230,6 +230,12 @@ const api = {
         this.setCurrentTenant(tenantData);
         if (isExpired && typeof window.showTrialExpiredModal === 'function') {
           window.showTrialExpiredModal();
+        } else if (!isExpired) {
+          const plansModal = document.getElementById('modal-plans');
+          if (plansModal && !plansModal.classList.contains('hidden')) {
+            plansModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+          }
         }
         return { authenticated: true, tenant: tenantData, token: data.token, is_expired: isExpired };
       }
@@ -354,8 +360,8 @@ const api = {
     return await res.json();
   },
 
-  async addTenantTrial(tenantId) {
-    const res = await fetch(`${API_BASE}/admin/tenants/${tenantId}/add-trial`, {
+  async addTenantTrial(tenantId, days = 5) {
+    const res = await fetch(`${API_BASE}/admin/tenants/${tenantId}/add-trial?days=${days}`, {
       method: 'POST',
       headers: { ...getAuthHeaders() },
     });
