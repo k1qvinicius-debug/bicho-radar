@@ -176,7 +176,7 @@ function doesSlotBelongToLottery(slotCode, lotteryCode) {
 window.doesSlotBelongToLottery = doesSlotBelongToLottery;
 window._userSelectedSlot = null;
 
-switchScreen = function(screenName, updateHash = true) {
+window.switchScreen = switchScreen = function(screenName, updateHash = true) {
   const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   if (!screens.includes(screenName)) screenName = 'home';
 
