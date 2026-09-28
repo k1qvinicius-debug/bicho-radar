@@ -197,16 +197,14 @@ def get_lottery_slots(lottery_code: Optional[str] = "RJ", target_date: Optional[
         if dow == 6:  # Domingo na Bahia
             return [
                 {"code": "BA-10", "name": "PT Bahia 10h - 10:00", "time": "10:00", "order": 1},
-                    {"code": "BA-12", "name": "PT Bahia 12h - 12:00", "time": "12:00", "order": 3},
+                {"code": "BA-11", "name": "Federal Bahia 11h - 11:00", "time": "11:00", "order": 2},
+                {"code": "BA-12", "name": "PT Bahia 12h - 12:00", "time": "12:00", "order": 3},
                 {"code": "BA-15", "name": "PT Bahia 15h - 15:00", "time": "15:00", "order": 4},
             ]
         else:
             return [
                 {"code": "BA-10", "name": "PT Bahia 10h - 10:00", "time": "10:00", "order": 1},
                 {"code": "BA-12", "name": "PT Bahia 12h - 12:00", "time": "12:00", "order": 2},
-                {"code": "BA-15", "name": "PT Bahia 15h - 15:00", "time": "15:00", "order": 3},
-                {"code": "BA-19", "name": "PT Bahia 19h - 19:00", "time": "19:00", "order": 4},
-                {"code": "BA-21", "name": "Coruja Bahia - 21:00", "time": "21:00", "order": 5},
             ]
 
     elif lot_code == "MINAS":
