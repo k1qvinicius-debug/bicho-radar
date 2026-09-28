@@ -161,6 +161,18 @@ window.addEventListener('hashchange', () => {
 window.switchScreen = function(screenName, updateHash = true) {
   const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   if (!screens.includes(screenName)) screenName = 'home';
+
+  const currentTenant = api.getCurrentTenant();
+  const isExpired = currentTenant && currentTenant.role !== 'admin' && (
+    currentTenant.is_expired || 
+    currentTenant.subscription_status === 'expired' || 
+    (currentTenant.trial_days_remaining !== undefined && currentTenant.trial_days_remaining !== null && currentTenant.trial_days_remaining <= 0)
+  );
+  if (isExpired && screenName !== 'home' && screenName !== 'resultados') {
+    showTrialExpiredModal();
+    return;
+  }
+
   currentScreen = screenName;
   window.currentScreen = screenName;
 
@@ -4721,33 +4733,43 @@ async function initTenantAuth() {
 }
 
 window.showTrialExpiredModal = async function() {
-  const modal = document.getElementById('modal-trial-expired');
-  if (modal) modal.classList.remove('hidden');
+  const modal = document.getElementById('modal-plans');
+  if (!modal) return;
 
-  const tenant = api.getCurrentTenant();
-  const userIdentifier = (tenant && (tenant.email || tenant.name)) ? ` com o e-mail ${tenant.email || tenant.name}` : '';
+  modal.classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
 
-  try {
-    const settings = await api.getPublicSettings();
-    const phone = (settings && settings.support_whatsapp) ? settings.support_whatsapp.replace(/\D/g, '') : '';
-    const renewBtn = document.getElementById('btn-whatsapp-renew');
-    if (renewBtn) {
-      if (phone) {
-        const msg = `Olá! Quero ativar meu plano no Bicho Master${userIdentifier} e quero continuar usando. Como faço para liberar meu acesso?`;
-        renewBtn.href = `https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`;
-        renewBtn.target = '_blank';
-        renewBtn.onclick = null;
+  // Adiciona ou exibe o banner de aviso em destaque no modal de planos
+  let expiredAlert = document.getElementById('trial-expired-alert');
+  if (!expiredAlert) {
+    const cardGlass = modal.querySelector('.card-glass');
+    if (cardGlass) {
+      expiredAlert = document.createElement('div');
+      expiredAlert.id = 'trial-expired-alert';
+      expiredAlert.className = 'p-3.5 sm:p-4 rounded-2xl bg-rose-500/20 border-2 border-rose-500/60 text-rose-200 text-xs font-semibold flex flex-col sm:flex-row items-center justify-between gap-3 text-left shadow-lg shadow-rose-950/50 mb-3';
+      expiredAlert.innerHTML = `
+        <div class="flex items-center gap-3 w-full">
+          <span class="text-2xl shrink-0">🔒</span>
+          <div>
+            <div class="font-black text-rose-300 text-sm sm:text-base">Seu período de teste grátis de 5 dias encerrou!</div>
+            <div class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+              Para continuar gerando palpites com Inteligência Artificial, Centena Master, Cruz do Dia e fechamentos para todas as loterias, escolha um plano abaixo para liberar seu acesso imediato:
+            </div>
+          </div>
+        </div>
+        <button type="button" onclick="handleUserLogout()" class="w-full sm:w-auto px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-[11px] font-bold shrink-0 transition-colors cursor-pointer border border-slate-700 text-center">
+          Trocar Conta / Sair
+        </button>
+      `;
+      const grid = cardGlass.querySelector('.grid');
+      if (grid) {
+        cardGlass.insertBefore(expiredAlert, grid);
       } else {
-        renewBtn.href = '#';
-        renewBtn.target = '_self';
-        renewBtn.onclick = (e) => {
-          e.preventDefault();
-          alert('O WhatsApp de suporte ainda não foi configurado pelo administrador no painel master.');
-        };
+        cardGlass.insertBefore(expiredAlert, cardGlass.firstChild);
       }
     }
-  } catch (e) {
-    console.warn('Erro ao carregar link de WhatsApp:', e);
+  } else {
+    expiredAlert.classList.remove('hidden');
   }
 };
 
@@ -6076,6 +6098,18 @@ window.openPlansModal = function() {
 };
 
 window.closePlansModal = function() {
+  const tenant = api.getCurrentTenant();
+  const isExpired = tenant && tenant.role !== 'admin' && (
+    tenant.is_expired || 
+    tenant.subscription_status === 'expired' || 
+    (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0)
+  );
+
+  if (isExpired) {
+    showToast('🔒 Seu período de teste de 5 dias encerrou. Escolha um plano abaixo para continuar!', 'warning');
+    return;
+  }
+
   const modal = document.getElementById('modal-plans');
   if (modal) {
     modal.classList.add('hidden');
