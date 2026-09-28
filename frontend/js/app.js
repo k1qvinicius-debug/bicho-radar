@@ -4184,9 +4184,6 @@ const OFFICIAL_LOTTERY_SLOTS = {
   BAHIA: [
     { code: 'BA-10', name: 'PT Bahia 10h - 10:00', time: '10:00' },
     { code: 'BA-12', name: 'PT Bahia 12h - 12:00', time: '12:00' },
-    { code: 'BA-15', name: 'PT Bahia 15h - 15:00', time: '15:00' },
-    { code: 'BA-19', name: 'PT Bahia 19h - 19:00', time: '19:00' },
-    { code: 'BA-21', name: 'Coruja Bahia - 21:00', time: '21:00' },
   ],
   MINAS: [
     { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00' },
@@ -4235,6 +4232,7 @@ async function loadDrawResults(dateOverride = null) {
   const summaryEl = document.getElementById('results-day-summary');
   const pillsEl = document.getElementById('results-day-pills');
   const lotteryGridEl = document.getElementById('results-lottery-grid');
+  const customDateInput = document.getElementById('results-custom-date');
   if (!contentEl) return;
 
   // 1. Renderiza o grid de Loterias no topo da tela de Resultados
@@ -4254,9 +4252,9 @@ async function loadDrawResults(dateOverride = null) {
   }
 
   try {
-    // 2. Busca os últimos sorteios da base para a loteria ativa (até 100 sorteios para histórico farto)
+    // 2. Busca os últimos sorteios da base para a loteria ativa (até 200 sorteios para histórico farto)
     const activeLotKey = (currentLottery || 'RJ').toUpperCase();
-    const resData = await api.getResults(100, 0, activeLotKey);
+    const resData = await api.getResults(200, 0, activeLotKey);
     const items = resData?.items || [];
 
     // Agrupa por data filtrando estritamente pela loteria ativa
@@ -4291,6 +4289,24 @@ async function loadDrawResults(dateOverride = null) {
       allRecentDrawsByDate[d][draw.slot] = draw;
     });
 
+    // Se dateOverride for informado e não estiver nos resultados recentes (ou estiver vazio), busca pontualmente
+    if (dateOverride && (!allRecentDrawsByDate[dateOverride] || Object.keys(allRecentDrawsByDate[dateOverride]).length === 0)) {
+      try {
+        const specificRes = await api.getResults(50, 0, activeLotKey, dateOverride, dateOverride);
+        const specificItems = specificRes?.items || [];
+        specificItems.forEach((draw) => {
+          if (activeLotKey !== 'FEDERAL' && draw.lottery && draw.lottery.toUpperCase() !== activeLotKey && draw.slot !== 'FED') {
+            return;
+          }
+          const d = draw.draw_date;
+          if (!allRecentDrawsByDate[d]) allRecentDrawsByDate[d] = {};
+          allRecentDrawsByDate[d][draw.slot] = draw;
+        });
+      } catch (errDate) {
+        console.warn('Erro ao buscar resultados da data específica:', errDate);
+      }
+    }
+
     // Garante data de hoje precisa (fuso horário local)
     const todayStr = getLocalDateStr();
     const today = new Date();
@@ -4313,15 +4329,19 @@ async function loadDrawResults(dateOverride = null) {
           } catch (e) {}
           return false;
         })
-        .sort().reverse().slice(0, 8);
+        .sort().reverse().slice(0, 14);
     } else {
       datesSet.add(todayStr);
-      availableDatesList = Array.from(datesSet).sort().reverse().slice(0, 8);
+      availableDatesList = Array.from(datesSet).sort().reverse().slice(0, 14);
     }
 
     // Determina a data ativa
-    if (dateOverride && availableDatesList.includes(dateOverride)) {
+    if (dateOverride) {
       selectedResultDate = dateOverride;
+      if (!availableDatesList.includes(dateOverride)) {
+        availableDatesList.push(dateOverride);
+        availableDatesList.sort().reverse();
+      }
     } else if (!selectedResultDate || !availableDatesList.includes(selectedResultDate)) {
       const todayHasDraws = allRecentDrawsByDate[todayStr] && Object.keys(allRecentDrawsByDate[todayStr]).length > 0;
       if (todayHasDraws && availableDatesList.includes(todayStr)) {
@@ -4330,6 +4350,12 @@ async function loadDrawResults(dateOverride = null) {
         const latestWithDraws = availableDatesList.find(d => allRecentDrawsByDate[d] && Object.keys(allRecentDrawsByDate[d]).length > 0);
         selectedResultDate = latestWithDraws || availableDatesList[0] || todayStr;
       }
+    }
+
+    // Sincroniza o seletor de calendário customizado
+    if (customDateInput) {
+      customDateInput.value = selectedResultDate || todayStr;
+      customDateInput.max = todayStr;
     }
 
     // 3. Renderiza as Pills de Dias (Hoje, Ontem, etc.)
@@ -4379,14 +4405,12 @@ async function loadDrawResults(dateOverride = null) {
     let slots = [];
     if (lotKey === 'RJ') {
       if (isSun) {
-        // Domingo no RJ: apenas Federal (FED 11h), PT (14h) e PTV (16h)
         slots = [
           getFriendlySlotMeta('FED', selectedResultDate),
           { code: 'PT', name: 'PT - 14:20', time: '14:20' },
           { code: 'PTV', name: 'PTV - 16:20', time: '16:20' }
         ];
       } else if (isWed) {
-        // Quarta no RJ: extração das 18h é a Federal (FED 20h)
         slots = baseSlots.map(s => {
           if (s.code === 'PTN') return getFriendlySlotMeta('FED', selectedResultDate);
           return { ...s };
@@ -4400,7 +4424,7 @@ async function loadDrawResults(dateOverride = null) {
       if (isSun) {
         slots = ['BA-10', 'BA-11', 'BA-12', 'BA-15'].map(c => getFriendlySlotMeta(c, selectedResultDate));
       } else {
-        slots = baseSlots.filter(s => s.code !== 'BA-11').map(s => ({ ...s }));
+        slots = baseSlots.map(s => ({ ...s }));
       }
     } else if (lotKey === 'MINAS') {
       if (isSun) {
@@ -4452,25 +4476,42 @@ async function loadDrawResults(dateOverride = null) {
     // Ordena cronologicamente
     slots.sort((a, b) => getSlotMinutes(a, selectedResultDate) - getSlotMinutes(b, selectedResultDate));
 
+    // Se for data passada e tiver sorteios apurados, renderiza apenas os apurados para não poluir com slots inexistentes
+    const isViewingToday = (selectedResultDate === todayStr);
+    let slotsToRender = slots;
+    if (!isViewingToday && Object.keys(dayDraws).length > 0) {
+      slotsToRender = slots.filter(s => dayDraws[s.code]);
+    }
+
     // 5. Atualiza o resumo no cabeçalho
     const drawnCount = slots.filter(s => dayDraws[s.code]).length;
     const dateFormatted = formatDateBR(selectedResultDate);
     const dayOfWeekName = getDayOfWeekName(selectedResultDate);
 
     if (summaryEl) {
-      summaryEl.textContent = `${dayOfWeekName}, ${dateFormatted} • ${drawnCount} de ${slots.length} extrações apuradas`;
+      summaryEl.textContent = `${dayOfWeekName}, ${dateFormatted} • ${drawnCount} de ${slotsToRender.length} extrações apuradas`;
     }
 
-    contentEl.innerHTML = slots
-      .map((slotInfo) => {
-        const draw = dayDraws[slotInfo.code];
-        if (draw) {
-          return renderDrawSlotCard(draw, slotInfo);
-        } else {
-          return renderPendingSlotCard(slotInfo, selectedResultDate === todayStr);
-        }
-      })
-      .join('');
+    if (slotsToRender.length === 0 || (Object.keys(dayDraws).length === 0 && !isViewingToday)) {
+      contentEl.innerHTML = `
+        <div class="col-span-full py-12 text-center text-slate-400 bg-slate-900/40 rounded-2xl border border-slate-800/80 p-6 my-2">
+          <div class="text-3xl mb-2">📅</div>
+          <p class="text-sm font-semibold text-slate-300">Nenhum resultado registrado para esta data (${dateFormatted}).</p>
+          <p class="text-xs text-slate-500 mt-1">Utilize o seletor rápido ou o calendário acima para navegar entre os dias com extrações apuradas.</p>
+        </div>
+      `;
+    } else {
+      contentEl.innerHTML = slotsToRender
+        .map((slotInfo) => {
+          const draw = dayDraws[slotInfo.code];
+          if (draw) {
+            return renderDrawSlotCard(draw, slotInfo);
+          } else {
+            return renderPendingSlotCard(slotInfo, isViewingToday);
+          }
+        })
+        .join('');
+    }
   } catch (err) {
     console.error('Erro ao carregar campo de resultados:', err);
     contentEl.innerHTML = `<p class="text-xs text-rose-400 py-3 text-center">Erro ao carregar resultados: ${err.message}</p>`;
