@@ -119,14 +119,8 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
             "badge": "👑 Administrador Master"
         }
 
-    sub_status = tenant.get("subscription_status", "active")
-    if sub_status == "active":
-        return {
-            "status": "active",
-            "is_expired": False,
-            "days_remaining": 30,
-            "badge": "⭐ Assinante Ativo"
-        }
+    sub_status = tenant.get("subscription_status", "trial")
+    plan_type = tenant.get("plan_type", "free")
 
     if sub_status == "suspended":
         return {
@@ -136,14 +130,59 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
             "badge": "⛔ Conta Suspensa"
         }
 
-    # Se estiver em trial, verifica data de expiração
+    if sub_status == "expired":
+        return {
+            "status": "expired",
+            "is_expired": True,
+            "days_remaining": 0,
+            "badge": "🔒 Teste Expirado"
+        }
+
     expires_at_raw = tenant.get("trial_expires_at") or tenant.get("expires_at")
+
+    # Se for assinante com plano pago ativo
+    if sub_status == "active" and plan_type != "free":
+        if expires_at_raw:
+            try:
+                if isinstance(expires_at_raw, str):
+                    clean_str = expires_at_raw.replace("T", " ").split(".")[0]
+                    expires_dt = datetime.strptime(clean_str, "%Y-%m-%d %H:%M:%S")
+                elif isinstance(expires_at_raw, datetime):
+                    expires_dt = expires_at_raw
+                else:
+                    expires_dt = datetime.now()
+                now = datetime.now()
+                diff = expires_dt - now
+                if diff.total_seconds() <= 0:
+                    return {
+                        "status": "expired",
+                        "is_expired": True,
+                        "days_remaining": 0,
+                        "badge": "🔒 Assinatura Expirada"
+                    }
+                days_left = max(1, int(diff.days) + (1 if diff.seconds > 0 else 0))
+                return {
+                    "status": "active",
+                    "is_expired": False,
+                    "days_remaining": days_left,
+                    "badge": f"⭐ Assinante • {days_left}d"
+                }
+            except Exception:
+                pass
+        return {
+            "status": "active",
+            "is_expired": False,
+            "days_remaining": 30,
+            "badge": "⭐ Assinante Ativo"
+        }
+
+    # Se for período de degustação (trial gratuito)
     if not expires_at_raw:
         return {
             "status": "trial",
             "is_expired": False,
             "days_remaining": 5,
-            "badge": "⏳ Teste Grátis • 5 dias"
+            "badge": "⏳ Degustação • 5 dias"
         }
 
     try:
@@ -172,14 +211,14 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
                 "status": "trial",
                 "is_expired": False,
                 "days_remaining": days_left,
-                "badge": f"⏳ Teste Grátis • {days_left}d restantes"
+                "badge": f"⏳ Degustação • {days_left}d restantes"
             }
     except Exception:
         return {
             "status": "trial",
             "is_expired": False,
             "days_remaining": 5,
-            "badge": "⏳ Teste Grátis"
+            "badge": "⏳ Degustação"
         }
 
 
@@ -464,7 +503,7 @@ def require_tenant(
 ) -> Dict[str, Any]:
     """
     Exige que a requisição venha de um tenant ativo com período de teste ou assinatura válida.
-    Bloqueia no servidor qualquer tentativa de acesso após o término dos 7 dias.
+    Bloqueia no servidor qualquer tentativa de acesso após o término dos 5 dias.
     """
     if not tenant:
         if os.environ.get("BICHO_TEST_MODE") == "1":
@@ -492,7 +531,7 @@ def require_tenant(
                 pass
         raise HTTPException(
             status_code=403,
-            detail="TRIAL_EXPIRED: Seu período de teste de 7 dias encerrou. Entre em contato pelo WhatsApp para continuar com acesso liberado."
+            detail="TRIAL_EXPIRED: Seu período de teste de 5 dias encerrou. Assine um plano para continuar com acesso liberado."
         )
 
     return tenant
