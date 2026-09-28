@@ -1506,3 +1506,18 @@ window.clearFinancialDemo = async function() {
     showToast('Erro ao limpar demonstração: ' + err.message, 'error');
   }
 };
+
+
+window.clearFinancialData = async function() {
+  if (!confirm("Tem certeza que deseja ZERAR todo o relatório de faturamento e vendas de teste?\n\nEsta ação limpará o histórico para que você comece do zero com as vendas reais.")) {
+    return;
+  }
+  try {
+    const res = await api.clearFinancialData();
+    showToast(res.message || "Histórico financeiro zerado com sucesso!", "success");
+    await loadFinancialDashboard();
+    await loadTenantsTable();
+  } catch (err) {
+    showToast("Erro ao zerar dados: " + err.message, "error");
+  }
+};
