@@ -1952,10 +1952,19 @@
           </div>
         </div>
 
-        <!-- Seletor Rápido de Dias (Hoje + Últimos 7 Dias) com Scroll Horizontal -->
-        <div>
-          <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1.5">Selecione o Dia</label>
-          <div class="overflow-x-auto pb-1.5 -mx-1 px-1">
+        <!-- Seletor Rápido de Dias com Calendário Customizado -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <label class="block text-[10px] uppercase font-bold text-slate-400">Selecione o Dia</label>
+            <div class="flex items-center gap-1.5">
+              <label for="results-custom-date" class="text-[10px] font-bold text-amber-400/90 cursor-pointer flex items-center gap-1">
+                <span>📅</span> <span>Ver Outra Data:</span>
+              </label>
+              <input type="date" id="results-custom-date" onchange="selectResultDate(this.value)"
+                class="bg-slate-950 border border-slate-700 hover:border-amber-400/70 rounded-lg px-2 py-0.5 text-xs text-slate-200 font-mono focus:border-amber-400 focus:outline-none cursor-pointer transition-colors" />
+            </div>
+          </div>
+          <div class="overflow-x-auto pb-1.5 -mx-1 px-1 no-scrollbar">
             <div id="results-day-pills" class="flex items-center gap-1.5 min-w-max">
               <!-- Gerado via JS: pills de Hoje, Ontem e dias anteriores -->
             </div>
@@ -2556,8 +2565,8 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=1790617354"></script>
-  <script src="/js/app.js?v=1790617354"></script>
+  <script src="/js/api.js?v=1790618541"></script>
+  <script src="/js/app.js?v=1790618541"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
