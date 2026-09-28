@@ -159,7 +159,7 @@ window.addEventListener('hashchange', () => {
    NAVEGAÇÃO PRINCIPAL EM TELAS NORMAIS (SINGLE PAGE VIEWS)
    Telas: 'home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados'
    ========================================================================== */
-window./* Helper para validar se o slot pertence a respectiva loteria */
+/* Helper para validar se o slot pertence a respectiva loteria */
 function doesSlotBelongToLottery(slotCode, lotteryCode) {
   if (!slotCode || !lotteryCode) return false;
   const s = slotCode.toUpperCase().trim();
@@ -175,8 +175,10 @@ function doesSlotBelongToLottery(slotCode, lotteryCode) {
 }
 window.doesSlotBelongToLottery = doesSlotBelongToLottery;
 window._userSelectedSlot = null;
+window.switchScreen = switchScreen;
 
-window.switchScreen = switchScreen = function(screenName, updateHash = true) {
+function switchScreen(screenName, updateHash = true) {
+  window.switchScreen = switchScreen;
   const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   if (!screens.includes(screenName)) screenName = 'home';
 
