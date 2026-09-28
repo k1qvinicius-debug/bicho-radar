@@ -107,6 +107,7 @@ let currentStrategy = 'hybrid';
 let currentFixedAnimalData = null;
 let currentFixedGroup = 8;
 let currentLottery = localStorage.getItem('bicho_active_lottery') || 'RJ';
+window.currentLottery = currentLottery;
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initTenantAuth();
@@ -339,7 +340,8 @@ window.switchPalpitesTopic = function(topicName) {
   });
 
   if (topicName === 'contra' && typeof window.loadAndRenderPatternBreaksHistory === 'function') {
-    window.loadAndRenderPatternBreaksHistory(window.currentLottery || 'RJ');
+    const activeLot = (currentLottery || window.currentLottery || localStorage.getItem('bicho_active_lottery') || 'RJ').toUpperCase();
+    window.loadAndRenderPatternBreaksHistory(activeLot);
   }
 };
 
@@ -1220,6 +1222,7 @@ window.switchLottery = async function(lotteryCode, force = false) {
     return;
   }
   currentLottery = lotteryCode;
+  window.currentLottery = lotteryCode;
   localStorage.setItem('bicho_active_lottery', lotteryCode);
   _lastKnownDrawId = null; // Reseta cache de ID para evitar falsos alertas de novo sorteio ao trocar de banca
   updateLotteryButtonsUI();
@@ -2482,7 +2485,8 @@ function renderDashboard(data) {
   // 0.1 Radar de Quebra de Padrão & Proteção Contra-Banca
   renderPatternBreakSection(data.pattern_break);
   if (typeof window.loadAndRenderPatternBreaksHistory === 'function') {
-    window.loadAndRenderPatternBreaksHistory(data.lottery || window.currentLottery || 'RJ');
+    const activeLot = (data.lottery || currentLottery || window.currentLottery || localStorage.getItem('bicho_active_lottery') || 'RJ').toUpperCase();
+    window.loadAndRenderPatternBreaksHistory(activeLot);
   }
 
   // Transição Histórica
@@ -2994,7 +2998,7 @@ window.loadAndRenderPatternBreaksHistory = async function(lottery) {
   const container = document.getElementById('pattern-breaks-history-container');
   if (!container) return;
 
-  const effLot = (lottery || window.currentLottery || 'RJ').toUpperCase();
+  const effLot = (lottery || currentLottery || window.currentLottery || localStorage.getItem('bicho_active_lottery') || 'RJ').toUpperCase();
   container.innerHTML = `
     <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400 animate-pulse">
       Carregando histórico de quebras da banca (${effLot})...
@@ -4206,6 +4210,7 @@ const RESULTS_LOTTERIES_CATALOG = [
 window.selectResultLottery = async function (lotteryCode) {
   if (!lotteryCode) return;
   currentLottery = lotteryCode.toUpperCase();
+  window.currentLottery = currentLottery;
   localStorage.setItem('bicho_active_lottery', currentLottery);
   _lastKnownDrawId = null;
   updateLotteryButtonsUI();
@@ -5352,6 +5357,7 @@ window.saveSnapshot = saveSnapshot;
 window.switchPuxadasLottery = async function (lotteryCode) {
   if (!lotteryCode) return;
   currentLottery = lotteryCode;
+  window.currentLottery = currentLottery;
   localStorage.setItem('bicho_active_lottery', lotteryCode);
   updateLotteryButtonsUI();
   _puxadasDataCache = null;
