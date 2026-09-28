@@ -6656,22 +6656,22 @@ function renderMatrizView(data, mode) {
 
     confContainer.innerHTML = displayedAnimals.map(anim => {
       const matchTensStr = (anim.matching_tens && anim.matching_tens.length > 0)
-        ? anim.matching_tens.map(t => `<span class="px-1.5 py-0.2 rounded bg-indigo-950/80 border border-indigo-700/50 text-indigo-200 font-mono font-bold text-[11px]">${t}</span>`).join(' ')
+        ? anim.matching_tens.map(t => `<span class="px-1.5 py-0.5 rounded bg-indigo-950/90 border border-indigo-700/60 text-indigo-200 font-mono font-bold text-xs">${t}</span>`).join(' ')
         : '<span class="text-slate-500 text-xs">-</span>';
 
       const centenasList = (anim.top_centenas || []).slice(0, 4);
       const milharesList = (anim.top_milhares || []).slice(0, 4);
 
       const centenasHtml = centenasList.map(c => `
-        <button type="button" onclick="copySingleNumber(event, '${c}', 'Centena')" title="Copiar centena ${c}"
-          class="px-2 py-0.5 rounded bg-amber-950/90 border border-amber-500/80 text-amber-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+        <button type="button" onclick="copySingleNumber(event, '${c}', 'Centena')" title="Toque para copiar a centena ${c}"
+          class="px-2 py-0.5 rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-500/70 hover:border-amber-400 text-amber-200 font-mono font-bold text-xs tracking-wider shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
           ${c}
         </button>
       `).join(' ');
 
       const milharesHtml = milharesList.map(m => `
-        <button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Copiar milhar ${m}"
-          class="px-2 py-0.5 rounded bg-indigo-950/90 border border-indigo-500/80 text-indigo-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
+        <button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Toque para copiar a milhar ${m}"
+          class="px-2 py-0.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/70 hover:border-indigo-400 text-indigo-200 font-mono font-bold text-xs tracking-wider shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">
           ${m}
         </button>
       `).join(' ');
@@ -6679,79 +6679,105 @@ function renderMatrizView(data, mode) {
       const cStr = centenasList.join(', ');
       const mStr = milharesList.join(', ');
 
+      // Sinergia com Loterias em Micro-Chips de Linha Única
+      const activeMatches = (typeof window.getAnimalActiveLotteries === 'function')
+        ? window.getAnimalActiveLotteries(anim.group)
+        : [];
+
+      let lotteriesRowHtml = '';
+      if (activeMatches && activeMatches.length > 0) {
+        const chips = activeMatches.map(m => {
+          const displayLot = m.lottery === 'FEDERAL' ? 'FED' : (m.lottery === 'NACIONAL' ? 'NAC' : m.lottery);
+          return `
+            <button type="button" onclick="navigateToLotteryPrediction(event, '${m.lottery}', '${m.slot}')"
+              class="px-1.5 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 hover:border-emerald-400 text-emerald-300 text-[10px] font-bold tracking-tight transition-all active:scale-95 cursor-pointer shadow-sm"
+              title="Palpite ativo em ${m.lottery_name} (${m.slot_name || m.slot}) - Toque para abrir">
+              ${displayLot}
+            </button>
+          `;
+        }).join('');
+
+        lotteriesRowHtml = `
+          <div class="flex items-center justify-between gap-1 text-[11px] pt-1">
+            <span class="font-bold text-emerald-400 flex items-center gap-1 shrink-0 text-[10px]">
+              <span>🔥</span> <span>Ativo (${activeMatches.length}):</span>
+            </span>
+            <div class="flex items-center gap-1 flex-wrap justify-end">
+              ${chips}
+            </div>
+          </div>
+        `;
+      } else {
+        lotteriesRowHtml = `
+          <div class="flex items-center gap-1 text-[10px] text-slate-500 pt-1">
+            <span>⚡</span> <span>Oportunidade Exclusiva Chave Mestra</span>
+          </div>
+        `;
+      }
+
       return `
-        <div class="card-glass p-3 rounded-xl border border-slate-800 hover:border-amber-500/40 transition-all space-y-2">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="text-2xl">${anim.emoji || '🐾'}</span>
-              <div>
-                <h4 class="text-xs font-black text-white">${anim.animal}</h4>
-                <span class="text-[10px] text-slate-400 font-mono">Grupo ${String(anim.group).padStart(2, '0')}</span>
+        <div class="card-glass p-3 sm:p-3.5 rounded-2xl border border-slate-800 hover:border-amber-500/40 bg-gradient-to-b from-slate-900/90 to-slate-950/90 transition-all shadow-md flex flex-col justify-between space-y-2.5">
+          <!-- 1. TOPO: Animal, Grupo, Dezenas integradas e Confluência -->
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-2xl sm:text-3xl shrink-0 p-1 rounded-xl bg-slate-800/60 border border-slate-700/50 shadow-inner">${anim.emoji || '🐾'}</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <h4 class="text-xs sm:text-sm font-black text-white leading-tight">${anim.animal}</h4>
+                  <span class="text-[10px] text-slate-400 font-mono font-bold bg-slate-800/80 px-1.5 py-0.2 rounded border border-slate-700/40">Gr. ${String(anim.group).padStart(2, '0')}</span>
+                </div>
+                <!-- Dezenas integradas logo abaixo do nome -->
+                <div class="flex items-center gap-1 mt-1 flex-wrap">
+                  <span class="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Dez:</span>
+                  <div class="flex items-center gap-1">${matchTensStr}</div>
+                </div>
               </div>
             </div>
-            <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
-              ⚡ ${Math.round(anim.confluence_score)}% ${modeTag}
-            </span>
-          </div>
 
-          <div class="space-y-1 pt-1 border-t border-slate-800/80">
-            <div class="flex items-center justify-between text-[10px] text-slate-400">
-              <span>${tensLabel}</span>
-              <div class="flex items-center gap-1">${matchTensStr}</div>
-            </div>
-            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-              <span>${cLabel}</span>
-              <div class="flex items-center gap-1">${centenasHtml}</div>
-            </div>
-            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-              <span>${mLabel}</span>
-              <div class="flex items-center gap-1">${milharesHtml}</div>
+            <div class="shrink-0 text-right">
+              <span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-black inline-flex items-center gap-0.5 shadow-sm whitespace-nowrap">
+                <span>⚡</span> ${Math.round(anim.confluence_score)}%
+              </span>
+              <span class="block text-[8px] text-slate-500 font-medium uppercase mt-0.5">${modeTag}</span>
             </div>
           </div>
 
-          <!-- Presença do Bicho nos Palpites Oficiais das Loterias -->
-          ${(function() {
-            const activeMatches = (typeof window.getAnimalActiveLotteries === 'function')
-              ? window.getAnimalActiveLotteries(anim.group)
-              : [];
-            if (activeMatches && activeMatches.length > 0) {
-              return `
-                <div class="pt-1.5 border-t border-slate-800/80">
-                  <div class="flex items-center justify-between text-[10px] mb-1">
-                    <span class="font-bold text-emerald-400 flex items-center gap-1">
-                      <span>🔥</span> <span>Palpite Ativo nas Loterias:</span>
-                    </span>
-                    <span class="text-[9px] text-slate-400 font-medium">Toque p/ ver</span>
-                  </div>
-                  <div class="flex flex-wrap gap-1">
-                    ${activeMatches.map(m => `
-                      <button type="button" onclick="navigateToLotteryPrediction(event, '${m.lottery}', '${m.slot}')"
-                        class="px-2 py-0.5 rounded-md bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/60 hover:border-emerald-400 text-emerald-300 text-[10px] font-bold flex items-center gap-1 transition-all active:scale-95 shadow-sm cursor-pointer"
-                        title="Ver palpites de ${m.lottery_name} (${m.slot_name || m.slot}) - Top #${m.rank}">
-                        <span>🎰</span> <span>${m.lottery}</span> <span class="text-[9px] opacity-75 font-mono">(${m.slot || ''})</span>
-                      </button>
-                    `).join('')}
-                  </div>
-                </div>
-              `;
-            } else {
-              return `
-                <div class="pt-1 border-t border-slate-800/80 text-[10px] text-slate-500 flex items-center gap-1">
-                  <span>⚡</span> <span>Oportunidade Exclusiva Chave Mestra</span>
-                </div>
-              `;
-            }
-          })()}
+          <!-- 2. NÚMEROS: Bandeja Unificada (Centenas VIP e Milhares VIP) -->
+          <div class="bg-slate-950/70 rounded-xl p-2 border border-slate-800/80 space-y-1.5 shadow-inner">
+            <!-- Linha Centenas -->
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] font-black text-amber-400 uppercase tracking-wide shrink-0">Centenas:</span>
+              <div class="flex items-center gap-1 flex-wrap justify-end">
+                ${centenasHtml}
+              </div>
+            </div>
 
-          <!-- 2 Botões de Cópia: Centena e Milhares do Bicho -->
-          <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800/80">
+            <!-- Divisória suave -->
+            <div class="border-t border-slate-800/80"></div>
+
+            <!-- Linha Milhares -->
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] font-black text-indigo-400 uppercase tracking-wide shrink-0">Milhares:</span>
+              <div class="flex items-center gap-1 flex-wrap justify-end">
+                ${milharesHtml}
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. SINERGIA DE LOTERIAS (MICRO-CHIPS) -->
+          <div class="pt-0.5 border-t border-slate-800/70">
+            ${lotteriesRowHtml}
+          </div>
+
+          <!-- 4. BOTÕES DE CÓPIA: Modernos e Refinados -->
+          <div class="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-800/80">
             <button type="button" onclick="copyAnimalMatrizHundreds(this, '${anim.animal}', '${cStr}')"
-              class="py-1 px-2 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-700/50 hover:border-cyan-400 text-cyan-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
+              class="py-1.5 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/60 hover:border-cyan-500/50 text-cyan-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
               title="Copiar centenas da ${anim.animal}">
               <span>🎯</span> <span>Copiar Centenas</span>
             </button>
             <button type="button" onclick="copyAnimalMatrizThousands(this, '${anim.animal}', '${mStr}')"
-              class="py-1 px-2 rounded-lg bg-amber-950/60 hover:bg-amber-900/80 border border-amber-700/50 hover:border-amber-400 text-amber-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
+              class="py-1.5 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/60 hover:border-amber-500/50 text-amber-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
               title="Copiar milhares da ${anim.animal}">
               <span>👑</span> <span>Copiar Milhares</span>
             </button>
