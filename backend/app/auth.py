@@ -176,13 +176,13 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
             "badge": "⭐ Assinante Ativo"
         }
 
-    # Se for período de degustação (trial gratuito)
+    # Se for período de teste (trial gratuito)
     if not expires_at_raw:
         return {
             "status": "trial",
             "is_expired": False,
             "days_remaining": 5,
-            "badge": "⏳ Degustação • 5 dias"
+            "badge": "⏳ Teste Grátis • 5 dias"
         }
 
     try:
@@ -211,14 +211,14 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
                 "status": "trial",
                 "is_expired": False,
                 "days_remaining": days_left,
-                "badge": f"⏳ Degustação • {days_left}d restantes"
+                "badge": f"⏳ Teste VIP • {days_left}d restantes"
             }
     except Exception:
         return {
             "status": "trial",
             "is_expired": False,
             "days_remaining": 5,
-            "badge": "⏳ Degustação"
+            "badge": "⏳ Teste VIP"
         }
 
 
