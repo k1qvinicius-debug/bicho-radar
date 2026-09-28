@@ -502,7 +502,7 @@ window.loadTenantsTable = async function() {
         ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">👑 MASTER ADMIN</span>'
         : isSubscriber
         ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">⭐ ASSINANTE</span>'
-        : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">DEGUSTAÇÃO</span>';
+        : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">TESTE VIP</span>';
 
       const statusBadge = isActive
         ? (isExpired
@@ -530,7 +530,7 @@ window.loadTenantsTable = async function() {
             ${(!isAdmin && !isExpired && !isSubscriber) ? `
               <button type="button" onclick="expireTenantTrial(${t.id}, '${t.name.replace(/'/g, "\\'")}')"
                 class="px-2 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 border border-rose-800/80 font-bold text-[11px] transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-                title="Encerrar degustação imediatamente (bloquear usuário no app e direcionar para tela de planos)">
+                title="Encerrar período de teste imediatamente (bloquear usuário no app e direcionar para tela de planos)">
                 <span>🔒</span> <span>Expirar</span>
               </button>
             ` : ''}
@@ -730,7 +730,7 @@ Bons palpites e boas apostas!`;
 
 
 window.expireTenantTrial = async function(id, name) {
-  if (!confirm(`Deseja realmente encerrar o período de degustação de "${name}" agora?\n\nO usuário será bloqueado no aplicativo e verá imediatamente a tela para assinar um plano.`)) {
+  if (!confirm(`Deseja realmente encerrar o período de teste de "${name}" agora?\n\nO usuário será bloqueado no aplicativo e verá imediatamente a tela para assinar um plano.`)) {
     return;
   }
   try {
