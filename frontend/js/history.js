@@ -1291,7 +1291,7 @@ window.inspectSnapshot = async function (id) {
                 💥 1º PRÊMIO NA CABEÇA!
               </span>
               <h3 class="text-sm sm:text-base font-black text-white mt-1">
-                🎯 Bateu na mosca! Nossa análise cravou em cheio!
+                🔥 BINGO! Nossa análise cravou em cheio!
               </h3>
               <p class="text-xs text-slate-300">
                 Milhar <strong class="text-yellow-300 font-mono">${p1}</strong> cravada no 1º Prêmio (${getAnimalByGroup(getGroupFromNumber(p1)).name} - Chave Mestra)!
@@ -1312,7 +1312,7 @@ window.inspectSnapshot = async function (id) {
                 ⭐ CENTENA NO 1º PRÊMIO!
               </span>
               <h3 class="text-sm sm:text-base font-black text-white mt-1">
-                🎯 Bateu na mosca! Nossa análise cravou em cheio!
+                🔥 BINGO! Nossa análise cravou em cheio!
               </h3>
               <p class="text-xs text-slate-300">
                 Centena <strong class="text-emerald-300 font-mono">${String(p1).slice(-3)}</strong> cravada no 1º Prêmio (${getAnimalByGroup(getGroupFromNumber(p1)).name})!
@@ -1646,7 +1646,7 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
                   <span>${badgeLabel}</span>
                 </span>
                 <span class="text-xs sm:text-sm font-black text-white">
-                  🎯 Bateu na mosca! Nossa análise cravou em cheio!
+                  🔥 BINGO! Nossa análise cravou em cheio!
                 </span>
               </div>
               <div class="flex items-baseline gap-2 pt-0.5 flex-wrap">
