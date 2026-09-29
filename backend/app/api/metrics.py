@@ -169,7 +169,8 @@ def get_daily_ranking(target_date: Optional[str] = None):
     Retorna o ranking de assertividade e acertos das bancas/loterias no dia de hoje (ou data auditada).
     Identifica a 'Banca Mais Quente do Dia' para orientar apostas imediatas na Home.
     """
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    # Horário oficial de Brasília (UTC-3)
+    today_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%Y-%m-%d")
     selected_date = target_date.strip() if target_date else today_str
 
     lottery_meta = {
