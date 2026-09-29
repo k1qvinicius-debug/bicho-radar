@@ -1356,7 +1356,7 @@ window.inspectSnapshot = async function (id) {
             <div class="text-[11px] text-slate-400">Data Apurada: ${formatDateBR(data.target_date)}</div>
           </div>
           <div class="flex items-center gap-2">
-            <button type="button" onclick="navigateToAuditedPrediction('${data.lottery || 'LOOK'}', '${data.target_slot}', '${data.target_date}')"
+            <button type="button" onclick="navigateToAuditedPrediction('${data.lottery || 'LOOK'}', '${data.target_slot}', '${data.target_date}', '${actC1 || ''}', '${data.winning_group || (p1 ? getGroupFromNumber(p1) : '')}')"
               class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
               <span>🎯</span> <span>Ver Palpites Deste Horário</span> <span>➔</span>
             </button>
@@ -1412,7 +1412,7 @@ window.inspectSnapshot = async function (id) {
             <div class="text-slate-400 text-[11px] mt-0.5">Centena Ocorrida 1º: <b class="text-slate-100 font-mono font-bold">${actC1 || '-'}</b></div>
             <div class="mt-2 pt-2 border-t border-slate-700/50 flex items-center justify-between flex-wrap gap-1">
               <span class="text-[10px] text-slate-400">Quer conferir o palpite completo na tela de jogos?</span>
-              <button type="button" onclick="navigateToAuditedPrediction('${data.lottery || 'LOOK'}', '${data.target_slot}', '${data.target_date}')"
+              <button type="button" onclick="navigateToAuditedPrediction('${data.lottery || 'LOOK'}', '${data.target_slot}', '${data.target_date}', '${actC1 || ''}', '${data.winning_group || (p1 ? getGroupFromNumber(p1) : '')}')"
                 class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer">
                 <span>🎯</span> <span>Abrir Palpite ➔</span>
               </button>
@@ -1781,14 +1781,19 @@ window.handleDeepLinkParams = function() {
   }
 };
 
-window.navigateToAuditedPrediction = function(lottery, slot, date) {
+window.navigateToAuditedPrediction = function(lottery, slot, date, hitHundred = '', hitGroup = '') {
+  let url = `/?lottery=${encodeURIComponent(lottery)}&slot=${encodeURIComponent(slot)}&date=${encodeURIComponent(date)}`;
+  if (hitHundred) url += `&hit=${encodeURIComponent(hitHundred)}`;
+  if (hitGroup) url += `&group=${encodeURIComponent(hitGroup)}`;
+  url += '#palpites';
+
   if (window.location.pathname.includes('historico')) {
-    window.location.href = `/?lottery=${encodeURIComponent(lottery)}&slot=${encodeURIComponent(slot)}&date=${encodeURIComponent(date)}#palpites`;
+    window.location.href = url;
     return;
   }
   if (typeof window.navigateToAuditedPredictionSpa === 'function') {
-    window.navigateToAuditedPredictionSpa(lottery, slot, date);
+    window.navigateToAuditedPredictionSpa(lottery, slot, date, hitHundred, hitGroup);
   } else {
-    window.location.href = `/?lottery=${encodeURIComponent(lottery)}&slot=${encodeURIComponent(slot)}&date=${encodeURIComponent(date)}#palpites`;
+    window.location.href = url;
   }
 };
