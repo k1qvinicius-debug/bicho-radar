@@ -4379,6 +4379,9 @@ const OFFICIAL_LOTTERY_SLOTS = {
   BAHIA: [
     { code: 'BA-10', name: 'PT Bahia 10h - 10:00', time: '10:00' },
     { code: 'BA-12', name: 'PT Bahia 12h - 12:00', time: '12:00' },
+    { code: 'BA-15', name: 'PT Bahia 15h - 15:00', time: '15:00' },
+    { code: 'BA-19', name: 'PT Bahia 19h - 19:00', time: '19:00' },
+    { code: 'BA-21', name: 'Coruja Bahia - 21:00', time: '21:00' },
   ],
   MINAS: [
     { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00' },
