@@ -127,15 +127,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Inicia monitor em tempo real para detecção instantânea de novos resultados (a cada 25 segundos)
   startInstantResultsMonitor();
 
+  // Suporte a parâmetros diretos de navegação (?lottery=...&slot=...&date=...)
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramLottery = urlParams.get('lottery');
+  const paramSlot = urlParams.get('slot');
+  const paramDate = urlParams.get('date');
+
+  if (paramLottery) {
+    currentLottery = paramLottery.toUpperCase();
+    localStorage.setItem('bicho_active_lottery', currentLottery);
+    window.currentLottery = currentLottery;
+    updateLotteryButtonsUI();
+  }
+  if (paramDate) {
+    const dEl = document.getElementById('target-date');
+    if (dEl) dEl.value = paramDate;
+  }
+  if (paramSlot) {
+    window._userSelectedSlot = paramSlot.toUpperCase();
+  }
+
   // Restaura a tela ativa do usuário (via hash, query param ou localStorage)
   const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   const hash = window.location.hash.replace('#', '');
-  const urlParams = new URLSearchParams(window.location.search);
   let savedScreen = null;
   try { savedScreen = localStorage.getItem('bicho_active_screen'); } catch(e) {}
 
   let targetScreen = 'home';
-  if (hash && validScreens.includes(hash)) {
+  if (paramLottery || paramSlot || paramDate) {
+    targetScreen = 'palpites';
+  } else if (hash && validScreens.includes(hash)) {
     targetScreen = hash;
   } else if (urlParams.get('tab') && validScreens.includes(urlParams.get('tab'))) {
     targetScreen = urlParams.get('tab');
@@ -2776,7 +2797,9 @@ function renderAnimalCards(data) {
         animalHundreds.push(`2${t}`);
       });
     }
-    animalHundreds = Array.from(new Set(animalHundreds)).slice(0, 4);
+    animalHundreds = Array.from(new Set(animalHundreds));
+    const visibleHundreds = animalHundreds.slice(0, 4);
+    const extraHundreds = animalHundreds.slice(4);
 
     // 3. Milhares deste animal
     const cruzMeta = g.metadata?.cruz_do_dia;
@@ -2799,38 +2822,54 @@ function renderAnimalCards(data) {
         animalThousands.push(`1${h}`);
       });
     }
-    animalThousands = Array.from(new Set(animalThousands)).slice(0, 4);
+    animalThousands = Array.from(new Set(animalThousands));
+    const visibleThousands = animalThousands.slice(0, 4);
+    const extraThousands = animalThousands.slice(4);
 
     const tensHtml = animalTens.length > 0
       ? animalTens.map(t => `<button type="button" onclick="copySingleNumber(event, '${t}', 'Dezena')" title="Clique para copiar a dezena ${t}" class="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-700/60 hover:border-indigo-400 text-indigo-200 font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer">${t}</button>`).join(' ')
       : '<span class="text-xs text-slate-500">-</span>';
 
-    const hundredsHtml = animalHundreds.length > 0
-      ? animalHundreds.map(h => {
-          const isMatrizCentena = matrizCentenas.includes(h);
-          const btnCls = isMatrizCentena
-            ? 'bg-amber-950/90 border border-amber-500/80 text-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30'
-            : 'bg-cyan-950/80 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200';
-          return `<button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')" title="Clique para copiar a centena ${h}${isMatrizCentena ? ' (⚡ Chave Mestra)' : ''}" class="px-2 py-0.5 rounded ${btnCls} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${h}${isMatrizCentena ? '<span class="text-[9px] text-amber-300 ml-0.5" title="Chave Mestra">⚡</span>' : ''}</button>`;
-        }).join(' ')
-      : '<span class="text-xs text-slate-500">-</span>';
+    const makeHundredBtn = (h) => {
+      const isMatrizCentena = matrizCentenas.includes(h);
+      const btnCls = isMatrizCentena
+        ? 'bg-amber-950/90 border border-amber-500/80 text-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30'
+        : 'bg-cyan-950/80 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200';
+      return `<button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')" title="Clique para copiar a centena ${h}${isMatrizCentena ? ' (⚡ Chave Mestra)' : ''}" class="px-2 py-0.5 rounded ${btnCls} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${h}${isMatrizCentena ? '<span class="text-[9px] text-amber-300 ml-0.5" title="Chave Mestra">⚡</span>' : ''}</button>`;
+    };
 
-    const thousandsHtml = animalThousands.length > 0
-      ? animalThousands.map(m => {
-          const isMatrizMilhar = matrizMilhares.includes(m);
-          const isCruzMilhar = cruzMeta?.thousands?.includes(m);
-          let btnClass = 'bg-amber-950/80 border border-amber-600/60 text-amber-200';
-          let badgeIcon = '';
-          if (isMatrizMilhar) {
-            btnClass = 'bg-amber-950/90 border border-amber-500/80 text-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30';
-            badgeIcon = '<span class="text-[9px] text-amber-300 ml-0.5" title="Chave Mestra">⚡</span>';
-          } else if (isCruzMilhar) {
-            btnClass = 'bg-cyan-950/80 border border-cyan-500/70 text-cyan-200';
-            badgeIcon = '<span class="text-[9px] text-cyan-300 ml-0.5">✨</span>';
-          }
-          return `<button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Clique para copiar o milhar ${m}${isMatrizMilhar ? ' (⚡ Chave Mestra)' : (isCruzMilhar ? ' (Cruz do Dia)' : '')}" class="px-2 py-0.5 rounded ${btnClass} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${m}${badgeIcon}</button>`;
-        }).join(' ')
-      : '<span class="text-xs text-slate-500">-</span>';
+    let hundredsHtml = visibleHundreds.map(makeHundredBtn).join(' ');
+    if (extraHundreds.length > 0) {
+      hundredsHtml += ` <span id="extra-hundreds-${idx}" class="hidden inline-flex items-center gap-1 flex-wrap">${extraHundreds.map(makeHundredBtn).join(' ')}</span>
+      <button type="button" onclick="toggleExtraGroupNumbers('extra-hundreds-${idx}', this, ${extraHundreds.length})" class="px-1.5 py-0.5 rounded-md bg-cyan-900/60 hover:bg-cyan-800 border border-cyan-600/60 text-cyan-300 font-bold text-[11px] shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer inline-flex items-center gap-0.5">
+        <span>+${extraHundreds.length} mais</span>
+      </button>`;
+    }
+    if (!hundredsHtml) hundredsHtml = '<span class="text-xs text-slate-500">-</span>';
+
+    const makeThousandBtn = (m) => {
+      const isMatrizMilhar = matrizMilhares.includes(m);
+      const isCruzMilhar = cruzMeta?.thousands?.includes(m);
+      let btnClass = 'bg-amber-950/80 border border-amber-600/60 text-amber-200';
+      let badgeIcon = '';
+      if (isMatrizMilhar) {
+        btnClass = 'bg-amber-950/90 border border-amber-500/80 text-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30';
+        badgeIcon = '<span class="text-[9px] text-amber-300 ml-0.5" title="Chave Mestra">⚡</span>';
+      } else if (isCruzMilhar) {
+        btnClass = 'bg-cyan-950/80 border border-cyan-500/70 text-cyan-200';
+        badgeIcon = '<span class="text-[9px] text-cyan-300 ml-0.5">✨</span>';
+      }
+      return `<button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')" title="Clique para copiar o milhar ${m}${isMatrizMilhar ? ' (⚡ Chave Mestra)' : (isCruzMilhar ? ' (Cruz do Dia)' : '')}" class="px-2 py-0.5 rounded ${btnClass} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${m}${badgeIcon}</button>`;
+    };
+
+    let thousandsHtml = visibleThousands.map(makeThousandBtn).join(' ');
+    if (extraThousands.length > 0) {
+      thousandsHtml += ` <span id="extra-thousands-${idx}" class="hidden inline-flex items-center gap-1 flex-wrap">${extraThousands.map(makeThousandBtn).join(' ')}</span>
+      <button type="button" onclick="toggleExtraGroupNumbers('extra-thousands-${idx}', this, ${extraThousands.length})" class="px-1.5 py-0.5 rounded-md bg-amber-900/60 hover:bg-amber-800 border border-amber-600/60 text-amber-300 font-bold text-[11px] shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer inline-flex items-center gap-0.5">
+        <span>+${extraThousands.length} mais</span>
+      </button>`;
+    }
+    if (!thousandsHtml) thousandsHtml = '<span class="text-xs text-slate-500">-</span>';
 
     const tensStr = animalTens.join(', ');
     const hundredsStr = animalHundreds.join(', ');
@@ -7585,3 +7624,50 @@ window.copyAllMatrizTernos = async function(btn) {
     showToast('Não foi possível copiar automaticamente.', 'warning');
   }
 };
+
+/* ==========================================================================
+   NAVEGAÇÃO DIRETA DE AUDITORIA & EXIBIÇÃO DE NÚMEROS EXTRAS NO CARD
+   ========================================================================== */
+window.toggleExtraGroupNumbers = function(containerId, btn, count) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const isHidden = container.classList.contains('hidden');
+  if (isHidden) {
+    container.classList.remove('hidden');
+    if (btn) btn.innerHTML = '<span>▲ recolher</span>';
+  } else {
+    container.classList.add('hidden');
+    if (btn) btn.innerHTML = `<span>+${count} mais</span>`;
+  }
+};
+
+window.navigateToAuditedPredictionSpa = async function(lottery, slot, date) {
+  const modal = document.getElementById('snapshot-modal');
+  if (modal) modal.classList.add('hidden');
+  const bingoModal = document.getElementById('modal-bingo-celebration');
+  if (bingoModal) bingoModal.classList.add('hidden');
+  const backdrop = document.getElementById('modal-bingo-backdrop');
+  if (backdrop) backdrop.remove();
+
+  if (typeof showToast === 'function') {
+    showToast(`Carregando palpites de ${lottery} (${slot})...`, 'info');
+  }
+
+  if (lottery && typeof window.switchLottery === 'function') {
+    await window.switchLottery(lottery, false);
+  }
+  if (date) {
+    const targetDateEl = document.getElementById('target-date');
+    if (targetDateEl) targetDateEl.value = date;
+  }
+  if (typeof window.switchScreen === 'function') {
+    window.switchScreen('palpites');
+  }
+  if (slot && typeof window.selectSlotForPrediction === 'function') {
+    window.selectSlotForPrediction(slot, date);
+  } else if (typeof window.loadPrediction === 'function') {
+    await window.loadPrediction(true);
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+window.navigateToAuditedPrediction = window.navigateToAuditedPredictionSpa;
