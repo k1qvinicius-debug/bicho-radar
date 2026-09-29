@@ -1349,15 +1349,21 @@ window.inspectSnapshot = async function (id) {
     content.innerHTML = `
       <div class="space-y-4 text-xs">
         ${topCelebrationBanner}
-        <!-- Cabeçalho do Sorteio -->
+        <!-- Cabeçalho do Sorteio com Botão Direto para o Palpite -->
         <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-between flex-wrap gap-2">
           <div>
             <div class="font-bold text-slate-100 text-sm">${data.lottery || 'LOOK'} - ${data.target_slot}</div>
             <div class="text-[11px] text-slate-400">Data Apurada: ${formatDateBR(data.target_date)}</div>
           </div>
-          <div class="text-right">
-            <span class="text-xs font-bold text-slate-400">Pontuação Obtida:</span>
-            <span class="text-base font-black font-mono text-amber-400 ml-1">${Number(data.hit_rate_score || 0)} pts</span>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="navigateToAuditedPrediction('${data.lottery || 'LOOK'}', '${data.target_slot}', '${data.target_date}')"
+              class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
+              <span>🎯</span> <span>Ver Palpites Deste Horário</span> <span>➔</span>
+            </button>
+            <div class="text-right hidden sm:block">
+              <span class="text-xs font-bold text-slate-400">Pontuação:</span>
+              <span class="text-base font-black font-mono text-amber-400 ml-1">${Number(data.hit_rate_score || 0)} pts</span>
+            </div>
           </div>
         </div>
 
@@ -1404,6 +1410,13 @@ window.inspectSnapshot = async function (id) {
             </div>
             <div class="text-slate-300 font-mono text-[11px]">Palpites: [ <span class="text-indigo-300 font-bold">${topC}</span> ]</div>
             <div class="text-slate-400 text-[11px] mt-0.5">Centena Ocorrida 1º: <b class="text-slate-100 font-mono font-bold">${actC1 || '-'}</b></div>
+            <div class="mt-2 pt-2 border-t border-slate-700/50 flex items-center justify-between flex-wrap gap-1">
+              <span class="text-[10px] text-slate-400">Quer conferir o palpite completo na tela de jogos?</span>
+              <button type="button" onclick="navigateToAuditedPrediction('${data.lottery || 'LOOK'}', '${data.target_slot}', '${data.target_date}')"
+                class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer">
+                <span>🎯</span> <span>Abrir Palpite ➔</span>
+              </button>
+            </div>
           </div>
 
 <!-- Milhares -->
@@ -1765,5 +1778,17 @@ window.handleDeepLinkParams = function() {
     }
   } catch (err) {
     console.warn('Erro ao processar parâmetros da URL em historico:', err);
+  }
+};
+
+window.navigateToAuditedPrediction = function(lottery, slot, date) {
+  if (window.location.pathname.includes('historico')) {
+    window.location.href = `/?lottery=${encodeURIComponent(lottery)}&slot=${encodeURIComponent(slot)}&date=${encodeURIComponent(date)}#palpites`;
+    return;
+  }
+  if (typeof window.navigateToAuditedPredictionSpa === 'function') {
+    window.navigateToAuditedPredictionSpa(lottery, slot, date);
+  } else {
+    window.location.href = `/?lottery=${encodeURIComponent(lottery)}&slot=${encodeURIComponent(slot)}&date=${encodeURIComponent(date)}#palpites`;
   }
 };
