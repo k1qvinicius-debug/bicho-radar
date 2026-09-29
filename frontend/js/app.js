@@ -112,9 +112,61 @@ window.currentLottery = currentLottery;
 document.addEventListener('DOMContentLoaded', async () => {
   await initTenantAuth();
   await setupGoogleIdentity();
+
+  // 1. Suporte prioritário a parâmetros diretos de navegação (?lottery=...&slot=...&date=...&hit=...&group=...)
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramLottery = urlParams.get('lottery');
+  const paramSlot = urlParams.get('slot');
+  const paramDate = urlParams.get('date');
+  const paramHit = urlParams.get('hit');
+  const paramGroup = urlParams.get('group');
+  const hash = window.location.hash.replace('#', '');
+
+  if (paramHit) {
+    window._targetHitCentena = paramHit;
+  }
+  if (paramGroup) {
+    window._targetHitGroup = paramGroup;
+  }
+
+  if (paramLottery) {
+    currentLottery = paramLottery.toUpperCase();
+    localStorage.setItem('bicho_active_lottery', currentLottery);
+    window.currentLottery = currentLottery;
+  }
+
+  if (paramDate) {
+    const dEl = document.getElementById('target-date');
+    if (dEl) dEl.value = paramDate;
+  } else {
+    setDefaultDate();
+  }
+
+  if (paramSlot) {
+    window._userSelectedSlot = paramSlot.toUpperCase();
+  }
+
   updateLotteryButtonsUI();
-  setDefaultDate();
-  await initSlotSelector(currentLottery);
+  await initSlotSelector(currentLottery, window._userSelectedSlot);
+
+  // 2. Determina tela alvo antes do carregamento inicial
+  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+  let savedScreen = null;
+  try { savedScreen = localStorage.getItem('bicho_active_screen'); } catch(e) {}
+
+  let targetScreen = 'home';
+  if (paramLottery || paramSlot || paramDate || hash === 'palpites') {
+    targetScreen = 'palpites';
+  } else if (hash && validScreens.includes(hash)) {
+    targetScreen = hash;
+  } else if (urlParams.get('tab') && validScreens.includes(urlParams.get('tab'))) {
+    targetScreen = urlParams.get('tab');
+  } else if (savedScreen && validScreens.includes(savedScreen)) {
+    targetScreen = savedScreen;
+  }
+
+  switchScreen(targetScreen, true);
+
   try {
     await Promise.all([loadPrediction(), loadDrawResults()]);
     checkAndRenderMilharBingoBanner();
@@ -126,45 +178,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Inicia monitor em tempo real para detecção instantânea de novos resultados (a cada 25 segundos)
   startInstantResultsMonitor();
-
-  // Suporte a parâmetros diretos de navegação (?lottery=...&slot=...&date=...)
-  const urlParams = new URLSearchParams(window.location.search);
-  const paramLottery = urlParams.get('lottery');
-  const paramSlot = urlParams.get('slot');
-  const paramDate = urlParams.get('date');
-
-  if (paramLottery) {
-    currentLottery = paramLottery.toUpperCase();
-    localStorage.setItem('bicho_active_lottery', currentLottery);
-    window.currentLottery = currentLottery;
-    updateLotteryButtonsUI();
-  }
-  if (paramDate) {
-    const dEl = document.getElementById('target-date');
-    if (dEl) dEl.value = paramDate;
-  }
-  if (paramSlot) {
-    window._userSelectedSlot = paramSlot.toUpperCase();
-  }
-
-  // Restaura a tela ativa do usuário (via hash, query param ou localStorage)
-  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
-  const hash = window.location.hash.replace('#', '');
-  let savedScreen = null;
-  try { savedScreen = localStorage.getItem('bicho_active_screen'); } catch(e) {}
-
-  let targetScreen = 'home';
-  if (paramLottery || paramSlot || paramDate) {
-    targetScreen = 'palpites';
-  } else if (hash && validScreens.includes(hash)) {
-    targetScreen = hash;
-  } else if (urlParams.get('tab') && validScreens.includes(urlParams.get('tab'))) {
-    targetScreen = urlParams.get('tab');
-  } else if (savedScreen && validScreens.includes(savedScreen)) {
-    targetScreen = savedScreen;
-  }
-
-  switchScreen(targetScreen, true);
 });
 
 // Suporte ao botão voltar/avançar do navegador entre as telas
@@ -2832,17 +2845,22 @@ function renderAnimalCards(data) {
 
     const makeHundredBtn = (h) => {
       const isMatrizCentena = matrizCentenas.includes(h);
-      const btnCls = isMatrizCentena
+      const isAuditedHit = window._targetHitCentena && (h === window._targetHitCentena || h.endsWith(window._targetHitCentena));
+      let btnCls = isMatrizCentena
         ? 'bg-amber-950/90 border border-amber-500/80 text-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30'
         : 'bg-cyan-950/80 border border-cyan-700/60 hover:border-cyan-400 text-cyan-200';
-      return `<button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')" title="Clique para copiar a centena ${h}${isMatrizCentena ? ' (⚡ Chave Mestra)' : ''}" class="px-2 py-0.5 rounded ${btnCls} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${h}${isMatrizCentena ? '<span class="text-[9px] text-amber-300 ml-0.5" title="Chave Mestra">⚡</span>' : ''}</button>`;
+      if (isAuditedHit) {
+        btnCls = 'audited-hit-hundred bg-emerald-600 text-white border-2 border-yellow-300 shadow-[0_0_16px_rgba(16,185,129,0.9)] ring-2 ring-yellow-400 font-black animate-pulse scale-105';
+      }
+      return `<button type="button" onclick="copySingleNumber(event, '${h}', 'Centena')" title="Clique para copiar a centena ${h}${isMatrizCentena ? ' (⚡ Chave Mestra)' : ''}${isAuditedHit ? ' 🎯 ACERTO AUDITADO!' : ''}" class="px-2 py-0.5 rounded ${btnCls} font-mono font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer relative">${h}${isMatrizCentena ? '<span class="text-[9px] text-amber-300 ml-0.5" title="Chave Mestra">⚡</span>' : ''}${isAuditedHit ? '<span class="text-[9px] text-yellow-300 ml-1 font-black">🎯 BATEU!</span>' : ''}</button>`;
     };
 
+    const hasHitInExtraHundreds = extraHundreds.some(h => window._targetHitCentena && (h === window._targetHitCentena || h.endsWith(window._targetHitCentena)));
     let hundredsHtml = visibleHundreds.map(makeHundredBtn).join(' ');
     if (extraHundreds.length > 0) {
-      hundredsHtml += ` <span id="extra-hundreds-${idx}" class="hidden inline-flex items-center gap-1 flex-wrap">${extraHundreds.map(makeHundredBtn).join(' ')}</span>
+      hundredsHtml += ` <span id="extra-hundreds-${idx}" class="${hasHitInExtraHundreds ? '' : 'hidden'} inline-flex items-center gap-1 flex-wrap">${extraHundreds.map(makeHundredBtn).join(' ')}</span>
       <button type="button" onclick="toggleExtraGroupNumbers('extra-hundreds-${idx}', this, ${extraHundreds.length})" class="px-1.5 py-0.5 rounded-md bg-cyan-900/60 hover:bg-cyan-800 border border-cyan-600/60 text-cyan-300 font-bold text-[11px] shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer inline-flex items-center gap-0.5">
-        <span>+${extraHundreds.length} mais</span>
+        <span>${hasHitInExtraHundreds ? '▲ recolher' : `+${extraHundreds.length} mais`}</span>
       </button>`;
     }
     if (!hundredsHtml) hundredsHtml = '<span class="text-xs text-slate-500">-</span>';
@@ -2882,8 +2900,9 @@ function renderAnimalCards(data) {
       </span>
     `).join(' ');
 
+    const isWinningGroup = window._targetHitGroup && (parseInt(window._targetHitGroup, 10) === grpNum);
     return `
-      <div class="card-glass p-2.5 sm:p-3 rounded-xl border border-slate-800/90 hover:border-emerald-500/40 transition-all animate-fade-in space-y-2">
+      <div id="animal-card-${grpNum}" class="card-glass p-2.5 sm:p-3 rounded-xl border ${isWinningGroup ? 'border-amber-500/90 shadow-[0_0_18px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/40' : 'border-slate-800/90 hover:border-emerald-500/40'} transition-all animate-fade-in space-y-2">
         <!-- Linha 1: Bicho + Força/Confiança + Ações (Horizontal Integrada) -->
         <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
           <div class="flex items-center gap-2 min-w-0 flex-wrap">
@@ -2968,6 +2987,16 @@ function renderAnimalCards(data) {
       </div>
     `;
   }).join('');
+
+  if (window._targetHitGroup || window._targetHitCentena) {
+    setTimeout(() => {
+      const hitEl = document.querySelector('.audited-hit-hundred') || 
+                    (window._targetHitGroup ? document.getElementById(`animal-card-${window._targetHitGroup}`) : null);
+      if (hitEl) {
+        hitEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 350);
+  }
 }
 
 
@@ -7641,7 +7670,7 @@ window.toggleExtraGroupNumbers = function(containerId, btn, count) {
   }
 };
 
-window.navigateToAuditedPredictionSpa = async function(lottery, slot, date) {
+window.navigateToAuditedPredictionSpa = async function(lottery, slot, date, hitHundred = '', hitGroup = '') {
   const modal = document.getElementById('snapshot-modal');
   if (modal) modal.classList.add('hidden');
   const bingoModal = document.getElementById('modal-bingo-celebration');
@@ -7653,21 +7682,44 @@ window.navigateToAuditedPredictionSpa = async function(lottery, slot, date) {
     showToast(`Carregando palpites de ${lottery} (${slot})...`, 'info');
   }
 
-  if (lottery && typeof window.switchLottery === 'function') {
-    await window.switchLottery(lottery, false);
-  }
+  const lot = (lottery || 'RJ').toUpperCase();
+  const slt = (slot || '').toUpperCase();
+
+  if (hitHundred) window._targetHitCentena = hitHundred;
+  if (hitGroup) window._targetHitGroup = hitGroup;
+
+  currentLottery = lot;
+  window.currentLottery = lot;
+  localStorage.setItem('bicho_active_lottery', lot);
+  window._userSelectedSlot = slt;
+
   if (date) {
     const targetDateEl = document.getElementById('target-date');
     if (targetDateEl) targetDateEl.value = date;
   }
+
+  updateLotteryButtonsUI();
+  await initSlotSelector(lot, slt);
+
   if (typeof window.switchScreen === 'function') {
-    window.switchScreen('palpites');
+    window.switchScreen('palpites', true);
   }
-  if (slot && typeof window.selectSlotForPrediction === 'function') {
-    window.selectSlotForPrediction(slot, date);
-  } else if (typeof window.loadPrediction === 'function') {
-    await window.loadPrediction(true);
+
+  const targetSlotEl = document.getElementById('target-slot');
+  if (targetSlotEl && slt) {
+    targetSlotEl.value = slt;
+    const opt = Array.from(targetSlotEl.options).find(o => o.value === slt);
+    if (opt) {
+      opt.selected = true;
+      const headerSlotName = document.getElementById('header-slot-name');
+      if (headerSlotName) headerSlotName.textContent = opt.textContent;
+      const homeNextSlot = document.getElementById('home-next-slot-name');
+      if (homeNextSlot) homeNextSlot.textContent = opt.textContent;
+    }
   }
+  updateSlotPillsUI(slt);
+
+  await loadPrediction(true);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 window.navigateToAuditedPrediction = window.navigateToAuditedPredictionSpa;
