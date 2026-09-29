@@ -442,7 +442,91 @@ function updateHomeScreenData() {
       homeTopBadge.className = 'hidden';
     }
   }
+
+  // Atualiza o Termômetro da Banca Mais Quente na Home
+  if (typeof updateHomeDailyRankingUI === 'function') {
+    updateHomeDailyRankingUI();
+  }
 }
+
+/* ==========================================================================
+   TERMÔMETRO DA BANCA MAIS QUENTE DE HOJE (RANKING DIÁRIO DE ACERTOS)
+   ========================================================================== */
+window.navigateToHottestLottery = function() {
+  const lot = window.currentHottestLotteryCode || 'NACIONAL';
+  if (typeof window.navigateTo === 'function') {
+    window.navigateTo(lot, 'palpites');
+  }
+};
+
+window.updateHomeDailyRankingUI = async function() {
+  const pillsContainer = document.getElementById('home-daily-ranking-pills');
+  if (!pillsContainer) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/metrics/daily-ranking`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data) return;
+
+    const top = data.top_lottery;
+    if (top) {
+      window.currentHottestLotteryCode = top.lottery;
+      const nameEl = document.getElementById('hottest-lottery-name');
+      const btnNameEl = document.getElementById('hottest-lottery-btn-name');
+      const emojiEl = document.getElementById('hottest-lottery-emoji');
+      const hitsCountEl = document.getElementById('hottest-lottery-hits-count');
+      const hitsDescEl = document.getElementById('hottest-lottery-hits-desc');
+      const badgeTitleEl = document.getElementById('hottest-card-badge-title');
+      const dateBadgeEl = document.getElementById('hottest-card-date-badge');
+
+      if (nameEl) nameEl.textContent = top.name;
+      if (btnNameEl) btnNameEl.textContent = top.short_name || top.name;
+      if (emojiEl) emojiEl.textContent = top.emoji;
+      if (hitsCountEl) hitsCountEl.textContent = `${top.total_hits} ${top.total_hits === 1 ? 'acerto' : 'acertos'}`;
+      if (hitsDescEl) {
+        if (top.hits_m1 > 0) {
+          hitsDescEl.textContent = 'Milhar na Cabeça cravada! 💥';
+        } else if (top.hits_c1 > 0) {
+          hitsDescEl.textContent = 'Centena no 1º Prêmio 🎯';
+        } else if (top.total_hits > 0) {
+          hitsDescEl.textContent = 'Assertividade máxima nas extrações';
+        } else {
+          hitsDescEl.textContent = 'Aguardando próximos resultados';
+        }
+      }
+      if (badgeTitleEl && data.highlight_title) {
+        badgeTitleEl.textContent = data.highlight_title;
+      }
+      if (dateBadgeEl) {
+        dateBadgeEl.textContent = data.is_today ? 'Tempo Real' : (data.formatted_date || 'Recente');
+      }
+    }
+
+    if (Array.isArray(data.ranking) && data.ranking.length > 0) {
+      let html = '';
+      data.ranking.forEach((item) => {
+        const isSelectedTop = item.lottery === (top?.lottery);
+        const activeStyles = isSelectedTop
+          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-500/10'
+          : 'bg-slate-900/80 text-slate-300 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80';
+        const hitColor = item.total_hits > 0 ? 'text-emerald-400 font-extrabold' : 'text-slate-500 font-medium';
+
+        html += `
+          <button type="button" onclick="navigateTo('${item.lottery}', 'palpites')"
+            class="px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer select-none active:scale-95 shrink-0 ${activeStyles}">
+            <span class="text-sm">${item.emoji}</span>
+            <span class="text-white">${item.short_name || item.name}</span>
+            <span class="${hitColor}">(${item.total_hits})</span>
+          </button>
+        `;
+      });
+      pillsContainer.innerHTML = html;
+    }
+  } catch (err) {
+    console.error('Erro ao carregar ranking diário da Home:', err);
+  }
+};
 
 /* ==========================================================================
    SELETOR DE ESTRATÉGIA / PERFIL DE JOGO
