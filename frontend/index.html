@@ -689,6 +689,71 @@
         <span id="home-top-thermometer-badge" class="hidden"></span>
       </div>
 
+      <!-- CARD DESTAQUE: BANCA MAIS QUENTE DO DIA (TERMÔMETRO DE ACERTOS) -->
+      <div id="home-hottest-lottery-card" class="card-glass p-4 sm:p-5 relative overflow-hidden bg-gradient-to-br from-amber-950/40 via-slate-900/95 to-slate-950 border border-amber-500/40 rounded-2xl shadow-xl shadow-amber-500/10">
+        <!-- Glow decorativo superior -->
+        <div class="absolute -top-10 -right-10 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <!-- Cabeçalho do Card -->
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+              <span id="hottest-card-badge-title">🔥 BANCA MAIS QUENTE DE HOJE</span>
+            </span>
+            <span id="hottest-card-date-badge" class="text-[10px] text-slate-400 font-mono hidden sm:inline">Tempo Real</span>
+          </div>
+          <span class="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            Em Alta
+          </span>
+        </div>
+
+        <!-- Conteúdo Principal: Destaque da Banca Líder -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 py-1">
+          <div class="flex items-center gap-3">
+            <div id="hottest-lottery-emoji-box" class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-2xl sm:text-3xl shrink-0 shadow-md shadow-amber-500/20">
+              <span id="hottest-lottery-emoji">🇧🇷</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 id="hottest-lottery-name" class="text-base sm:text-lg font-black text-white tracking-tight">
+                  Loteria Nacional
+                </h3>
+                <span id="hottest-lottery-tag" class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold">
+                  Top 1
+                </span>
+              </div>
+              <p id="hottest-lottery-subtitle" class="text-xs text-slate-300 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span id="hottest-lottery-hits-count" class="text-emerald-400 font-extrabold text-sm">8 acertos</span>
+                <span class="text-slate-400">•</span>
+                <span id="hottest-lottery-hits-desc" class="text-slate-300 text-[11px]">Milhar cravada + Centenas</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Botão de Ação Direta para Jogar na Banca Quente -->
+          <button id="btn-play-hottest-lottery" type="button" onclick="navigateToHottestLottery()"
+            class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0">
+            <span>Jogar na <span id="hottest-lottery-btn-name">Nacional</span> Agora</span>
+            <span class="text-base font-black">➔</span>
+          </button>
+        </div>
+
+        <!-- Seção de Pílulas Horizontais das Demais Bancas -->
+        <div class="mt-3 pt-3 border-t border-slate-800/80">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
+              <span>🎯</span> Termômetro Geral de Acertos (Toque para ver os palpites)
+            </span>
+          </div>
+          <div id="home-daily-ranking-pills" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar flex-wrap sm:flex-nowrap">
+            <!-- Pílulas preenchidas dinamicamente via JS -->
+            <div class="text-xs text-slate-500 animate-pulse py-1">Carregando acertos do dia...</div>
+          </div>
+        </div>
+      </div>
+
       <!-- SEÇÃO 1: QUAL LOTERIA VOCÊ JOGA HOJE? (GRADE 2x2 LIMPA) -->
       <div class="space-y-2.5">
         <div class="flex items-center justify-between px-1">
@@ -2565,8 +2630,8 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=1790635000"></script>
-  <script src="/js/app.js?v=1790635000"></script>
+  <script src="/js/api.js?v=1790636000"></script>
+  <script src="/js/app.js?v=1790636000"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
