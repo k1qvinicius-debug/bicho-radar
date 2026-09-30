@@ -6569,12 +6569,21 @@ window.goToBingoDetails = function() {
   }
   if (b) {
     if (b.origin === 'CHAVE_MESTRA') {
-      if (typeof window.switchTab === 'function') {
-        window.switchTab('cruz');
-      } else {
-        const btnCruz = document.querySelector('[data-tab="cruz"]');
-        if (btnCruz) btnCruz.click();
-        else window.location.href = '/#cruz';
+      if (typeof window.switchScreen === 'function') {
+        window.switchScreen('matriz');
+      }
+      const num = String(b.hit_number || b.prize_1 || '');
+      const d2 = parseInt(num.slice(-2), 10);
+      let grp = 0;
+      if (!isNaN(d2)) {
+        grp = d2 === 0 ? 25 : Math.ceil(d2 / 4);
+      }
+      if (grp > 0 && typeof window.selectMatrizAnimal === 'function') {
+        setTimeout(() => {
+          window.selectMatrizAnimal(grp);
+          const el = document.getElementById('matriz-animal-detail-card');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
       }
       return;
     }
