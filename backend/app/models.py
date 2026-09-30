@@ -289,6 +289,7 @@ class SystemSettingsModel(BaseModel):
     plan_link_semiannual: Optional[str] = ""
     plan_link_yearly: Optional[str] = ""
     plan_link_lifetime: Optional[str] = ""
+    mp_access_token: Optional[str] = ""
 
 
 class LoginRequestModel(BaseModel):
