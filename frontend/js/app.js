@@ -392,9 +392,9 @@ window.switchPalpitesTopic = function(topicName) {
 
     if (btn) {
       if (t === topicName) {
-        btn.className = 'py-1.5 px-0.5 sm:px-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-0.5 sm:gap-1 bg-indigo-600 text-white shadow-sm active:scale-95 cursor-pointer';
+        btn.className = 'py-1 px-1 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 bg-indigo-600 text-white shadow-sm active:scale-95 cursor-pointer';
       } else {
-        btn.className = 'py-1.5 px-0.5 sm:px-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer';
+        btn.className = 'py-1 px-1 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer';
       }
     }
 
@@ -585,9 +585,9 @@ window.setPredictionStrategy = function(strat) {
     const btn = document.getElementById(`strat-btn-${s}`);
     if (btn) {
       if (s === strat) {
-        btn.className = 'px-1.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold border transition-all flex items-center justify-center gap-1 bg-indigo-600 text-white border-indigo-500 shadow-sm cursor-pointer';
+        btn.className = 'px-1.5 py-1 rounded-lg text-[11px] font-bold border transition-all flex items-center justify-center gap-1 bg-indigo-600 text-white border-indigo-500 shadow-sm cursor-pointer';
       } else {
-        btn.className = 'px-1.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 transition-all flex items-center justify-center gap-1 cursor-pointer';
+        btn.className = 'px-1.5 py-1 rounded-lg text-[11px] font-medium text-slate-400 hover:text-slate-200 bg-slate-900/90 border border-slate-800 transition-all flex items-center justify-center gap-1 cursor-pointer';
       }
     }
   });
@@ -1187,9 +1187,9 @@ function updateSlotPillsUI(activeSlotCode) {
     const name = btn.getAttribute('data-slot-name') || code;
     if (code === activeSlotCode) {
       activeName = name;
-      btn.className = 'slot-pill-btn px-3 py-1.5 rounded-xl text-xs font-black transition-all bg-[#00e676] text-slate-950 border-2 border-[#00e676] shadow-md shadow-[#00e676]/20 cursor-pointer flex items-center gap-1.5';
+      btn.className = 'slot-pill-btn px-2.5 py-1 rounded-lg text-[11px] font-black transition-all bg-[#00e676] text-slate-950 border border-[#00e676] shadow-sm shadow-[#00e676]/20 cursor-pointer flex items-center gap-1';
     } else {
-      btn.className = 'slot-pill-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-950/80 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700 cursor-pointer flex items-center gap-1.5';
+      btn.className = 'slot-pill-btn px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all bg-slate-950/80 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700 cursor-pointer flex items-center gap-1';
     }
   });
 
@@ -2448,7 +2448,7 @@ window.toggleReadyBetsDetails = function(targetKey) {
 function buildReadyBetsHtml(g0, g1, g2, key, defaultOpen) {
   const isOpen = defaultOpen || false;
   return `
-    <div class="card-glass p-2.5 sm:p-3 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-900/90 to-indigo-950/40 shadow-md animate-fade-in mb-3">
+    <div class="card-glass p-2 sm:p-2.5 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-900/90 to-indigo-950/40 shadow-sm animate-fade-in mb-2">
       <!-- Linha 1: Resumo Inline Compacto & Acoes -->
       <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
         <div class="flex items-center gap-2 min-w-0 flex-wrap">
@@ -2915,18 +2915,18 @@ function renderAnimalCards(data) {
 
     const isWinningGroup = window._targetHitGroup && (parseInt(window._targetHitGroup, 10) === grpNum);
     return `
-      <div id="animal-card-${grpNum}" class="card-glass p-2.5 sm:p-3 rounded-xl border ${isWinningGroup ? 'border-amber-500/90 shadow-[0_0_18px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/40' : 'border-slate-800/90 hover:border-emerald-500/40'} transition-all animate-fade-in space-y-2">
+      <div id="animal-card-${grpNum}" class="card-glass p-2 sm:p-2.5 rounded-xl border ${isWinningGroup ? 'border-amber-500/90 shadow-[0_0_14px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/40' : 'border-slate-800/90 hover:border-emerald-500/40'} transition-all animate-fade-in space-y-1.5">
         <!-- Linha 1: Bicho + Força/Confiança + Ações (Horizontal Integrada) -->
         <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
           <div class="flex items-center gap-2 min-w-0 flex-wrap">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-lg animal-badge shrink-0 bg-emerald-500/15 border border-emerald-500/30 shadow-inner">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-base animal-badge shrink-0 bg-emerald-500/15 border border-emerald-500/30 shadow-inner">
               ${animEmoji}
             </div>
             <div class="flex items-center gap-1.5 flex-wrap min-w-0">
               <span class="text-[10px] font-black px-1.5 py-0.2 rounded ${idx === 0 ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-sm' : 'bg-slate-800 text-slate-300'}">
                 #${idx + 1}
               </span>
-              <h3 class="font-black text-sm sm:text-base text-white tracking-tight">${animName}</h3>
+              <h3 class="font-bold text-xs sm:text-sm text-white tracking-tight">${animName}</h3>
               <span class="text-[11px] font-mono font-bold text-slate-400 bg-slate-900/90 px-1.5 py-0.2 rounded border border-slate-800">Gr. ${grpStr}</span>
 
               <!-- Selo Único de Confiança (Sem duplicações) -->
@@ -2956,7 +2956,7 @@ function renderAnimalCards(data) {
         </div>
 
         <!-- Linha 2: Fila Contínua de Números (Dezenas • Centenas • Milhares em Linha Única) -->
-        <div class="p-2 rounded-lg bg-slate-950/70 border border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="p-1.5 rounded-lg bg-slate-950/70 border border-slate-800/80 flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
           <!-- Dezenas -->
           <div class="flex items-center gap-1.5 min-w-0">
             <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400 flex items-center gap-1 shrink-0">
@@ -5884,77 +5884,64 @@ function renderTransitionMatrixSection(transitionData) {
   const sampleSize = transitionData.sample_size || 0;
   const topList = transitionData.top_transitions || [];
 
-  container.className = 'card-glass p-3 sm:p-4 rounded-xl border border-cyan-500/40 bg-gradient-to-br from-cyan-950/30 via-slate-900/90 to-slate-950/90 space-y-3 shadow-lg';
+  container.className = 'card-glass p-2.5 sm:p-3 rounded-xl border border-cyan-500/35 bg-gradient-to-br from-cyan-950/25 via-slate-900/90 to-slate-950/90 space-y-2 shadow-md';
 
   const itemsHtml = topList.map((item, idx) => {
     const pct = Number(item.probability_pct || 0);
     const tensFormatted = (item.hot_tens || []).join(' • ');
-    const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `<span class="text-slate-500 text-xs font-mono">#${idx + 1}</span>`));
+    const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `<span class="text-slate-500 text-[10px] font-mono">#${idx + 1}</span>`));
     const isTop = idx === 0;
 
     return `
-      <div class="p-2.5 rounded-lg ${isTop ? 'bg-cyan-500/10 border border-cyan-500/30 ring-1 ring-cyan-500/20' : 'bg-slate-900/60 border border-slate-800/80'} flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <span class="text-base">${medal}</span>
-          <span class="text-xl">${item.emoji || '🐾'}</span>
-          <div>
-            <div class="flex items-center gap-1.5">
-              <span class="text-xs font-black text-white uppercase tracking-wider">${item.animal}</span>
-              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">Gr. ${String(item.group).padStart(2, '0')}</span>
-              ${isTop ? '<span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-cyan-500 text-slate-950 uppercase tracking-wide">Mais Frequente</span>' : ''}
-            </div>
-            <div class="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-              <span class="text-slate-500">Dezenas Quentes:</span>
-              <span class="font-mono font-bold text-cyan-300">${tensFormatted}</span>
-            </div>
+      <div class="py-1 px-2 rounded-lg ${isTop ? 'bg-cyan-500/10 border border-cyan-500/30 ring-1 ring-cyan-500/20' : 'bg-slate-900/50 border border-slate-800/70'} flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-xs shrink-0">${medal}</span>
+          <span class="text-base shrink-0">${item.emoji || '🐾'}</span>
+          <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+            <span class="text-xs font-bold text-white uppercase tracking-wider">${item.animal}</span>
+            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">Gr. ${String(item.group).padStart(2, '0')}</span>
+            ${isTop ? '<span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-cyan-500 text-slate-950 uppercase tracking-wide">Mais Frequente</span>' : ''}
+            <span class="text-[10px] text-slate-400 hidden sm:inline ml-1">Dezenas: <b class="font-mono text-cyan-300">${tensFormatted}</b></span>
           </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-          <div class="w-20 sm:w-28 bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700/60">
-            <div class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-2 rounded-full" style="width: ${Math.min(pct * 6, 100)}%"></div>
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="w-16 sm:w-24 bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700/60">
+            <div class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-1.5 rounded-full" style="width: ${Math.min(pct * 6, 100)}%"></div>
           </div>
-          <span class="font-mono font-black text-xs text-cyan-300 w-12 text-right">${pct}%</span>
+          <span class="font-mono font-bold text-xs text-cyan-300 w-10 text-right">${pct}%</span>
         </div>
       </div>
     `;
   }).join('');
 
   container.innerHTML = `
-    <div class="flex items-center justify-between gap-2 border-b border-cyan-500/20 pb-2">
-      <div class="flex items-center gap-2 min-w-0">
-        <div class="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shrink-0">
-          <span class="text-sm">🎯</span>
+    <div class="flex items-center justify-between gap-2 border-b border-cyan-500/20 pb-1.5">
+      <div class="flex items-center gap-1.5 min-w-0">
+        <div class="w-6 h-6 rounded-md bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shrink-0">
+          <span class="text-xs">🎯</span>
         </div>
         <div class="min-w-0">
-          <h3 class="text-xs font-black text-cyan-300 uppercase tracking-wider flex items-center gap-1.5 flex-wrap">
-            <span>Padrão Histórico de Transição</span>
-          </h3>
-          <p class="text-[11px] text-slate-400 truncate">
-            Dado o 1º prêmio anterior: <strong class="text-slate-200">${fromEmoji} ${fromAnimal} (Gr. ${fromGroup})</strong> no <span class="text-cyan-300 font-semibold">${fromSlot}</span>
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-xs font-black text-cyan-300 uppercase tracking-wider">Padrão Histórico de Transição</h3>
+            <span class="text-[9px] text-slate-400 bg-slate-900/80 px-1.5 py-0.2 rounded border border-slate-800 font-mono">${sampleSize}x hist.</span>
+          </div>
+          <p class="text-[10px] text-slate-400 truncate">
+            1º prêmio anterior: <strong class="text-slate-200">${fromEmoji} ${fromAnimal} (Gr. ${fromGroup})</strong> no <span class="text-cyan-300 font-semibold">${fromSlot}</span>
           </p>
         </div>
       </div>
-      <span class="text-[10px] text-slate-400 shrink-0 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800 font-mono" title="Amostras de sorteios analisadas">
-        ${sampleSize}x histórico
-      </span>
     </div>
 
-    <div class="space-y-1.5">
+    <div class="space-y-1">
       ${itemsHtml}
     </div>
 
-    <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1">
-      <span>Probabilidade condicional empírica apurada sobre mais de 45.000 sorteios</span>
-      <span class="text-cyan-400/80 font-medium">Projeção para ${targetSlot}</span>
+    <div class="flex items-center justify-between text-[9px] text-slate-500 pt-0.5">
+      <span class="truncate">Probabilidade condicional empírica (+45.000 sorteios)</span>
+      <span class="text-cyan-400/80 font-medium shrink-0 ml-1">Projeção: ${targetSlot}</span>
     </div>
   `;
 }
-
-
-// ===================================================================
-// CENTENA MASTER (ALGORITMO CHAVE 24)
-// ===================================================================
-window._currentCentenaMasterData = null;
 
 window.loadCentenaMasterContent = async function(forceDate = null) {
   const cmDateInput = document.getElementById('centena-master-target-date');
