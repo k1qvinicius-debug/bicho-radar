@@ -1,4 +1,4 @@
-// Remove stale cached elements if present
+﻿// Remove stale cached elements if present
 (function() {
   var b = document.getElementById('nav-btn-milhares-atrasadas');
   if (b) b.remove();
@@ -773,7 +773,7 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
   }
   if (code.startsWith('MG-')) {
     const mgMetas = {
-      'MG-12': { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00' },
+      'MG-12': { code: 'MG-12', name: 'Alvorada 11h - 11:00', time: '11:00' },
       'MG-14': { code: 'MG-14', name: 'Salvação 13h40 - 13:40', time: '13:40' },
       'MG-15': { code: 'MG-15', name: 'Minas Dia 15h - 15:00', time: '15:00' },
       'MG-19': { code: 'MG-19', name: 'Minas Noite 19h - 19:00', time: '19:00' },
@@ -857,7 +857,7 @@ async function initSlotSelector(lottery = currentLottery, preferredSlot = null) 
           ];
         } else {
           slots = [
-            { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00', order: 1 },
+            { code: 'MG-12', name: 'Alvorada 11h - 11:00', time: '11:00', order: 1 },
             { code: 'MG-15', name: 'Minas Dia 15h - 15:00', time: '15:00', order: 2 },
             { code: 'MG-19', name: 'Minas Noite 19h - 19:00', time: '19:00', order: 3 },
             { code: 'MG-21', name: 'Preferida 21h - 21:00', time: '21:00', order: 4 },
@@ -4384,7 +4384,7 @@ const OFFICIAL_LOTTERY_SLOTS = {
     { code: 'BA-21', name: 'Coruja Bahia - 21:00', time: '21:00' },
   ],
   MINAS: [
-    { code: 'MG-12', name: 'Alvorada 12h - 12:00', time: '12:00' },
+    { code: 'MG-12', name: 'Alvorada 11h - 11:00', time: '11:00' },
     { code: 'MG-15', name: 'Minas Dia 15h - 15:00', time: '15:00' },
     { code: 'MG-19', name: 'Minas Noite 19h - 19:00', time: '19:00' },
     { code: 'MG-21', name: 'Preferida 21h - 21:00', time: '21:00' },
