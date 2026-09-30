@@ -358,7 +358,7 @@ function switchScreen(screenName, updateHash = true) {
     loadDrawResults();
   } else if (screenName === 'home') {
     updateHomeScreenData();
-        checkAndRenderMilharBingoBanner(true);
+        checkAndRenderMilharBingoBanner(false);
   } else if (screenName === 'milhares-atrasadas') {
     loadMilharesAtrasadas();
   }
@@ -6719,7 +6719,7 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
                 <span>Ver Detalhes</span>
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
               </button>
-              <button type="button" onclick="dismissMilharBingoBanner(${b.id})" title="Fechar este aviso"
+              <button type="button" onclick="dismissMilharBingoBanner('${b.id}')" title="Fechar este aviso"
                 class="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60 active:scale-95 transition-all cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
@@ -6738,12 +6738,13 @@ window.dismissMilharBingoBanner = function(bingoId) {
   const container = document.getElementById('milhar-bingo-banner-container');
   if (container) {
     container.classList.add('hidden');
+    container.innerHTML = '';
   }
-  if (bingoId) {
-    try {
-      localStorage.setItem('bicho_dismissed_bingo_' + bingoId, '1');
-    } catch(e) {}
-  }
+  const idToSave = bingoId || (window._latestBingoData ? window._latestBingoData.id : null) || 'current';
+  try {
+    localStorage.setItem('bicho_dismissed_bingo_' + idToSave, '1');
+    localStorage.setItem('bicho_seen_bingo_modal_' + idToSave, '1');
+  } catch(e) {}
 };
 
 /* ==========================================================================
