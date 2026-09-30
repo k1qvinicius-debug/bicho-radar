@@ -88,33 +88,39 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
             hit_d1 = 1 if act_d1 in top_tens else 0
             hits_d_cercado = sum(1 for d in act_all_d if d in top_tens)
 
-            # 3. Centena (palpite padrão ou Chave Mestra 3x3)
+            # 3. Centena (palpite padrão ou Chave Mestra confluente)
+            # REGRA DE TRANSPARÊNCIA: O radar do horário só computa acerto de centena se:
+            # - Estava diretamente entre as centenas recomendadas do radar (top_hundreds), OU
+            # - O bicho sorteado estava entre os top_groups indicados e a centena veio da matriz desse bicho.
+            hit_c1_radar = 1 if act_c1 in top_hundreds else 0
             hit_c1_matriz = act_c1 in matriz_top_c
-            hit_c1 = 1 if (act_c1 in top_hundreds or hit_c1_matriz) else 0
+            hit_c1 = 1 if (hit_c1_radar or (hit_c1_matriz and hit_g1 == 1)) else 0
             hits_c_cercado = sum(1 for c in act_all_c if c in top_hundreds)
 
-            # 4. Milhar (palpite padrão ou Chave Mestra 3x3)
+            # 4. Milhar (palpite padrão ou Chave Mestra confluente)
+            # REGRA DE TRANSPARÊNCIA: O radar do horário só computa acerto de milhar se:
+            # - Estava diretamente entre as milhares recomendadas do radar (top_thousands), OU
+            # - O bicho sorteado estava entre os top_groups indicados e a milhar veio da matriz desse bicho.
+            hit_m1_radar = 1 if act_m1 in top_thousands else 0
             hit_m1_matriz = act_m1 in matriz_top_m
-            hit_m1 = 1 if (act_m1 in top_thousands or hit_m1_matriz) else 0
+            hit_m1 = 1 if (hit_m1_radar or (hit_m1_matriz and hit_g1 == 1)) else 0
             hits_m_cercado = sum(1 for m in act_all_m if m in top_thousands)
 
-            # Cálculo de pontuação agregada de desempenho do palpite
-            # Se acertar Milhar na cabeça via Chave Mestra: pontuação máxima 350 pts!
-            # Se acertar Centena na cabeça via Chave Mestra: 250 pts!
+            # Cálculo de pontuação agregada de desempenho do palpite do radar
             hit_score = (
                 (hit_g1 * 40.0) + (hits_g_cercado * 10.0) +
                 (hit_d1 * 60.0) + (hits_d_cercado * 15.0) +
                 (hit_c1 * 80.0) + (hits_c_cercado * 20.0) +
                 (hit_m1 * 100.0) + (hits_m_cercado * 30.0)
             )
-            if hit_m1_matriz:
+            if hit_m1 == 1:
                 hit_score = max(hit_score, 350.0)
-            elif hit_c1_matriz:
+            elif hit_c1 == 1:
                 hit_score = max(hit_score, 250.0)
 
-            # Detalhamento para exibição na interface
-            all_pred_c = list(dict.fromkeys(top_hundreds + list(matriz_top_c)))
-            all_pred_m = list(dict.fromkeys(top_thousands + matriz_top_m))
+            # Detalhamento para exibição na interface: só anexa matriz aos palpites do radar se o bicho pertencer ao radar
+            all_pred_c = list(dict.fromkeys(top_hundreds + (list(matriz_top_c) if hit_g1 == 1 else [])))
+            all_pred_m = list(dict.fromkeys(top_thousands + (matriz_top_m if hit_g1 == 1 else [])))
 
             details = {
                 "grupo": {
