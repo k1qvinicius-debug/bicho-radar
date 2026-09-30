@@ -561,7 +561,7 @@ window.updateHomeDailyRankingUI = async function() {
 
         html += `
           <button type="button" onclick="navigateTo('${item.lottery}', 'palpites')"
-            class="px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer select-none active:scale-95 shrink-0 ${activeStyles}">
+            class="px-2 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 border transition-all cursor-pointer select-none active:scale-95 shrink-0 ${activeStyles}">
             <span class="text-sm">${item.emoji}</span>
             <span class="text-white">${item.short_name || item.name}</span>
             <span class="${hitColor}">(${item.total_hits})</span>
