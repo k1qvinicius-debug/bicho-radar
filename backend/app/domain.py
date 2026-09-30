@@ -1,4 +1,4 @@
-"""
+﻿"""
 Módulo de Domínio do Jogo do Bicho
 Define regras canônicas dos 25 grupos, dezenas, animais e horários padrão.
 """
@@ -155,7 +155,7 @@ LOTTERIES: Dict[str, Dict[str, Any]] = {
         "icon": "🔺",
         "color": "rose",
         "slots": [
-            {"code": "MG-12", "name": "Alvorada 12h - 12:00", "time": "12:00", "order": 1},
+            {"code": "MG-12", "name": "Alvorada 11h - 11:00", "time": "11:00", "order": 1},
             {"code": "MG-15", "name": "Minas Dia 15h - 15:00", "time": "15:00", "order": 3},
             {"code": "MG-19", "name": "Minas Noite 19h - 19:00", "time": "19:00", "order": 4},
             {"code": "MG-21", "name": "Preferida 21h - 21:00", "time": "21:00", "order": 5},
@@ -217,7 +217,7 @@ def get_lottery_slots(lottery_code: Optional[str] = "RJ", target_date: Optional[
             ]
         else:
             return [
-                {"code": "MG-12", "name": "Alvorada 12h - 12:00", "time": "12:00", "order": 1},
+                {"code": "MG-12", "name": "Alvorada 11h - 11:00", "time": "11:00", "order": 1},
                 {"code": "MG-15", "name": "Minas Dia 15h - 15:00", "time": "15:00", "order": 2},
                 {"code": "MG-19", "name": "Minas Noite 19h - 19:00", "time": "19:00", "order": 3},
                 {"code": "MG-21", "name": "Preferida 21h - 21:00", "time": "21:00", "order": 4},
