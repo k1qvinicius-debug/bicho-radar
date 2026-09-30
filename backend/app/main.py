@@ -1,4 +1,4 @@
-"""
+﻿"""
 Aplicação Principal FastAPI - Bicho Analytics.
 Configuração de rotas de API, middlewares e montagem dos arquivos estáticos do frontend.
 """
@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from .database import init_db
-from .api import results, analysis, metrics, admin, auth, milhares
+from .api import results, analysis, metrics, admin, auth, milhares, payments
 
 app = FastAPI(
     title="BICHO MASTER API",
@@ -73,6 +73,7 @@ app.include_router(analysis.router, prefix="/api")
 app.include_router(metrics.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(milhares.router, prefix="/api")
+app.include_router(payments.router, prefix="/api")
 
 # Diretório do Frontend
 FRONTEND_DIR = os.path.join(
