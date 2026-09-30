@@ -656,106 +656,99 @@
         <!-- =================================================================== -->
     <!-- TELA 1: HOME / INÍCIO (SIMPLIFICADA, LIMPA E FOCADA EM LOTERIAS)     -->
     <!-- =================================================================== -->
-    <div id="view-home" class="space-y-4 animate-fade-in">
-      
-      <!-- Cabeçalho de Boas-Vindas Limpo e Elegante -->
-      <div class="card-glass p-4 sm:p-5 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 rounded-2xl shadow-lg">
+        <div id="view-home" class="space-y-3 animate-fade-in">
+
+      <!-- CABEÇALHO DE BOAS-VINDAS COMPACTO E ELEGANTE -->
+      <div class="card-glass p-3 sm:p-3.5 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 rounded-xl shadow-md">
         <div class="flex items-center justify-between gap-3">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
+          <div class="space-y-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 Sistema Ativo
               </span>
               <span class="text-[10px] text-slate-500 font-mono" id="home-today-date">Hoje</span>
+              <span id="home-top-thermometer-badge" class="hidden"></span>
             </div>
-            <h2 class="text-lg sm:text-xl font-black text-white tracking-tight">
+            <h2 class="text-base sm:text-lg font-black text-white tracking-tight truncate">
               Olá, <span id="home-user-name" class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-200 to-amber-500">Apostador</span> 👋
             </h2>
-            <p class="text-xs text-slate-300">
+            <p class="text-[11px] sm:text-xs text-slate-400">
               Escolha sua loteria favorita para acessar os <strong>jogos prontos</strong> de hoje:
             </p>
           </div>
 
           <!-- Ícone Oficial da Águia -->
-          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-950 border border-amber-500/50 shadow-lg shadow-amber-500/20 flex items-center justify-center p-1 shrink-0">
-            <img src="/img/eagle_radar_icon.png?v=87.0" alt="Bicho Master" class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+          <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-b from-slate-800 to-slate-950 border border-amber-500/40 shadow-md shadow-amber-500/10 flex items-center justify-center p-1 shrink-0">
+            <img src="/img/eagle_radar_icon.png?v=87.0" alt="Bicho Master" class="w-full h-full object-contain filter drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
           </div>
         </div>
 
-        <!-- Elementos ocultos para garantir que o JS continue funcionando perfeitamente -->
         <span id="home-next-slot-name" class="hidden"></span>
         <span id="home-analyzed-summary" class="hidden"></span>
-        <span id="home-top-thermometer-badge" class="hidden"></span>
       </div>
 
-      <!-- CARD DESTAQUE: BANCA MAIS QUENTE DO DIA (TERMÔMETRO DE ACERTOS) -->
-      <div id="home-hottest-lottery-card" class="card-glass p-4 sm:p-5 relative overflow-hidden bg-gradient-to-br from-amber-950/40 via-slate-900/95 to-slate-950 border border-amber-500/40 rounded-2xl shadow-xl shadow-amber-500/10">
-        <!-- Glow decorativo superior -->
-        <div class="absolute -top-10 -right-10 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <!-- CARD DESTAQUE: BANCA MAIS QUENTE DO DIA (TERMÔMETRO DE ACERTOS COMPACTO) -->
+      <div id="home-hottest-lottery-card" class="card-glass p-3 sm:p-3.5 relative overflow-hidden bg-gradient-to-br from-amber-950/30 via-slate-900/95 to-slate-950 border border-amber-500/35 rounded-xl shadow-lg shadow-amber-500/5">
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
-        <!-- Cabeçalho do Card -->
-        <div class="flex items-center justify-between gap-2 mb-3">
-          <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black tracking-wide">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <div class="flex items-center gap-1.5">
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[9px] font-black tracking-wide">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
               <span id="hottest-card-badge-title">🔥 BANCA MAIS QUENTE DE HOJE</span>
             </span>
-            <span id="hottest-card-date-badge" class="text-[10px] text-slate-400 font-mono hidden sm:inline">Tempo Real</span>
+            <span id="hottest-card-date-badge" class="text-[9px] text-slate-400 font-mono hidden sm:inline">Tempo Real</span>
           </div>
-          <span class="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+          <span class="text-[9px] font-bold text-emerald-400 flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
             Em Alta
           </span>
         </div>
 
-        <!-- Conteúdo Principal: Destaque da Banca Líder -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 py-1">
-          <div class="flex items-center gap-3">
-            <div id="hottest-lottery-emoji-box" class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-2xl sm:text-3xl shrink-0 shadow-md shadow-amber-500/20">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+          <div class="flex items-center gap-2.5">
+            <div id="hottest-lottery-emoji-box" class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-xl sm:text-2xl shrink-0 shadow-sm shadow-amber-500/20">
               <span id="hottest-lottery-emoji">🇧🇷</span>
             </div>
             <div>
-              <div class="flex items-center gap-2">
-                <h3 id="hottest-lottery-name" class="text-base sm:text-lg font-black text-white tracking-tight">
+              <div class="flex items-center gap-1.5">
+                <h3 id="hottest-lottery-name" class="text-sm sm:text-base font-black text-white tracking-tight">
                   Loteria Nacional
                 </h3>
-                <span id="hottest-lottery-tag" class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold">
+                <span id="hottest-lottery-tag" class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-extrabold">
                   Top 1
                 </span>
               </div>
-              <p id="hottest-lottery-subtitle" class="text-xs text-slate-300 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                <span id="hottest-lottery-hits-count" class="text-emerald-400 font-extrabold text-sm">8 acertos</span>
-                <span class="text-slate-400">•</span>
-                <span id="hottest-lottery-hits-desc" class="text-slate-300 text-[11px]">Milhar cravada + Centenas</span>
+              <p id="hottest-lottery-subtitle" class="text-[11px] text-slate-300 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span id="hottest-lottery-hits-count" class="text-emerald-400 font-extrabold text-xs">8 acertos</span>
+                <span class="text-slate-500">•</span>
+                <span id="hottest-lottery-hits-desc" class="text-slate-400 text-[10px]">Milhar cravada + Centenas</span>
               </p>
             </div>
           </div>
 
-          <!-- Botão de Ação Direta para Jogar na Banca Quente -->
           <button id="btn-play-hottest-lottery" type="button" onclick="navigateToHottestLottery()"
-            class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0">
+            class="w-full sm:w-auto px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
             <span>Jogar na <span id="hottest-lottery-btn-name">Nacional</span> Agora</span>
-            <span class="text-base font-black">➔</span>
+            <span class="text-xs font-black">➔</span>
           </button>
         </div>
 
-        <!-- Seção de Pílulas Horizontais das Demais Bancas -->
-        <div class="mt-3 pt-3 border-t border-slate-800/80">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
-              <span>🎯</span> Termômetro Geral de Acertos (Toque para ver os palpites)
+        <div class="mt-2.5 pt-2 border-t border-slate-800/80">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[9px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
+              <span>🎯</span> Termômetro de Acertos (Toque na banca)
             </span>
           </div>
-          <div id="home-daily-ranking-pills" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar flex-wrap sm:flex-nowrap">
-            <!-- Pílulas preenchidas dinamicamente via JS -->
-            <div class="text-xs text-slate-500 animate-pulse py-1">Carregando acertos do dia...</div>
+          <div id="home-daily-ranking-pills" class="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar flex-wrap sm:flex-nowrap">
+            <div class="text-[11px] text-slate-500 animate-pulse py-0.5">Carregando acertos do dia...</div>
           </div>
         </div>
       </div>
 
-      <!-- SEÇÃO 1: QUAL LOTERIA VOCÊ JOGA HOJE? (GRADE 2x2 LIMPA) -->
-      <div class="space-y-2.5">
+      <!-- SEÇÃO 1: QUAL LOTERIA VOCÊ JOGA HOJE? (GRID 3 COLUNAS COMPACTO) -->
+      <div class="space-y-2">
         <div class="flex items-center justify-between px-1">
           <span class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
             <span>🎲</span> Loterias Oficiais
@@ -763,283 +756,194 @@
           <span class="text-[10px] text-slate-500">Toque para ver os jogos prontos</span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <!-- Card 1: Rio de Janeiro -->
-          <div onclick="navigateTo('RJ', 'palpites')"
-            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-amber-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-amber-500/10 active:scale-98">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                  🌴
-                </div>
-                <div>
-                  <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Rio de Janeiro (RJ)</h3>
-                  <p class="text-[11px] text-slate-400 mt-0.5">PPT • PTM • PT • PTV • PTN • Coruja</p>
-                </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div onclick="navigateTo('RJ', 'palpites')" class="card-glass p-2.5 sm:p-3 rounded-xl border border-slate-800/90 hover:border-amber-500/60 bg-slate-900/60 hover:bg-slate-900/95 transition-all cursor-pointer group flex items-center justify-between gap-2.5 shadow-sm active:scale-[0.98]">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">🌴</div>
+              <div class="min-w-0">
+                <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-amber-300 transition-colors truncate">Rio de Janeiro (RJ)</h3>
+                <p class="text-[10px] text-slate-400 truncate">PPT • PTM • PT • PTV • PTN • Coruja</p>
               </div>
-              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
-                6 Sorteios/dia
-              </span>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-amber-400">
-              <span>Ver Jogos Prontos</span>
-              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">6x/dia</span>
+              <span class="text-xs text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all">➔</span>
             </div>
           </div>
-
-          <!-- Card 2: Look Loterias -->
-          <div onclick="navigateTo('LOOK', 'palpites')"
-            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-emerald-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-emerald-500/10 active:scale-98">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                  🌾
-                </div>
-                <div>
-                  <h3 class="text-sm font-black text-white group-hover:text-emerald-300 transition-colors">Look Loterias (GO/Nordeste)</h3>
-                  <p class="text-[11px] text-slate-400 mt-0.5">07h • 09h • 11h • 14h • 16h • 18h • 21h • 23h</p>
-                </div>
+          <div onclick="navigateTo('LOOK', 'palpites')" class="card-glass p-2.5 sm:p-3 rounded-xl border border-slate-800/90 hover:border-emerald-500/60 bg-slate-900/60 hover:bg-slate-900/95 transition-all cursor-pointer group flex items-center justify-between gap-2.5 shadow-sm active:scale-[0.98]">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">🌾</div>
+              <div class="min-w-0">
+                <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-emerald-300 transition-colors truncate">Look (GO/Nordeste)</h3>
+                <p class="text-[10px] text-slate-400 truncate">07h • 09h • 11h • 14h • 16h • 18h • 21h</p>
               </div>
-              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
-                8 Sorteios/dia
-              </span>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-emerald-400">
-              <span>Ver Jogos Prontos</span>
-              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">8x/dia</span>
+              <span class="text-xs text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all">➔</span>
             </div>
           </div>
-
-          <!-- Card 3: São Paulo -->
-          <div onclick="navigateTo('SP', 'palpites')"
-            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-cyan-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-cyan-500/10 active:scale-98">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                  🏙️
-                </div>
-                <div>
-                  <h3 class="text-sm font-black text-white group-hover:text-cyan-300 transition-colors">São Paulo (SP)</h3>
-                  <p class="text-[11px] text-slate-400 mt-0.5">Bandeirantes & Extrações Diárias</p>
-                </div>
+          <div onclick="navigateTo('SP', 'palpites')" class="card-glass p-2.5 sm:p-3 rounded-xl border border-slate-800/90 hover:border-cyan-500/60 bg-slate-900/60 hover:bg-slate-900/95 transition-all cursor-pointer group flex items-center justify-between gap-2.5 shadow-sm active:scale-[0.98]">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">🏙️</div>
+              <div class="min-w-0">
+                <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-300 transition-colors truncate">São Paulo (SP)</h3>
+                <p class="text-[10px] text-slate-400 truncate">Bandeirantes & Extrações Diárias</p>
               </div>
-              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
-                Diário
-              </span>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-cyan-400">
-              <span>Ver Jogos Prontos</span>
-              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">Diário</span>
+              <span class="text-xs text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all">➔</span>
             </div>
           </div>
-
-          <!-- Card 4: Loteria Nacional -->
-          <div onclick="navigateTo('NACIONAL', 'palpites')"
-            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-indigo-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-indigo-500/10 active:scale-98">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                  🇧🇷
-                </div>
-                <div>
-                  <h3 class="text-sm font-black text-white group-hover:text-indigo-300 transition-colors">Loteria Nacional</h3>
-                  <p class="text-[11px] text-slate-400 mt-0.5">02h • 08h • 10h • 12h • 15h • 17h • 19h • 21h • 23h</p>
-                </div>
+          <div onclick="navigateTo('NACIONAL', 'palpites')" class="card-glass p-2.5 sm:p-3 rounded-xl border border-slate-800/90 hover:border-indigo-500/60 bg-slate-900/60 hover:bg-slate-900/95 transition-all cursor-pointer group flex items-center justify-between gap-2.5 shadow-sm active:scale-[0.98]">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">🇧🇷</div>
+              <div class="min-w-0">
+                <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-indigo-300 transition-colors truncate">Loteria Nacional</h3>
+                <p class="text-[10px] text-slate-400 truncate">02h • 08h • 10h • 12h • 15h • 17h • 19h • 21h</p>
               </div>
-              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
-                10 Sorteios/dia
-              </span>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-indigo-400">
-              <span>Ver Jogos Prontos</span>
-              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">10x/dia</span>
+              <span class="text-xs text-slate-500 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all">➔</span>
             </div>
           </div>
-
-          <!-- Card 5: Bahia (Paratodos) -->
-          <div onclick="navigateTo('BAHIA', 'palpites')"
-            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-orange-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-orange-500/10 active:scale-98">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                  ☀️
-                </div>
-                <div>
-                  <h3 class="text-sm font-black text-white group-hover:text-orange-300 transition-colors">Bahia (Paratodos)</h3>
-                  <p class="text-[11px] text-slate-400 mt-0.5">10h • 12h • 15h • 19h • 21h</p>
-                </div>
+          <div onclick="navigateTo('BAHIA', 'palpites')" class="card-glass p-2.5 sm:p-3 rounded-xl border border-slate-800/90 hover:border-orange-500/60 bg-slate-900/60 hover:bg-slate-900/95 transition-all cursor-pointer group flex items-center justify-between gap-2.5 shadow-sm active:scale-[0.98]">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">☀️</div>
+              <div class="min-w-0">
+                <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-orange-300 transition-colors truncate">Bahia (Paratodos)</h3>
+                <p class="text-[10px] text-slate-400 truncate">10h • 12h • 15h • 19h • 21h</p>
               </div>
-              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 shrink-0">
-                5 Sorteios/dia
-              </span>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-orange-400">
-              <span>Ver Jogos Prontos da Bahia</span>
-              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">5x/dia</span>
+              <span class="text-xs text-slate-500 group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all">➔</span>
             </div>
           </div>
-
-          <!-- Card 6: Minas Gerais -->
-          <div onclick="navigateTo('MINAS', 'palpites')"
-            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-rose-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-rose-500/10 active:scale-98">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                  🔺
-                </div>
-                <div>
-                  <h3 class="text-sm font-black text-white group-hover:text-rose-300 transition-colors">Minas Gerais</h3>
-                  <p class="text-[11px] text-slate-400 mt-0.5">Alvorada • Minas Dia • Noite • Preferida</p>
-                </div>
+          <div onclick="navigateTo('MINAS', 'palpites')" class="card-glass p-2.5 sm:p-3 rounded-xl border border-slate-800/90 hover:border-rose-500/60 bg-slate-900/60 hover:bg-slate-900/95 transition-all cursor-pointer group flex items-center justify-between gap-2.5 shadow-sm active:scale-[0.98]">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">🔺</div>
+              <div class="min-w-0">
+                <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-rose-300 transition-colors truncate">Minas Gerais</h3>
+                <p class="text-[10px] text-slate-400 truncate">Alvorada • Minas Dia • Noite • Preferida</p>
               </div>
-              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0">
-                Tradicional
-              </span>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-rose-400">
-              <span>Ver Jogos Prontos de Minas</span>
-              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">Tradicional</span>
+              <span class="text-xs text-slate-500 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all">➔</span>
             </div>
           </div>
-
-          <!-- Card 7: Loteria Federal (Separada Oficial Caixa) -->
-          <div onclick="navigateTo('FEDERAL', 'palpites')"
-            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-amber-500/60 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-amber-500/10 active:scale-98 col-span-1 sm:col-span-2">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                  🏛️
+          <div onclick="navigateTo('FEDERAL', 'palpites')" class="card-glass p-2.5 sm:p-3 rounded-xl border border-amber-500/35 hover:border-amber-400 bg-gradient-to-r from-amber-950/20 via-slate-900/80 to-slate-900/95 transition-all cursor-pointer group flex items-center justify-between gap-2.5 shadow-sm active:scale-[0.98] col-span-1 sm:col-span-2 lg:col-span-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">🏛️</div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-amber-300 transition-colors">Loteria Federal</h3>
+                  <span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">Oficial Caixa</span>
                 </div>
-                <div>
-                  <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Loteria Federal</h3>
-                  <p class="text-[11px] text-slate-400 mt-0.5">Quarta e Sábado (20h) • Sorteio Oficial da Caixa</p>
-                </div>
+                <p class="text-[10px] text-slate-400 truncate">Quarta e Sábado (20h) • Extração Oficial</p>
               </div>
-              <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0 flex items-center gap-1 font-mono">
-                <span>🏛️</span> Oficial Caixa
-              </span>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-amber-400">
-              <span>Ver Jogos Prontos da Federal</span>
-              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[10px] font-bold text-amber-400 group-hover:text-amber-300 hidden sm:inline">Ver Jogos Prontos</span>
+              <span class="text-xs text-amber-400 group-hover:translate-x-0.5 transition-all">➔</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- SEÇÃO 2: DESTAQUES DO DIA (CHAVE MESTRA, MILHARES ATRASADAS & RESULTADOS) -->
-      <div class="space-y-2.5">
+      <!-- SEÇÃO 2: DESTAQUES DO DIA (3 COLUNAS COMPACTAS) -->
+      <div class="space-y-2">
         <div class="flex items-center justify-between px-1">
           <span class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
             <span>⚡</span> Destaques do Dia
           </span>
-          <span class="text-[10px] text-slate-500">Cálculos matemáticos, estatísticas e conferência</span>
+          <span class="text-[10px] text-slate-500">Cálculos matemáticos e conferência</span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <!-- Card Chave Mestra -->
-          <div onclick="navigateTo(null, 'matriz')"
-            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-amber-500/40 hover:border-amber-400 bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-900 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-amber-500/15 active:scale-98">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform shadow-[0_0_12px_rgba(245,158,11,0.3)]">
-                  🔑
+          <div onclick="navigateTo(null, 'matriz')" class="card-glass p-2.5 sm:p-3 rounded-xl border border-amber-500/40 hover:border-amber-400 bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-900 transition-all cursor-pointer group flex flex-col justify-between space-y-2 shadow-sm active:scale-[0.98]">
+            <div class="flex items-start gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform shadow-[0_0_10px_rgba(245,158,11,0.25)]">🔑</div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-amber-300 transition-colors">Chave Mestra</h3>
+                  <span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">Data</span>
                 </div>
-                <div>
-                  <div class="flex items-center gap-1.5">
-                    <h3 class="text-sm font-black text-white group-hover:text-amber-300 transition-colors">Chave Mestra</h3>
-                    <span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">Data</span>
-                  </div>
-                  <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">
-                    Grade matemática 3x3 que cruza dia e mês para centenas e milhares quentes.
-                  </p>
-                </div>
+                <p class="text-[10px] text-slate-400 mt-0.5 line-clamp-2">Grade 3x3 que cruza dia e mês para centenas e milhares.</p>
               </div>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-amber-400">
+            <div class="flex items-center justify-between pt-1.5 border-t border-slate-800/80 text-[10px] font-bold text-amber-400">
               <span>Abrir Chave Mestra</span>
-              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+              <span class="group-hover:translate-x-0.5 transition-transform">➔</span>
             </div>
           </div>
-
-          <!-- Card Milhares Atrasadas (NOVO E RESTAURADO) -->
-          <div onclick="navigateTo(null, 'milhares-atrasadas')"
-            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-violet-500/40 hover:border-violet-400 bg-gradient-to-br from-slate-900 via-violet-950/25 to-slate-900 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-violet-500/15 active:scale-98">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-500/50 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform shadow-[0_0_12px_rgba(139,92,246,0.3)]">
-                  🎯
+          <!-- Card Milhares Atrasadas -->
+          <div onclick="navigateTo(null, 'milhares-atrasadas')" class="card-glass p-2.5 sm:p-3 rounded-xl border border-violet-500/40 hover:border-violet-400 bg-gradient-to-br from-slate-900 via-violet-950/25 to-slate-900 transition-all cursor-pointer group flex flex-col justify-between space-y-2 shadow-sm active:scale-[0.98]">
+            <div class="flex items-start gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-violet-500/20 border border-violet-500/50 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform shadow-[0_0_10px_rgba(139,92,246,0.25)]">🎯</div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-violet-300 transition-colors">Milhares Atrasadas</h3>
+                  <span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-violet-500/25 text-violet-300 border border-violet-500/40">1º ao 5º</span>
                 </div>
-                <div>
-                  <div class="flex items-center gap-1.5">
-                    <h3 class="text-sm font-black text-white group-hover:text-violet-300 transition-colors">Milhares Atrasadas</h3>
-                    <span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-violet-500/25 text-violet-300 border border-violet-500/40">Radar 1º ao 5º</span>
-                  </div>
-                  <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">
-                    Ranking de milhares mais atrasadas e frequentes com rastreador inteligente.
-                  </p>
-                </div>
+                <p class="text-[10px] text-slate-400 mt-0.5 line-clamp-2">Ranking de milhares mais atrasadas e frequentes.</p>
               </div>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-violet-400">
+            <div class="flex items-center justify-between pt-1.5 border-t border-slate-800/80 text-[10px] font-bold text-violet-400">
               <span>Ver Milhares Atrasadas</span>
-              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+              <span class="group-hover:translate-x-0.5 transition-transform">➔</span>
             </div>
           </div>
-
           <!-- Card Resultados dos Sorteios -->
-          <div onclick="navigateTo(null, 'resultados')"
-            class="card-glass p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-md hover:shadow-emerald-500/10 active:scale-98">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                  📋
-                </div>
-                <div>
-                  <h3 class="text-sm font-black text-white group-hover:text-emerald-300 transition-colors">Resultados dos Sorteios</h3>
-                  <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">
-                    Confira as apurações em tempo real de hoje e dos últimos dias de todas as bancas.
-                  </p>
-                </div>
+          <div onclick="navigateTo(null, 'resultados')" class="card-glass p-2.5 sm:p-3 rounded-xl border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/90 transition-all cursor-pointer group flex flex-col justify-between space-y-2 shadow-sm active:scale-[0.98]">
+            <div class="flex items-start gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">📋</div>
+              <div class="min-w-0">
+                <h3 class="text-xs sm:text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">Resultados dos Sorteios</h3>
+                <p class="text-[10px] text-slate-400 mt-0.5 line-clamp-2">Apurações em tempo real de hoje de todas as bancas.</p>
               </div>
             </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-black text-emerald-400">
+            <div class="flex items-center justify-between pt-1.5 border-t border-slate-800/80 text-[10px] font-bold text-emerald-400">
               <span>Conferir Resultados</span>
-              <span class="group-hover:translate-x-1 transition-transform">➔</span>
+              <span class="group-hover:translate-x-0.5 transition-transform">➔</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- SEÇÃO 3: BAIXAR O APP (CARD COMPACTO E ELEGANTE) -->
-      <div id="home-card-install-app" class="relative overflow-hidden rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-teal-950/30 p-3.5 sm:p-4 shadow-xl shadow-emerald-950/30 transition-all">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-xl overflow-hidden border border-emerald-400/60 bg-slate-950 p-0.5 shrink-0 shadow">
-              <img src="/img/icon-192.png?v=2.0" alt="App Águia" class="w-full h-full object-cover rounded-lg" />
+      <!-- SEÇÃO 3: BAIXAR O APP (COMPACTO) -->
+      <div id="home-card-install-app" class="relative overflow-hidden rounded-xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-teal-950/30 p-2.5 sm:p-3 shadow-md transition-all">
+        <div class="flex items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg overflow-hidden border border-emerald-400/60 bg-slate-950 p-0.5 shrink-0 shadow">
+              <img src="/img/icon-192.png?v=2.0" alt="App Águia" class="w-full h-full object-cover rounded" />
             </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <h4 class="text-xs sm:text-sm font-black text-white">Baixar Aplicativo Bicho Master</h4>
-                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Grátis</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <h4 class="text-xs sm:text-sm font-bold text-white truncate">Baixar Aplicativo Bicho Master</h4>
+                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">Grátis</span>
               </div>
-              <p class="text-[11px] text-slate-400 mt-0.5">Acesso instantâneo com 1 toque no celular • Android & iPhone</p>
+              <p class="text-[10px] text-slate-400 truncate">Acesso instantâneo com 1 toque • Android & iPhone</p>
             </div>
           </div>
-          <button type="button" onclick="triggerPWAInstall()"
-            class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-900/50 active:scale-95 transition-all text-center cursor-pointer shrink-0">
-            📲 Instalar Agora
+          <button type="button" onclick="triggerPWAInstall()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-[11px] uppercase tracking-wider shadow-sm active:scale-95 transition-all cursor-pointer shrink-0">
+            📲 Instalar
           </button>
         </div>
       </div>
 
       <!-- Rodapé Discreto -->
-      <div class="pt-3 border-t border-slate-900 flex items-center justify-between text-[10px] text-slate-500 px-1">
+      <div class="pt-2 border-t border-slate-900 flex items-center justify-between text-[10px] text-slate-500 px-1">
         <span>Bicho Master Pro © 2026</span>
         <span>Estatísticas & Fechamentos Matemáticos</span>
       </div>
 
     </div>
+
 
 
     <!-- =================================================================== -->
