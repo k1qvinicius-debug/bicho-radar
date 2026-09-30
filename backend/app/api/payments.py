@@ -74,6 +74,8 @@ async def create_preference(request: Request, plan: Optional[str] = Query(None),
         "items": [{
             "id": selected_plan,
             "title": plan_info["name"],
+            "description": f"Assinatura {plan_info['name']} - Bicho Master Pro",
+            "picture_url": f"{APP_URL}/img/logo_bichopro.jpg",
             "quantity": 1,
             "unit_price": plan_info["price"],
             "currency_id": "BRL"
