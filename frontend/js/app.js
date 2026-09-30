@@ -6568,6 +6568,16 @@ window.goToBingoDetails = function() {
     closeBingoCelebrationModal();
   }
   if (b) {
+    if (b.origin === 'CHAVE_MESTRA') {
+      if (typeof window.switchTab === 'function') {
+        window.switchTab('cruz');
+      } else {
+        const btnCruz = document.querySelector('[data-tab="cruz"]');
+        if (btnCruz) btnCruz.click();
+        else window.location.href = '/#cruz';
+      }
+      return;
+    }
     const lot = b.lottery || 'RJ';
     const dt = b.date || '';
     const slot = b.slot || '';
