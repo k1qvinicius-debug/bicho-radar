@@ -127,6 +127,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (paramGroup) {
     window._targetHitGroup = paramGroup;
+    const paramPayment = urlParams.get('payment');
+    if (paramPayment === 'success') {
+      setTimeout(() => {
+        showToast('🎉 Pagamento confirmado! Seu plano VIP foi ativado com sucesso.', 'success');
+        if (typeof api.checkSession === 'function') {
+          api.checkSession().then(() => updateHomeScreenData());
+        }
+      }, 1500);
+    } else if (paramPayment === 'pending') {
+      setTimeout(() => {
+        showToast('⏳ Pagamento em processamento no Mercado Pago. Assim que compensar, seu plano será liberado!', 'info');
+      }, 1500);
+    }
   }
 
   if (paramLottery) {
@@ -6381,7 +6394,26 @@ window.subscribePlan = async function(planKey) {
 
   const planTitle = planNames[planKey] || 'Assinatura Bicho Master Pro';
 
-  // Busca configurações públicas para links ou WhatsApp
+  // Se o usuario clicou no botao de suporte direto do WhatsApp
+  if (planKey === 'whatsapp') {
+    let settings = window._publicSettings;
+    if (!settings) {
+      try {
+        const res = await fetch(`${API_BASE}/auth/settings`);
+        if (res.ok) settings = await res.json();
+      } catch (e) {}
+    }
+    let whatsappNum = (settings?.support_whatsapp || '11941083720').replace(/\D/g, '');
+    if (!whatsappNum.startsWith('55') && whatsappNum.length >= 10) whatsappNum = '55' + whatsappNum;
+    const currentUser = api.getCurrentTenant();
+    const userName = currentUser?.name ? ` Me chamo ${currentUser.name}.` : '';
+    const userEmail = currentUser?.email ? ` Meu e-mail: ${currentUser.email}.` : '';
+    const msg = `Olá! Tenho dúvidas sobre a assinatura do Bicho Master Pro.${userName}${userEmail} Pode me ajudar?`;
+    window.open(`https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`, '_blank');
+    return;
+  }
+
+  // Busca configurações públicas para links manuais personalizados
   let settings = window._publicSettings;
   if (!settings) {
     try {
@@ -6391,14 +6423,51 @@ window.subscribePlan = async function(planKey) {
     } catch (e) {}
   }
 
-  // 1. Se houver link de checkout configurado para este plano específico, abre ele
+  // 1. Se houver link externo manual configurado pelo admin (Kiwify, Hotmart, etc.)
   const planConfig = settings?.plans?.[planKey];
   if (planConfig && planConfig.link && planConfig.link.startsWith('http')) {
     window.open(planConfig.link, '_blank');
     return;
   }
 
-  // 2. Fallback WhatsApp com mensagem pré-formatada para Pix direto
+  // 2. Checkout Automático Mercado Pago (Pix QR Code, Copia e Cola ou Cartão)
+  const token = localStorage.getItem('bicho_auth_token') || sessionStorage.getItem('bicho_auth_token');
+  const tenant = api.getCurrentTenant();
+
+  if (!token && !tenant) {
+    showToast('Entre com sua conta ou crie um acesso primeiro para ativar seu plano!', 'warning');
+    const modalSignup = document.getElementById('modal-google-signup');
+    if (modalSignup) modalSignup.classList.remove('hidden');
+    return;
+  }
+
+  try {
+    showToast('Gerando pagamento seguro no Mercado Pago (Pix e Cartão)...', 'info');
+    const authHeaders = api.getAuthHeaders ? api.getAuthHeaders() : {
+      'Authorization': `Bearer ${token}`,
+      'X-Access-Key': token
+    };
+
+    const res = await fetch(`${API_BASE}/payments/create-preference?plan=${encodeURIComponent(planKey)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.checkout_url) {
+        window.location.href = data.checkout_url;
+        return;
+      }
+    }
+  } catch (err) {
+    console.error('Falha ao gerar checkout Mercado Pago:', err);
+  }
+
+  // 3. Fallback WhatsApp com mensagem pré-formatada para Pix direto caso dê erro
   let whatsappNum = (settings?.support_whatsapp || '11941083720').replace(/\D/g, '');
   if (!whatsappNum.startsWith('55') && whatsappNum.length >= 10) {
     whatsappNum = '55' + whatsappNum;
