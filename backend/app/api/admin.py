@@ -751,6 +751,7 @@ def get_settings():
         plan_link_semiannual=get_system_setting("plan_link_semiannual", ""),
         plan_link_yearly=get_system_setting("plan_link_yearly", ""),
         plan_link_lifetime=get_system_setting("plan_link_lifetime", ""),
+        mp_access_token=get_system_setting("mp_access_token", ""), 
     )
 
 
@@ -773,6 +774,8 @@ def save_settings(data: SystemSettingsModel):
         set_system_setting("plan_link_yearly", data.plan_link_yearly.strip())
     if data.plan_link_lifetime is not None:
         set_system_setting("plan_link_lifetime", data.plan_link_lifetime.strip())
+    if data.mp_access_token is not None:
+        set_system_setting("mp_access_token", data.mp_access_token.strip())
     return {"message": "Configurações salvas com sucesso."}
 
 
