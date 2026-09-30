@@ -444,6 +444,32 @@
                   <span>💾</span> <span>Salvar Client ID</span>
                 </button>
               </div>
+            <!-- Configuração do Mercado Pago (Pagamentos Automáticos Pix & Cartão) -->
+            <div class="p-4 rounded-xl bg-gradient-to-r from-sky-950/40 via-slate-900 to-slate-900 border border-sky-500/30 space-y-3">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                  <span>💳</span> Mercado Pago - Pagamento Automático & Pix
+                </h3>
+                <span id="mp-saved-badge" class="hidden text-[10px] font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">✓ Salvo com sucesso!</span>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Token de Produção do Mercado Pago. Quando o cliente paga via Pix ou Cartão, a liberação e ativação do plano ocorrem de forma 100% automática.
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <div class="sm:col-span-2">
+                  <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Mercado Pago Access Token</label>
+                  <input type="password" id="admin-mp-token-input" placeholder="Ex: APP_USR-..."
+                    class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono focus:border-sky-500 focus:outline-none" />
+                </div>
+                <div>
+                  <button type="button" onclick="saveAdminMPSettings()" id="btn-save-mp-settings"
+                    class="w-full px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md shadow-sky-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>💾</span> <span>Salvar Token MP</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             </div>
           </div>
         </div>
