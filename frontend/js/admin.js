@@ -85,6 +85,10 @@ window.loadAdminSettings = async function() {
     if (inputG && s.google_client_id) {
       inputG.value = s.google_client_id;
     }
+    const inputMP = document.getElementById('admin-mp-token-input');
+    if (inputMP && s.mp_access_token) {
+      inputMP.value = s.mp_access_token;
+    }
   } catch (err) {
     console.warn('Erro ao carregar settings:', err);
   }
@@ -110,6 +114,28 @@ window.saveAdminGoogleSettings = async function() {
     if (btn) btn.disabled = false;
   }
 };
+
+window.saveAdminMPSettings = async function() {
+  const input = document.getElementById('admin-mp-token-input');
+  const badge = document.getElementById('mp-saved-badge');
+  const btn = document.getElementById('btn-save-mp-settings');
+  const val = input ? input.value.trim() : '';
+
+  if (btn) btn.disabled = true;
+  try {
+    await api.saveAdminSettings({ mp_access_token: val });
+    showToast('Token do Mercado Pago salvo com sucesso!', 'success');
+    if (badge) {
+      badge.classList.remove('hidden');
+      setTimeout(() => badge.classList.add('hidden'), 3000);
+    }
+  } catch (err) {
+    showToast('Erro ao salvar token Mercado Pago: ' + err.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
 
 window.saveAdminSettings = async function() {
   const input = document.getElementById('admin-whatsapp-input');
