@@ -144,6 +144,15 @@
     html[data-initial-screen="centena-master"] #view-centena-master { display: block !important; }
     html[data-initial-screen="matriz"] #view-matriz { display: block !important; }
   </style>
+  <!-- Captura antecipada e infalivel do evento de instalacao PWA -->
+  <script>
+    window._deferredPWAInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      window._deferredPWAInstallPrompt = e;
+      console.log('[PWA HEAD] Evento beforeinstallprompt capturado com sucesso!');
+    });
+  </script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-10 md:pb-12 antialiased selection:bg-indigo-500 selection:text-white overflow-x-hidden w-full max-w-full relative">
 
@@ -924,14 +933,14 @@
             </div>
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
-                <h4 class="text-xs sm:text-sm font-bold text-white truncate">Baixar Aplicativo Bicho Master</h4>
+                <h4 class="text-xs sm:text-sm font-bold text-white truncate">Instalar Aplicativo Oficial</h4>
                 <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">Grátis</span>
               </div>
-              <p class="text-[10px] text-slate-400 truncate">Acesso instantâneo com 1 toque • Android & iPhone</p>
+              <p class="text-[10px] text-slate-400 truncate">Crie o ícone na tela inicial • Rápido, leve e direto no celular</p>
             </div>
           </div>
           <button type="button" onclick="triggerPWAInstall()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-[11px] uppercase tracking-wider shadow-sm active:scale-95 transition-all cursor-pointer shrink-0">
-            📲 Instalar
+            📲 Instalar App
           </button>
         </div>
       </div>
@@ -2647,27 +2656,41 @@
 
   <!-- Modal Tutorial Genérico / Desktop -->
   <div id="generic-install-modal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-[#0b101d] border border-emerald-500/40 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center relative">
-      <button type="button" onclick="closeGenericInstallModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-sm p-1 cursor-pointer">✕</button>
-      <div class="w-16 h-16 mx-auto mb-3 rounded-2xl p-1 bg-gradient-to-b from-slate-800 to-slate-950 border border-emerald-500/50 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+    <div class="bg-[#0b101d] border border-emerald-500/40 rounded-2xl max-w-sm w-full p-4 sm:p-5 shadow-2xl text-center relative animate-fade-in">
+      <button type="button" onclick="closeGenericInstallModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-base p-1 cursor-pointer">✕</button>
+      <div class="w-14 h-14 mx-auto mb-2.5 rounded-2xl p-1 bg-gradient-to-b from-slate-800 to-slate-950 border border-emerald-500/50 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
         <img src="/img/icon-192.png?v=2.0" class="w-full h-full rounded-xl object-cover" />
       </div>
       <h3 class="text-base font-black text-white">Instalar o Bicho Master</h3>
-      <p class="text-xs text-slate-300 mt-1">Instale como um aplicativo no seu dispositivo:</p>
+      <p class="text-xs text-emerald-400 font-bold mt-0.5">Aplicativo Oficial PWA • Direto na Tela Inicial</p>
+      <p class="text-[11px] text-slate-400 mt-1 leading-snug">
+        Não precisa baixar arquivos APK pesados. O app instala direto pelo navegador sem ocupar a memória do celular!
+      </p>
       
-      <div class="my-4 space-y-2.5 text-left bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs">
+      <div id="generic-modal-steps" class="my-3 space-y-2 text-left bg-slate-900/90 p-3 rounded-xl border border-slate-800 text-xs">
         <div class="flex items-start gap-2.5">
           <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5">1</span>
-          <span class="text-slate-200 leading-snug">No seu navegador (Chrome/Edge/Samsung), abra o <strong>menu de opções</strong> (ícone dos 3 pontinhos no canto superior).</span>
+          <span class="text-slate-200 leading-snug">No seu navegador (Chrome, Edge ou Samsung), toque no <strong>menu de opções (3 pontinhos ⋮)</strong>.</span>
         </div>
         <div class="flex items-start gap-2.5">
           <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5">2</span>
-          <span class="text-slate-200 leading-snug">Clique em <strong>"Instalar Bicho Master"</strong> ou <strong>"Adicionar à tela inicial"</strong>.</span>
+          <span class="text-slate-200 leading-snug">Toque em <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>.</span>
+        </div>
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5">✓</span>
+          <span class="text-emerald-300 font-bold leading-snug">Pronto! O ícone da Águia aparecerá no seu celular como um app comum.</span>
         </div>
       </div>
+
+      <div id="inapp-browser-warning" class="hidden my-3 text-left bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-xs space-y-1">
+        <span class="font-bold text-amber-300 flex items-center gap-1">⚠️ Você está no navegador do WhatsApp</span>
+        <p class="text-[11px] text-amber-200/90 leading-tight">
+          Para instalar, toque nos <strong>3 pontinhos (⋮)</strong> no canto superior do WhatsApp e selecione <strong>"Abrir no Chrome"</strong> ou <strong>"Abrir no navegador"</strong>.
+        </p>
+      </div>
       
-      <button type="button" onclick="closeGenericInstallModal()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-900/50 transition-all cursor-pointer">
-        OK, Fechar
+      <button type="button" onclick="closeGenericInstallModal()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white font-black text-xs shadow-lg shadow-emerald-900/50 transition-all cursor-pointer">
+        Entendi, Fechar
       </button>
     </div>
   </div>
