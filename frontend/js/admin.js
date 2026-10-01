@@ -621,11 +621,22 @@ window.loadTenantsTable = async function() {
     const fcSub = document.getElementById('filter-count-subscribers');
     const fcTrial = document.getElementById('filter-count-trial');
     const fcExp = document.getElementById('filter-count-expired');
+    const fcAct = document.getElementById('filter-count-active-today');
+    const fcNev = document.getElementById('filter-count-never-logged');
+
+    const activeToday = clients.filter(t => {
+      if (!t.last_active_at) return false;
+      const d = new Date(t.last_active_at.replace(' ', 'T'));
+      return (new Date() - d) <= (24 * 60 * 60 * 1000);
+    });
+    const neverLogged = clients.filter(t => !t.last_active_at || t.snapshots_count === 0);
 
     if (fcAll) fcAll.textContent = totalClients;
     if (fcSub) fcSub.textContent = subscribers.length;
     if (fcTrial) fcTrial.textContent = trial.length;
     if (fcExp) fcExp.textContent = expired.length;
+    if (fcAct) fcAct.textContent = activeToday.length;
+    if (fcNev) fcNev.textContent = neverLogged.length;
 
     // 4. Renderizar Lista de Clientes com Filtros Ativos
     window.renderFilteredClientsList();
@@ -653,6 +664,14 @@ window.renderFilteredClientsList = function() {
     if (currentTenantFilter === 'subscribers') return isSub;
     if (currentTenantFilter === 'trial') return isTrial;
     if (currentTenantFilter === 'expired') return isExp;
+    if (currentTenantFilter === 'active_today') {
+      if (!t.last_active_at) return false;
+      const d = new Date(t.last_active_at.replace(' ', 'T'));
+      return (new Date() - d) <= (24 * 60 * 60 * 1000);
+    }
+    if (currentTenantFilter === 'never_logged') {
+      return (!t.last_active_at || t.snapshots_count === 0);
+    }
     return true; // 'all'
   });
 
@@ -706,6 +725,34 @@ window.renderFilteredClientsList = function() {
       ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ATIVO</span>'
       : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">SUSPENSO</span>';
 
+    let engagementBadge = '';
+    if (!t.last_active_at) {
+      engagementBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">💤 Nunca Entrou</span>';
+    } else {
+      const lastDate = new Date(t.last_active_at.replace(' ', 'T'));
+      const diffHours = (new Date() - lastDate) / (1000 * 60 * 60);
+      if (isNaN(diffHours) || diffHours < 0) {
+        engagementBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🟢 Ativo Recente</span>';
+      } else if (diffHours <= 24) {
+        engagementBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">🟢 Ativo Hoje</span>';
+      } else if (diffHours <= 72) {
+        const daysAgo = Math.max(1, Math.round(diffHours / 24));
+        engagementBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">🟡 Visto há ${daysAgo}d</span>`;
+      } else {
+        const daysAgo = Math.round(diffHours / 24);
+        engagementBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800/80 text-slate-400 border border-slate-700">⚪ Inativo (${daysAgo}d)</span>`;
+      }
+    }
+
+    let usageBadge = '';
+    if (t.snapshots_count > 10) {
+      usageBadge = `<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40" title="Usuário super engajado">🔥 ${t.snapshots_count} palpites</span>`;
+    } else if (t.snapshots_count > 0) {
+      usageBadge = `<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">${t.snapshots_count} palpites</span>`;
+    } else {
+      usageBadge = `<span class="px-1.5 py-0.2 rounded text-[10px] text-slate-500 bg-slate-900 border border-slate-800">0 palpites</span>`;
+    }
+
     const providerBadge = isGoogle
       ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30">🌐 Google</span>'
       : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Manual</span>';
@@ -720,6 +767,7 @@ window.renderFilteredClientsList = function() {
             ${t.phone ? `<a href="https://wa.me/55${t.phone.replace(/\D/g, '')}" target="_blank" class="text-[11px] text-emerald-400 font-mono bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-800/80 hover:bg-emerald-900/60 transition-colors inline-flex items-center gap-0.5 font-bold" title="Conversar no WhatsApp">📱 ${t.phone}</a>` : '<span class="text-[10px] text-slate-500 font-mono italic">Sem tel</span>'}
             ${providerBadge}
             ${planBadge}
+            ${engagementBadge}
             ${statusBadge}
           </div>
 
@@ -735,10 +783,10 @@ window.renderFilteredClientsList = function() {
             ${(t.tenant_key && t.password && t.tenant_key !== t.password) ? `<span class="text-[10px] text-slate-600 font-mono hidden sm:inline" title="Chave Técnica">(${t.tenant_key})</span>` : ''}
 
             <span class="text-slate-700">•</span>
-            <span>Análises: <strong class="text-indigo-300 font-mono">${t.snapshots_count}</strong></span>
+            <span>Uso: ${usageBadge}</span>
 
             <span class="text-slate-700">•</span>
-            <span>Acesso: <span class="font-mono text-slate-300">${t.last_active_at ? t.last_active_at.replace(/^2026-/, '') : 'Nunca'}</span></span>
+            <span>Último Acesso: <strong class="font-mono text-slate-200">${t.last_active_at ? t.last_active_at.replace(/^2026-/, '') : 'Nunca acessou'}</strong></span>
 
             ${t.notes ? `
               <span class="text-slate-700">•</span>
