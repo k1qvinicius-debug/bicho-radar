@@ -281,7 +281,7 @@ class TenantUpdateModel(BaseModel):
 
 class SystemSettingsModel(BaseModel):
     support_whatsapp: Optional[str] = ""
-    trial_days: Optional[int] = 3
+    trial_days: Optional[int] = 0
     app_name: Optional[str] = "Bicho Master Pro"
     google_client_id: Optional[str] = ""
     plan_link_monthly: Optional[str] = ""
