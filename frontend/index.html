@@ -2,6 +2,8 @@
 <html lang="pt-BR" class="dark">
 <head>
   <meta charset="UTF-8" />
+  <link rel="dns-prefetch" href="//cdn.tailwindcss.com" />
+  <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>BICHO MASTER - Inteligência Estatística e Fechamentos</title>
   <!-- Tailwind CSS CDN -->
@@ -125,7 +127,7 @@
       try {
         var hash = window.location.hash.replace('#', '');
         var saved = localStorage.getItem('bicho_active_screen');
-        var valid = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+        var valid = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'matriz'];
         var target = (hash && valid.indexOf(hash) !== -1) ? hash : ((saved && valid.indexOf(saved) !== -1) ? saved : 'home');
         if (target && target !== 'home') {
           document.documentElement.setAttribute('data-initial-screen', target);
@@ -141,7 +143,6 @@
     html[data-initial-screen="atrasados"] #view-atrasados { display: block !important; }
     html[data-initial-screen="resultados"] #view-resultados { display: block !important; }
     html[data-initial-screen="milhares-atrasadas"] #view-milhares-atrasadas { display: block !important; }
-    html[data-initial-screen="centena-master"] #view-centena-master { display: block !important; }
     html[data-initial-screen="matriz"] #view-matriz { display: block !important; }
   </style>
   <!-- Captura antecipada e infalivel do evento de instalacao PWA -->
@@ -248,21 +249,15 @@
         </button>
 
         <button type="button" onclick="navigateTo(null, 'palpites')" id="sidebar-btn-palpites"
-          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">🎯</span>
-            <span>Jogos Prontos</span>
-          </div>
-          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Hoje</span>
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <span class="text-sm">🎯</span>
+          <span>Jogos Prontos</span>
         </button>
 
         <button type="button" onclick="navigateTo(null, 'matriz')" id="sidebar-btn-matriz"
-          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">🔑</span>
-            <span>Chave Mestra</span>
-          </div>
-          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Dia & Mês</span>
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <span class="text-sm">🔑</span>
+          <span>Chave Mestra</span>
         </button>
 
         <button type="button" onclick="navigateTo(null, 'resultados')" id="sidebar-btn-resultados"
@@ -324,39 +319,27 @@
         <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 px-2 block mb-1">Estatísticas & Análises</span>
 
         <button type="button" onclick="navigateTo(null, 'puxadas')" id="sidebar-btn-puxadas"
-          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">🧲</span>
-            <span>Radar de Puxadas</span>
-          </div>
-          <span class="text-[9px] text-slate-500">Histórico</span>
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <span class="text-sm">🧲</span>
+          <span>Radar de Puxadas</span>
         </button>
 
         <button type="button" onclick="navigateTo(null, 'atrasados')" id="sidebar-btn-atrasados"
-          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">⏱️</span>
-            <span>Bichos Mais Atrasados</span>
-          </div>
-          <span class="text-[9px] text-slate-500">Frequência</span>
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <span class="text-sm">⏱️</span>
+          <span>Bichos Mais Atrasados</span>
         </button>
 
         <button type="button" onclick="navigateTo(null, 'cruz')" id="sidebar-btn-cruz"
-          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">✖️</span>
-            <span>Cruz do Dia</span>
-          </div>
-          <span class="text-[9px] text-slate-500">Universal</span>
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <span class="text-sm">✖️</span>
+          <span>Cruz do Dia</span>
         </button>
 
         <button type="button" onclick="navigateTo(null, 'milhares-atrasadas')" id="sidebar-btn-milhares-atrasadas"
-          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">🎯</span>
-            <span>Milhares Atrasadas</span>
-          </div>
-          <span class="text-[9px] text-violet-400 font-semibold bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">Radar 1º ao 5º</span>
+          class="sidebar-item w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all cursor-pointer">
+          <span class="text-sm">🎯</span>
+          <span>Milhares Atrasadas</span>
         </button>
 
         <a href="/historico" id="sidebar-btn-historico"
@@ -430,7 +413,7 @@
           <h2 class="text-xl font-black text-white tracking-tight flex items-center justify-center gap-2">
             BICHO MASTER <span class="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">PRO</span>
           </h2>
-          <p class="text-xs text-slate-400 mt-0.5">Inteligência Estatística, Centena Master e Fechamentos Assertivos</p>
+          <p class="text-xs text-slate-400 mt-0.5">Inteligência Estatística, Milhares Atrasadas e Fechamentos Assertivos</p>
         </div>
       </div>
 
@@ -455,7 +438,7 @@
           </div>
           <div class="text-left">
             <div class="text-xs font-black text-amber-300">Acesso VIP aos Palpites e Fechamentos</div>
-            <div class="text-[11px] text-slate-300 leading-snug">Cadastre seu WhatsApp para liberar Jogos Prontos e análises, Centena Master e estatísticas em tempo real.</div>
+            <div class="text-[11px] text-slate-300 leading-snug">Cadastre seu WhatsApp para liberar Jogos Prontos, Milhares Atrasadas e estatísticas em tempo real.</div>
           </div>
         </div>
 
@@ -1357,112 +1340,7 @@
     <!-- =================================================================== -->
     <!-- TELA 4: RADAR DE PUXADAS (TELA NORMAL COMPLETA, SEM POPUP/MODAL) -->
     <!-- =================================================================== -->
-    <div 
-
-    <!-- =================================================================== -->
-    <!-- TELA: CENTENA MASTER (CHAVE 24 - 6 CENTENAS ECONÔMICAS) -->
-    <!-- =================================================================== -->
-    <div id="view-centena-master" class="space-y-4 animate-fade-in hidden">
-      <!-- Barra Superior: Voltar + Ações -->
-      <div class="flex items-center justify-between gap-3 pb-2 border-b border-slate-800">
-        <button type="button" onclick="switchScreen('home')"
-          class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm">
-          <span>←</span> <span>Voltar<span class="hidden sm:inline"> ao Início</span></span>
-        </button>
-
-        <div class="flex items-center gap-2">
-          <button id="btn-copy-all-centena-master" onclick="copyAllCentenaMaster(this)"
-            class="px-3 py-1.5 rounded-lg bg-amber-950/60 hover:bg-amber-900 border border-amber-800/60 hover:border-amber-500 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer">
-            <span>📋</span> <span>Copiar Todos os Palpites</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Conteúdo do Centena Master -->
-      <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-amber-500/30 space-y-3">
-        <!-- Header com Título e Seletor de Data -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
-          <div class="flex items-center gap-2.5">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl shrink-0 shadow-inner">
-              🎯
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <h2 class="text-base font-black uppercase tracking-wider text-slate-100">CENTENA MASTER</h2>
-                <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">Soma da Data</span>
-              </div>
-              <p class="text-xs text-slate-400">Algoritmo matemático de 4 Milhares e Centenas de Ouro com conferência em tempo real.</p>
-            </div>
-          </div>
-
-          <!-- Seletor Rápido de Data -->
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="flex items-center gap-1 bg-slate-900/80 border border-slate-800 rounded-lg p-1">
-              <label for="centena-master-target-date" class="text-[10px] font-bold text-slate-400 uppercase px-1">Data:</label>
-              <input type="date" id="centena-master-target-date" onchange="changeCentenaMasterDate(this.value)"
-                class="bg-slate-800 text-slate-100 text-xs font-bold rounded px-2 py-1 border border-slate-700 focus:outline-none focus:border-amber-500 cursor-pointer">
-            </div>
-            <div class="flex items-center gap-1">
-              <button type="button" onclick="setCentenaMasterDateYesterday()"
-                class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors">Ontem</button>
-              <button type="button" onclick="setCentenaMasterDateToday()"
-                class="px-2 py-1 rounded bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 text-xs font-semibold border border-amber-500/50 transition-colors">Hoje</button>
-              <button type="button" onclick="setCentenaMasterDateTomorrow()"
-                class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors">Amanhã</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 1. Escada da Chave 24 (Didática e Cyber) -->
-        <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-              <span>🪜</span> <span>Cálculo Matemático da Data</span>
-            </span>
-            <span class="text-[11px] text-amber-400 font-bold" id="centena-master-summary-badge">Soma da Data</span>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="centena-master-steps-grid">
-            <!-- Renderizado dinamicamente via JS -->
-          </div>
-        </div>
-
-        <!-- 2. Grid das 6 Centenas de Ouro -->
-        <div class="space-y-2 pt-1">
-          <div class="flex items-center justify-between">
-            <h3 class="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-              <span>🪙</span> <span>As 4 Milhares & Centenas de Ouro do Dia</span>
-            </h3>
-            <span class="text-[11px] text-slate-400 font-medium" id="centena-master-hits-count"></span>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3" id="centena-master-cards-grid">
-            <!-- Renderizado dinamicamente via JS -->
-          </div>
-        </div>
-
-        <!-- 3. Jogos Prontos Formatados -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-          <!-- Terno de Grupo e Passes -->
-          <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
-            <h4 class="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
-              <span>👑</span> <span>Terno de Grupo & Passes</span>
-            </h4>
-            <div id="centena-master-groups-container" class="space-y-2">
-              <!-- Renderizado dinamicamente via JS -->
-            </div>
-          </div>
-
-          <!-- Terno e Duques de Dezenas -->
-          <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
-            <h4 class="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
-              <span>🔢</span> <span>Terno & Duques de Dezenas</span>
-            </h4>
-            <div id="centena-master-tens-container" class="space-y-2">
-              <!-- Renderizado dinamicamente via JS -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div
 
     <!-- ============================================================== -->
     <!-- TELA: CHAVE MESTRA DO DIA (BASE DIA & MÊS) -->
@@ -2323,7 +2201,7 @@
             Escolha seu Plano e Ative seu Acesso
           </h2>
           <p class="text-xs text-slate-400">
-            Libere palpites estatísticos, Centena Master, Cruz do Dia e fechamentos para todas as loterias.
+            Libere palpites estatísticos, Milhares Atrasadas, Cruz do Dia e fechamentos para todas as loterias.
           </p>
         </div>
         <button type="button" onclick="closePlansModal()"
@@ -2526,8 +2404,8 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=1790636000"></script>
-  <script src="/js/app.js?v=1790640000"></script>
+  <script src="/js/api.js?v=1790650000"></script>
+  <script src="/js/app.js?v=1790650000"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
