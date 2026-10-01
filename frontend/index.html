@@ -650,6 +650,24 @@
         <span id="home-analyzed-summary" class="hidden"></span>
       </div>
 
+      <!-- AVISO DE MODO BÁSICO PARA USUÁRIO EXPIRADO (NÃO BLOQUEANTE) -->
+      <div id="home-expired-basic-banner" class="hidden card-glass p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/40 shadow-md">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl shrink-0">🔒</span>
+            <div>
+              <div class="font-black text-amber-300 text-xs sm:text-sm">Você está no Modo Básico</div>
+              <div class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                Seu período de teste encerrou. Os <strong>resultados de todas as loterias</strong> continuam liberados! Para desbloquear palpites estatísticos, Chave Mestra e Cruz do Dia:
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="openPlansModal()" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer shrink-0 text-center">
+            Liberar Acesso VIP ⭐
+          </button>
+        </div>
+      </div>
+
       <!-- CARD DESTAQUE: BANCA MAIS QUENTE DO DIA (TERMÔMETRO DE ACERTOS COMPACTO) -->
       <div id="home-hottest-lottery-card" class="card-glass p-3 sm:p-3.5 relative overflow-hidden bg-gradient-to-br from-amber-950/30 via-slate-900/95 to-slate-950 border border-amber-500/35 rounded-xl shadow-lg shadow-amber-500/5">
         <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -2173,7 +2191,7 @@
     <!-- =========================================================================
        MODAL: VITRINE DE PLANOS E ATIVAÇÃO VIP (5 PLANOS ESTRATÉGICOS)
        ========================================================================= -->
-  <div id="modal-plans" class="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto">
+  <div id="modal-plans" onclick="if (event.target === this) closePlansModal()" class="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto">
     <div class="card-glass max-w-4xl w-full p-5 sm:p-7 rounded-3xl border border-amber-500/40 shadow-2xl space-y-5 bg-[#0B0F19] text-center my-auto">
       
       <!-- Header do Modal -->
@@ -2190,7 +2208,7 @@
           </p>
         </div>
         <button type="button" onclick="closePlansModal()"
-          class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition-colors cursor-pointer shrink-0">
+          class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-base transition-colors cursor-pointer shrink-0 border border-slate-700 hover:border-slate-500" title="Fechar e ver o programa">
           ✕
         </button>
       </div>
@@ -2293,9 +2311,12 @@
         </div>
       </div>
 
-      <!-- Rodapé com Suporte WhatsApp -->
-      <div class="pt-3 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
-        <span>Pagamento seguro via Pix com liberação imediata.</span>
+      <!-- Rodapé com Suporte WhatsApp e Acesso ao Modo Básico -->
+      <div class="pt-3 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-400">
+        <button type="button" onclick="closePlansModal()"
+          class="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-amber-300 hover:text-amber-200 font-bold flex items-center justify-center gap-1.5 transition-all border border-amber-500/30 cursor-pointer shadow-sm">
+          <span>←</span> <span>Continuar no Modo Básico (Resultados)</span>
+        </button>
         <button type="button" onclick="subscribePlan('whatsapp')"
           class="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1.5 transition-colors cursor-pointer">
           <span>💬</span> <span>Falar no WhatsApp com o Suporte</span>
@@ -2390,7 +2411,7 @@
   </div>
 
   <script src="/js/api.js?v=1790660000"></script>
-  <script src="/js/app.js?v=1790865000"></script>
+  <script src="/js/app.js?v=1790867500"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
