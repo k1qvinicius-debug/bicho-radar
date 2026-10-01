@@ -355,6 +355,12 @@
             <button type="button" onclick="setTenantFilter('trial', this)" class="btn-tenant-filter px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 whitespace-nowrap cursor-pointer transition-all">
               ⏳ Em Teste (<span id="filter-count-trial">0</span>)
             </button>
+            <button type="button" onclick="setTenantFilter('active_today', this)" class="btn-tenant-filter px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 whitespace-nowrap cursor-pointer transition-all">
+              🟢 Ativos Hoje (<span id="filter-count-active-today">0</span>)
+            </button>
+            <button type="button" onclick="setTenantFilter('never_logged', this)" class="btn-tenant-filter px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 whitespace-nowrap cursor-pointer transition-all">
+              💤 Sem Acesso (<span id="filter-count-never-logged">0</span>)
+            </button>
             <button type="button" onclick="setTenantFilter('expired', this)" class="btn-tenant-filter px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 whitespace-nowrap cursor-pointer transition-all">
               🔒 Expirados (<span id="filter-count-expired">0</span>)
             </button>
@@ -1009,7 +1015,7 @@
   </div>
 
   <script src="/js/api.js?v=1790623544"></script>
-  <script src="/js/admin.js?v=1790623544"></script>
+  <script src="/js/admin.js?v=1790866000"></script>
   <!-- MODAL: REGISTRAR VENDA MANUAL / PIX -->
   <div id="modal-manual-payment" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="card-glass max-w-lg w-full p-5 sm:p-6 rounded-2xl border border-emerald-500/40 shadow-2xl space-y-4 bg-slate-900/95 text-left">
