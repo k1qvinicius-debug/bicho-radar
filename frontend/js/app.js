@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initSlotSelector(currentLottery, window._userSelectedSlot);
 
   // 2. Determina tela alvo antes do carregamento inicial
-  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'matriz'];
   let savedScreen = null;
   try { savedScreen = localStorage.getItem('bicho_active_screen'); } catch(e) {}
 
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Suporte ao botão voltar/avançar do navegador entre as telas
 window.addEventListener('hashchange', () => {
-  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'matriz'];
   const hash = window.location.hash.replace('#', '');
   if (validScreens.includes(hash)) {
     switchScreen(hash, false);
@@ -226,7 +226,7 @@ window.switchScreen = switchScreen;
 
 function switchScreen(screenName, updateHash = true) {
   window.switchScreen = switchScreen;
-  const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+  const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'matriz'];
   if (!screens.includes(screenName)) screenName = 'home';
 
   const currentTenant = api.getCurrentTenant();
@@ -264,7 +264,7 @@ function switchScreen(screenName, updateHash = true) {
   // Oculta a barra de loterias na tela da Cruz do Dia e no Início
   const globalLotteryBar = document.getElementById('global-lottery-bar-container');
   if (globalLotteryBar) {
-    if (screenName === 'cruz' || screenName === 'home' || screenName === 'milhares-atrasadas' || screenName === 'centena-master' || screenName === 'matriz') {
+    if (screenName === 'cruz' || screenName === 'home' || screenName === 'milhares-atrasadas' || screenName ===  || screenName === 'matriz') {
       globalLotteryBar.classList.add('hidden');
     } else {
       globalLotteryBar.classList.remove('hidden');
@@ -344,7 +344,7 @@ function switchScreen(screenName, updateHash = true) {
   // Dispara carregamentos sob demanda se necessário
   if (screenName === 'matriz') {
     loadMatrizContent();
-  } else if (screenName === 'centena-master') {
+  } else if (screenName === ) {
     loadCentenaMasterContent();
   } else if (screenName === 'cruz') {
     loadCruzModalContent();
@@ -1343,7 +1343,7 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
   if (screenName === 'home') {
     const homeBtn = document.getElementById('sidebar-btn-home');
     if (homeBtn) homeBtn.classList.add('sidebar-item-active');
-  } else if (screenName === 'centena-master') {
+  } else if (screenName === ) {
     const cmBtn = document.getElementById('sidebar-btn-centena-master');
     if (cmBtn) cmBtn.classList.add('sidebar-item-active');
   } else if (screenName === 'cruz') {
@@ -1364,7 +1364,7 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
   const screenTitles = {
     'home': 'Visão Geral',
     'palpites': 'Jogos Prontos',
-    'centena-master': 'Centena Master',
+    : 'Centena Master',
     'matriz': 'Chave Mestra (Matriz 3x3)',
     'cruz': 'Cruz do Dia',
     'puxadas': 'Radar de Puxadas',
@@ -5018,7 +5018,7 @@ window.showTrialExpiredModal = async function() {
           <div>
             <div class="font-black text-rose-300 text-sm sm:text-base">Ative seu Plano VIP para Liberar o Acesso!</div>
             <div class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-              Para acessar palpites com Inteligência Artificial, Centena Master, Cruz do Dia e fechamentos matemáticos, escolha um plano abaixo para liberar seu acesso imediato:
+              Para acessar palpites com Inteligência Artificial, Milhares Atrasadas, Cruz do Dia e fechamentos matemáticos, escolha um plano abaixo para liberar seu acesso imediato:
             </div>
           </div>
         </div>
