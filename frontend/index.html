@@ -2365,22 +2365,35 @@
       <!-- Grid dos 4 Planos Estratégicos -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-left">
         
-        <!-- 1. Mensal -->
-        <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 flex flex-col justify-between space-y-3 transition-all relative">
+        <!-- 1. Mensal (Com escolha clara: PIX Direto ou Débito Recorrente no Cartão) -->
+        <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 hover:border-emerald-500/50 flex flex-col justify-between space-y-3 transition-all relative shadow-lg shadow-black/40">
           <div>
-            <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Mensal</div>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Plano Mensal</span>
+              <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">30 Dias</span>
+            </div>
             <div class="mt-1">
               <span class="text-2xl font-black text-white">R$ 14,90</span>
               <span class="text-[11px] text-slate-400">/mês</span>
             </div>
-            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              Ideal para testar por 30 dias com todas as ferramentas liberadas.
+            <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+              Acesso total a todas as loterias, palpites com IA, matrizes e robôs estatísticos.
             </p>
           </div>
-          <button type="button" onclick="subscribePlan('monthly')"
-            class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all active:scale-95 cursor-pointer">
-            Assinar Mensal
-          </button>
+          
+          <div class="space-y-1.5 pt-1">
+            <!-- Opção 1: PIX Direto (Sem Cartão) -->
+            <button type="button" onclick="subscribePlan('monthly', 'pix')"
+              class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-emerald-950/40">
+              <span>⚡</span> <span>Pagar no PIX (R$ 14,90)</span>
+            </button>
+            
+            <!-- Opção 2: Débito Automático Mensal no Cartão -->
+            <button type="button" onclick="subscribePlan('monthly', 'subscription')"
+              class="w-full py-1.5 px-2 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 hover:border-slate-600 text-slate-300 hover:text-white font-bold text-[11px] transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1">
+              <span>💳</span> <span>Débito Automático no Cartão</span>
+            </button>
+          </div>
         </div>
 
         <!-- 2. Trimestral -->
