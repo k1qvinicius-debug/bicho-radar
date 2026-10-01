@@ -2212,36 +2212,36 @@ window.loadCruzModalContent = async function(forceDate = null) {
       `).join(' ');
 
       bichoContent.innerHTML = `
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-3xl shrink-0 shadow-inner">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl shrink-0 shadow-inner">
             ${b.emoji}
           </div>
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <h4 class="font-black text-white text-base tracking-wide">${b.animal.toUpperCase()}</h4>
-              <span class="text-xs font-mono font-bold text-amber-400 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded">Grupo ${String(b.group).padStart(2, '0')}</span>
-              <span class="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/50">Dez. ${b.tens.join(', ')}</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h4 class="font-black text-white text-sm tracking-wide">${b.animal.toUpperCase()}</h4>
+              <span class="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded">Grupo ${String(b.group).padStart(2, '0')}</span>
+              <span class="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700/50">Dez. ${b.tens.join(', ')}</span>
             </div>
-            <p class="text-[11px] text-amber-300/80 mt-0.5 font-medium">Regente principal da data (extraído pela soma e ciclo numerológico da Cruz)</p>
+            <p class="text-[10px] text-amber-300/80 mt-0.5 font-medium leading-tight">Regente principal da data extraído pela numerologia da Cruz</p>
           </div>
         </div>
 
         <!-- Milhares Quentes do Bicho do Dia -->
-        <div class="space-y-1.5 pt-1">
-          <div class="flex items-center justify-between text-[11px]">
+        <div class="space-y-1 pt-0.5">
+          <div class="flex items-center justify-between text-[10px]">
             <span class="font-bold text-amber-300 flex items-center gap-1">
-              <span>🔥</span> <span>MILHARES QUENTES DO ${b.animal.toUpperCase()}</span>
+              <span>🔥</span> <span>MILHARES QUENTES</span>
             </span>
             <span class="text-[10px] text-slate-400">Toque para copiar</span>
           </div>
-          <div class="flex items-center gap-1.5 flex-wrap">
+          <div class="flex items-center gap-1 flex-wrap">
             ${milharesBichoHtml}
           </div>
         </div>
 
         <!-- Centenas Quentes do Bicho do Dia -->
-        <div class="space-y-1.5 pt-1">
-          <div class="flex items-center justify-between text-[11px]">
+        <div class="space-y-1 pt-0.5">
+          <div class="flex items-center justify-between text-[10px]">
             <span class="font-bold text-amber-400/90 flex items-center gap-1">
               <span>💎</span> <span>CENTENAS QUENTES</span>
             </span>
@@ -2250,7 +2250,7 @@ window.loadCruzModalContent = async function(forceDate = null) {
               Copiar Centenas
             </button>
           </div>
-          <div class="flex items-center gap-1.5 flex-wrap">
+          <div class="flex items-center gap-1 flex-wrap">
             ${centenasBichoHtml}
           </div>
         </div>
@@ -2266,34 +2266,36 @@ window.loadCruzModalContent = async function(forceDate = null) {
         const milharesHtml = anim.thousands.map(m => `
           <button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')"
             title="Clique para copiar ${m}"
-            class="px-2 py-0.5 rounded-lg bg-cyan-950/70 border border-cyan-800/60 hover:border-cyan-400 text-cyan-200 font-mono text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-sm">
+            class="px-1.5 py-0.5 rounded-lg bg-cyan-950/70 border border-cyan-800/60 hover:border-cyan-400 text-cyan-200 font-mono text-[11px] font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-sm">
             ${m}
           </button>
         `).join(' ');
 
         return `
-          <div class="p-3 sm:p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-cyan-500/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
-            <div class="flex items-center gap-3">
-              <span class="w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-2xl shrink-0">${anim.emoji}</span>
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-black text-white">${anim.animal.toUpperCase()}</span>
-                  <span class="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded">Grupo ${String(anim.group).padStart(2, '0')}</span>
-                </div>
-                <div class="flex items-center gap-1.5 mt-0.5">
-                  <span class="text-[10px] uppercase font-bold text-slate-500">Dezenas:</span>
-                  <span class="text-xs font-mono font-bold text-cyan-300">${anim.tens.join(', ')}</span>
+          <div class="p-2.5 sm:p-3 rounded-xl bg-slate-900/90 border border-slate-800/90 hover:border-cyan-500/40 transition-all flex flex-col justify-between space-y-2 shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-8 h-8 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-xl shrink-0">${anim.emoji}</span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-xs font-black text-white uppercase">${anim.animal}</span>
+                    <span class="text-[9px] font-mono font-bold text-amber-400 bg-amber-950/60 border border-amber-800/60 px-1 py-0.5 rounded">G${String(anim.group).padStart(2, '0')}</span>
+                  </div>
+                  <div class="flex items-center gap-1 mt-0.5">
+                    <span class="text-[9px] uppercase font-bold text-slate-500">Dez:</span>
+                    <span class="text-[10px] font-mono font-bold text-cyan-300">${anim.tens.join(', ')}</span>
+                  </div>
                 </div>
               </div>
+              <button type="button" onclick="copyCategoryList(this, '${anim.thousands.join(', ')}', 'Milhares de ${anim.animal}')"
+                class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-cyan-950 border border-slate-700 hover:border-cyan-500 text-slate-300 hover:text-cyan-300 text-[10px] font-bold transition-all shrink-0 cursor-pointer active:scale-95 shadow-sm flex items-center gap-1" title="Copiar milhares de ${anim.animal}">
+                <span>📋</span> <span>Copiar</span>
+              </button>
             </div>
-            <div class="flex items-center gap-2 flex-wrap sm:justify-end">
+            <div class="pt-1.5 border-t border-slate-800/80">
               <div class="flex items-center gap-1 flex-wrap">
                 ${milharesHtml}
               </div>
-              <button type="button" onclick="copyCategoryList(this, '${anim.thousands.join(', ')}', 'Milhares de ${anim.animal}')"
-                class="p-2 rounded-xl bg-slate-800 hover:bg-cyan-950 border border-slate-700 hover:border-cyan-500 text-slate-300 hover:text-cyan-300 text-xs transition-all shrink-0 cursor-pointer active:scale-95 shadow-sm" title="Copiar milhares de ${anim.animal}">
-                📋
-              </button>
             </div>
           </div>
         `;
