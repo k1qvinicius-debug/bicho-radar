@@ -4989,14 +4989,26 @@ async function initTenantAuth() {
     }
   }
 
+  // Sempre atualiza a interface autenticada e os dados da Home
+  updateAuthUI();
+  updateHomeScreenData();
+
   // Verifica se o usuário atual está com teste expirado
   const tenant = api.getCurrentTenant();
-  if (tenant && tenant.role !== 'admin' && (tenant.is_expired || tenant.subscription_status === 'expired' || (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0))) {
-    showTrialExpiredModal();
-    return;
-  }
+  const isSubscriber = tenant && tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free';
+  const isExpired = tenant && tenant.role !== 'admin' && !isSubscriber && (
+    tenant.is_expired || 
+    tenant.subscription_status === 'expired' || 
+    (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0)
+  );
 
-  updateAuthUI();
+  if (isExpired) {
+    if (typeof window.renderExpiredBasicBanner === 'function') {
+      window.renderExpiredBasicBanner();
+    }
+    // Exibe o modal de planos informativo (que agora pode ser fechado livremente com 1 clique)
+    showTrialExpiredModal();
+  }
 }
 
 window.showTrialExpiredModal = async function() {
@@ -5024,9 +5036,14 @@ window.showTrialExpiredModal = async function() {
             </div>
           </div>
         </div>
-        <button type="button" onclick="handleUserLogout()" class="w-full sm:w-auto px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-[11px] font-bold shrink-0 transition-colors cursor-pointer border border-slate-700 text-center">
-          Trocar Conta / Sair
-        </button>
+        <div class="flex items-center gap-2 w-full sm:w-auto shrink-0">
+          <button type="button" onclick="closePlansModal()" class="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 text-[11px] font-black shrink-0 transition-all cursor-pointer shadow-md text-center">
+            Ver Modo Básico ➔
+          </button>
+          <button type="button" onclick="handleUserLogout()" class="w-full sm:w-auto px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-bold shrink-0 transition-colors cursor-pointer border border-slate-700 text-center">
+            Sair
+          </button>
+        </div>
       `;
       const grid = cardGlass.querySelector('.grid');
       if (grid) {
@@ -5089,22 +5106,54 @@ function updateAuthUI() {
         btnHeaderPlans.classList.add('hidden', 'sm:inline-flex');
       }
 
+      const isSubscriber = tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free';
+      const isExpired = !isSubscriber && (
+        tenant.is_expired || 
+        tenant.subscription_status === 'expired' || 
+        (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0)
+      );
+
       const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
         ? tenant.trial_info.days_remaining
         : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 5);
 
       if (drawerUserLabel) {
-        drawerUserLabel.textContent = tenant.name || 'Testador Convidado';
+        if (isSubscriber) {
+          drawerUserLabel.textContent = (tenant.name || 'Assinante') + ' (VIP)';
+        } else if (isExpired) {
+          drawerUserLabel.textContent = (tenant.name || 'Visitante') + ' (Básico)';
+        } else {
+          drawerUserLabel.textContent = tenant.name || 'Testador Convidado';
+        }
       }
 
       if (badgeContainer) {
-        badgeContainer.innerHTML = `
-          <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 text-slate-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-sm">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse"></span>
-            <span class="font-bold text-amber-300 cursor-pointer hover:underline" onclick="openPlansModal()" title="Toque para ver Planos VIP">${days}d teste</span>
-            <button type="button" onclick="handleUserLogout()" class="ml-1 px-1.5 py-0.5 rounded bg-slate-700/60 hover:bg-red-500/20 text-slate-400 hover:text-red-300 text-[10px] sm:text-[11px] font-bold transition-colors cursor-pointer" title="Sair desta conta">Sair 🚪</button>
-          </div>
-        `;
+        if (isSubscriber) {
+          badgeContainer.innerHTML = `
+            <div class="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full font-bold shadow-md shadow-emerald-500/10">
+              <span>⭐</span>
+              <span class="font-black tracking-wide">Assinante VIP</span>
+              <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair desta conta">✕</button>
+            </div>
+          `;
+        } else if (isExpired) {
+          badgeContainer.innerHTML = `
+            <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-sm">
+              <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+              <span class="font-bold cursor-pointer hover:underline" onclick="openPlansModal()" title="Toque para ver Planos VIP">Modo Básico</span>
+              <button type="button" onclick="openPlansModal()" class="ml-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] shadow-sm hover:brightness-110 cursor-pointer">Assinar VIP ⭐</button>
+              <button type="button" onclick="handleUserLogout()" class="ml-1 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-300 text-[10px] font-bold transition-colors cursor-pointer" title="Sair desta conta">Sair 🚪</button>
+            </div>
+          `;
+        } else {
+          badgeContainer.innerHTML = `
+            <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 text-slate-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-sm">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse"></span>
+              <span class="font-bold text-amber-300 cursor-pointer hover:underline" onclick="openPlansModal()" title="Toque para ver Planos VIP">${days}d teste</span>
+              <button type="button" onclick="handleUserLogout()" class="ml-1 px-1.5 py-0.5 rounded bg-slate-700/60 hover:bg-red-500/20 text-slate-400 hover:text-red-300 text-[10px] sm:text-[11px] font-bold transition-colors cursor-pointer" title="Sair desta conta">Sair 🚪</button>
+            </div>
+          `;
+        }
       }
     }
   } else {
@@ -6353,22 +6402,23 @@ window.openPlansModal = function() {
 };
 
 window.closePlansModal = function() {
+  const modal = document.getElementById('modal-plans');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+  document.body.classList.remove('overflow-hidden');
+
   const tenant = api.getCurrentTenant();
-  const isExpired = tenant && tenant.role !== 'admin' && (
+  const isSubscriber = tenant && tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free';
+  const isExpired = tenant && tenant.role !== 'admin' && !isSubscriber && (
     tenant.is_expired || 
     tenant.subscription_status === 'expired' || 
     (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0)
   );
 
-  if (isExpired) {
-    showToast('🔒 Seu período de teste de 3 dias encerrou. Escolha um plano abaixo para continuar!', 'warning');
-    return;
-  }
-
-  const modal = document.getElementById('modal-plans');
-  if (modal) {
-    modal.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
+  // Se o usuário estiver no modo básico (expirado) e em uma tela VIP exclusiva, volta suavemente para Início
+  if (isExpired && typeof window.currentScreen === 'string' && window.currentScreen !== 'home' && window.currentScreen !== 'resultados') {
+    switchScreen('home');
   }
 };
 
@@ -7836,3 +7886,12 @@ window.navigateToAuditedPredictionSpa = async function(lottery, slot, date, hitH
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 window.navigateToAuditedPrediction = window.navigateToAuditedPredictionSpa;
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const plansModal = document.getElementById('modal-plans');
+    if (plansModal && !plansModal.classList.contains('hidden')) {
+      closePlansModal();
+    }
+  }
+});
