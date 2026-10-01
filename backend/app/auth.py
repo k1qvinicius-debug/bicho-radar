@@ -273,14 +273,14 @@ def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email
                 d_dict = dict(d_row)
                 sub_st = d_dict.get("subscription_status")
                 if sub_st in ("expired", "suspended"):
-                    return "O período de teste gratuito de 3 dias já foi utilizado neste aparelho celular. Para continuar aproveitando os palpites e matrizes, ative seu Plano VIP por apenas R$ 14,90!"
+                    return "Este dispositivo já possui cadastro. Para ter acesso completo aos palpites e matrizes, ative seu Plano VIP!"
                 exp_raw = d_dict.get("trial_expires_at")
                 if exp_raw:
                     try:
                         exp_clean = str(exp_raw).replace("T", " ").split(".")[0].strip()
                         exp_dt = datetime.strptime(exp_clean, "%Y-%m-%d %H:%M:%S")
                         if now_dt > exp_dt:
-                            return "O período de teste gratuito de 3 dias já foi utilizado neste aparelho celular. Para continuar aproveitando os palpites e matrizes, ative seu Plano VIP por apenas R$ 14,90!"
+                            return "Este dispositivo já possui cadastro. Para ter acesso completo aos palpites e matrizes, ative seu Plano VIP!"
                     except Exception:
                         pass
 
@@ -357,8 +357,9 @@ def get_or_create_google_tenant(
         cursor.execute("SELECT * FROM tenants WHERE LOWER(COALESCE(email, '')) = ? OR tenant_key = ?", (email_clean, email_clean))
         row = cursor.fetchone()
 
-        # 5 dias a partir de agora: 3 * 86400 segundos
-        trial_expire_ts = time.time() + (3 * 86400)
+        # Sem dias gratis: novos usuarios devem assinar um plano VIP
+        trial_days_setting = int(get_system_setting("trial_days", "0"))
+        trial_expire_ts = time.time() + (trial_days_setting * 86400)
         trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
 
         if row:
@@ -385,7 +386,7 @@ def get_or_create_google_tenant(
             auth_provider, trial_started_at, trial_expires_at,
             subscription_status, plan_type, notes, created_at, last_active_at,
             registration_ip, last_ip, device_id
-        ) VALUES (?, ?, ?, 'tester', 'active', 'google', ?, ?, 'trial', 'free', 'Cadastro via Google (3 dias grátis)', ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, 'tester', 'active', 'google', ?, ?, ('active' if trial_days_setting > 0 else 'expired'), 'free', (f'Cadastro via Google ({trial_days_setting} dias)' if trial_days_setting > 0 else 'Cadastro via Google (Plano VIP Pendente)'), ?, ?, ?, ?, ?)
         """, (name_clean, email_clean, key, now_str, trial_expire_str, now_str, now_str, ip, ip, device_id))
 
         cursor.execute("SELECT * FROM tenants WHERE tenant_key = ?", (key,))
@@ -425,7 +426,8 @@ def register_new_tenant(
 
     now = datetime.now()
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
-    trial_expire_ts = time.time() + (3 * 86400)
+    trial_days_setting = int(get_system_setting("trial_days", "0"))
+    trial_expire_ts = time.time() + (trial_days_setting * 86400)
     trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
 
     with get_db_connection() as conn:
@@ -475,7 +477,7 @@ def register_new_tenant(
                 auth_provider, trial_started_at, trial_expires_at,
                 subscription_status, plan_type, notes, created_at, last_active_at,
                 registration_ip, last_ip, device_id
-            ) VALUES (?, ?, ?, ?, ?, 'tester', 'active', 'whatsapp', ?, ?, 'trial', 'free', 'Cadastro VIP WhatsApp (3 dias grátis)', ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, 'tester', 'active', 'whatsapp', ?, ?, ('active' if trial_days_setting > 0 else 'expired'), 'free', (f'Cadastro VIP WhatsApp ({trial_days_setting} dias)' if trial_days_setting > 0 else 'Cadastro VIP WhatsApp (Plano VIP Pendente)'), ?, ?, ?, ?, ?)
         """, (name_clean, email_clean, phone_clean, password_clean, unique_key, now_str, trial_expire_str, now_str, now_str, ip, ip, device_id))
 
         new_id = cursor.lastrowid
@@ -546,7 +548,7 @@ def require_tenant(
                 pass
         raise HTTPException(
             status_code=403,
-            detail="TRIAL_EXPIRED: Seu período de teste de 3 dias encerrou. Assine um plano para continuar com acesso liberado."
+            detail="TRIAL_EXPIRED: Assine um Plano VIP para ter acesso completo aos palpites e ferramentas."
         )
 
     return tenant
