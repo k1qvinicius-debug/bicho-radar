@@ -6370,7 +6370,7 @@ window.closePlansModal = function() {
   }
 };
 
-window.subscribePlan = async function(planKey) {
+window.subscribePlan = async function(planKey, method = 'pix') {
   const planNames = {
     'monthly': 'Plano Mensal (R$ 14,90)',
     'quarterly': 'Plano Trimestral (R$ 37,00)',
@@ -6429,13 +6429,22 @@ window.subscribePlan = async function(planKey) {
   }
 
   try {
-    showToast('Gerando pagamento seguro no Mercado Pago (Pix e Cartão)...', 'info');
+    const isRecurring = method === 'subscription';
+    const toastMsg = isRecurring 
+      ? 'Gerando assinatura com débito automático no Mercado Pago...' 
+      : 'Gerando pagamento seguro no Mercado Pago (Pix e Cartão)...';
+    showToast(toastMsg, 'info');
+
     const authHeaders = api.getAuthHeaders ? api.getAuthHeaders() : {
       'Authorization': `Bearer ${token}`,
       'X-Access-Key': token
     };
 
-    const res = await fetch(`${API_BASE}/payments/create-preference?plan=${encodeURIComponent(planKey)}`, {
+    const endpointUrl = isRecurring 
+      ? `${API_BASE}/payments/create-subscription` 
+      : `${API_BASE}/payments/create-preference?plan=${encodeURIComponent(planKey)}`;
+
+    const res = await fetch(endpointUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
