@@ -74,7 +74,65 @@ function getOrCreateDeviceId() {
   return id;
 }
 
+
+// =========================================================================
+// CACHE INTELIGENTE EM MEMÓRIA & DEDUPLICAÇÃO DE REQUISIÇÕES (ALTA VELOCIDADE)
+// =========================================================================
+const _apiCache = new Map();
+const _inFlightRequests = new Map();
+
+function getApiCache(key) {
+  if (!_apiCache.has(key)) return null;
+  const item = _apiCache.get(key);
+  if (Date.now() > item.expiry) {
+    _apiCache.delete(key);
+    return null;
+  }
+  return item.data;
+}
+
+function setApiCache(key, data, ttlSeconds = 30) {
+  _apiCache.set(key, { data, expiry: Date.now() + (ttlSeconds * 1000) });
+}
+
+function requestWithCache(key, ttlSeconds, fetcher) {
+  const cached = getApiCache(key);
+  if (cached !== null) {
+    return Promise.resolve(cached);
+  }
+  if (_inFlightRequests.has(key)) {
+    return _inFlightRequests.get(key);
+  }
+  const promise = (async () => {
+    try {
+      const data = await fetcher();
+      if (data !== undefined && data !== null) {
+        setApiCache(key, data, ttlSeconds);
+      }
+      return data;
+    } finally {
+      _inFlightRequests.delete(key);
+    }
+  })();
+  _inFlightRequests.set(key, promise);
+  return promise;
+}
+
+function invalidateApiCache(prefix = '') {
+  if (!prefix) {
+    _apiCache.clear();
+    return;
+  }
+  for (const k of Array.from(_apiCache.keys())) {
+    if (k.startsWith(prefix)) {
+      _apiCache.delete(k);
+    }
+  }
+}
+
 const api = {
+  invalidateCache(prefix = '') { invalidateApiCache(prefix); },
+
   // =========================================================================
   // AUTENTICAÇÃO E SESSÃO
   // =========================================================================
@@ -484,19 +542,23 @@ const api = {
   },
 
   async getSlots(lottery = 'RJ', targetDate = null) {
-    const params = new URLSearchParams();
-    if (lottery) params.append('lottery', lottery);
-    if (targetDate) params.append('target_date', targetDate);
-    const qs = params.toString();
-    const url = `${API_BASE}/results/slots${qs ? `?${qs}` : ''}`;
-    const res = await fetch(url, {
-      headers: { ...getAuthHeaders() },
+    const cacheKey = `slots_${lottery || 'RJ'}_${targetDate || 'today'}`;
+    return requestWithCache(cacheKey, 120, async () => {
+      const params = new URLSearchParams();
+      if (lottery) params.append('lottery', lottery);
+      if (targetDate) params.append('target_date', targetDate);
+      const qs = params.toString();
+      const url = `${API_BASE}/results/slots${qs ? `?${qs}` : ''}`;
+      const res = await fetch(url, {
+        headers: { ...getAuthHeaders() },
+      });
+      if (!res.ok) throw new Error('Erro ao buscar horários.');
+      return await res.json();
     });
-    if (!res.ok) throw new Error('Erro ao buscar horários.');
-    return await res.json();
   },
 
   async syncWebResults(lottery = null) {
+    invalidateApiCache();
     const url = lottery
       ? `${API_BASE}/results/sync-web?lottery=${encodeURIComponent(lottery)}`
       : `${API_BASE}/results/sync-web`;
@@ -521,6 +583,7 @@ const api = {
   },
 
   async syncBichoCerto(lottery = 'RJ') {
+    invalidateApiCache();
     const url = lottery
       ? `${API_BASE}/results/sync-bichocerto?lottery=${encodeURIComponent(lottery)}`
       : `${API_BASE}/results/sync-bichocerto`;
@@ -552,24 +615,17 @@ const api = {
     return await res.json();
   },
 
-  async getCentenaMaster(date = null, lottery = 'RJ') {
-    let url = `${API_BASE}/analysis/centena-master?lottery=${encodeURIComponent(lottery || 'RJ')}`;
-    if (date) url += `&target_date=${encodeURIComponent(date)}`;
-    const res = await fetch(url, {
-      headers: { ...getAuthHeaders() },
-    });
-    if (!res.ok) throw new Error('Erro ao carregar Centena Master.');
-    return await res.json();
-  },
-
   async getMatrizDia(date = null) {
-    let url = `${API_BASE}/analysis/matriz-dia`;
-    if (date) url += `?target_date=${encodeURIComponent(date)}`;
-    const res = await fetch(url, {
-      headers: { ...getAuthHeaders() },
+    const cacheKey = `matriz_${date || 'today'}`;
+    return requestWithCache(cacheKey, 300, async () => {
+      let url = `${API_BASE}/analysis/matriz-dia`;
+      if (date) url += `?target_date=${encodeURIComponent(date)}`;
+      const res = await fetch(url, {
+        headers: { ...getAuthHeaders() },
+      });
+      if (!res.ok) throw new Error('Erro ao carregar Matriz 3x3 do Dia.');
+      return await res.json();
     });
-    if (!res.ok) throw new Error('Erro ao carregar Matriz 3x3 do Dia.');
-    return await res.json();
   },
 
   async getActiveLotteryPicks(date = null) {
@@ -599,13 +655,16 @@ const api = {
   },
 
   async getCruzDoDia(date = null) {
-    let url = `${API_BASE}/analysis/cruz-do-dia`;
-    if (date) url += `?target_date=${encodeURIComponent(date)}`;
-    const res = await fetch(url, {
-      headers: { ...getAuthHeaders() },
+    const cacheKey = `cruz_${date || 'today'}`;
+    return requestWithCache(cacheKey, 300, async () => {
+      let url = `${API_BASE}/analysis/cruz-do-dia`;
+      if (date) url += `?target_date=${encodeURIComponent(date)}`;
+      const res = await fetch(url, {
+        headers: { ...getAuthHeaders() },
+      });
+      if (!res.ok) throw new Error('Erro ao carregar Cruz do Dia.');
+      return await res.json();
     });
-    if (!res.ok) throw new Error('Erro ao carregar Cruz do Dia.');
-    return await res.json();
   },
 
   async getPuxadas(date = null, slot = null, lottery = 'RJ') {
@@ -623,6 +682,8 @@ const api = {
   },
 
   async getPrediction(date = null, slot = null, strategy = 'hybrid', lottery = 'RJ') {
+    const cacheKey = `pred_${date || 'today'}_${slot || 'auto'}_${strategy}_${lottery || 'RJ'}`;
+    return requestWithCache(cacheKey, 25, async () => {
     let url = `${API_BASE}/analysis/predict`;
     const params = new URLSearchParams();
     if (date) params.append('target_date', date);
@@ -638,7 +699,8 @@ const api = {
       handleAuthError(res.status, err);
       throw new Error(err.detail || 'Erro ao carregar análise preditiva.');
     }
-    return await res.json();
+      return await res.json();
+    });
   },
 
   async getFixedAnimalCombo(group, date = null, slot = null, lottery = 'RJ') {
@@ -731,6 +793,8 @@ const api = {
   },
 
   async getResults(limit = 20, offset = 0, slotOrLottery = null, startDate = null, endDate = null, lottery = null) {
+    const cacheKey = `res_${limit}_${offset}_${slotOrLottery || 'all'}_${startDate || ''}_${endDate || ''}_${lottery || ''}`;
+    return requestWithCache(cacheKey, 20, async () => {
     let slot = null;
     let lot = lottery;
     const knownLotteries = ['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL', 'BAHIA', 'MINAS'];
@@ -749,10 +813,13 @@ const api = {
       headers: { ...getAuthHeaders() },
     });
     if (!res.ok) throw new Error('Erro ao buscar resultados.');
-    return await res.json();
+      return await res.json();
+    });
   },
 
   async createResult(resultData) {
+    invalidateApiCache('res_');
+    invalidateApiCache('pred_');
     const res = await fetch(`${API_BASE}/results`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -766,6 +833,8 @@ const api = {
   },
 
   async deleteResult(id) {
+    invalidateApiCache('res_');
+    invalidateApiCache('pred_');
     const res = await fetch(`${API_BASE}/results/${id}`, {
       method: 'DELETE',
       headers: { ...getAuthHeaders() },
@@ -865,11 +934,13 @@ const api = {
   // MILHARES ATRASADAS & RASTREADOR ESTATISTICO
   // =========================================================================
   async getMilharesRankings() {
-    const res = await fetch(`${API_BASE}/milhares/rankings`, {
-      headers: { ...getAuthHeaders() },
+    return requestWithCache('milhares_rankings', 180, async () => {
+      const res = await fetch(`${API_BASE}/milhares/rankings`, {
+        headers: { ...getAuthHeaders() },
+      });
+      if (!res.ok) throw new Error('Erro ao obter ranking de milhares.');
+      return await res.json();
     });
-    if (!res.ok) throw new Error('Erro ao obter ranking de milhares.');
-    return await res.json();
   },
 
   async rastrearMilhar(milhar) {
