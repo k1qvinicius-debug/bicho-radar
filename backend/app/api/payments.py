@@ -121,6 +121,56 @@ async def create_preference(request: Request, plan: Optional[str] = Query(None),
     }
 
 
+@router.post("/create-subscription")
+async def create_subscription(request: Request, tenant=Depends(require_tenant)):
+    """
+    Cria uma assinatura recorrente com debito automatico mensal no cartao via Mercado Pago Preapproval.
+    """
+    token = get_mp_token()
+    tenant_id = tenant["id"]
+    payer_email = tenant.get("email") or f"cliente{tenant_id}@bicho.app"
+    if "@bichomaster.app" in payer_email:
+        payer_email = f"cliente{tenant_id}@bicho.app"
+
+    external_ref = f"tenant_{tenant_id}_monthly_sub_{int(time.time())}"
+
+    payload = {
+        "reason": "Bicho Master Pro - Assinatura Mensal VIP",
+        "auto_recurring": {
+            "frequency": 1,
+            "frequency_type": "months",
+            "transaction_amount": 14.90,
+            "currency_id": "BRL"
+        },
+        "payer_email": payer_email,
+        "back_url": f"{APP_URL}/?payment=success&subscription=active",
+        "external_reference": external_ref,
+        "status": "pending"
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                f"{MP_API_BASE}/preapproval",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json=payload
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro de conexao com Mercado Pago: {str(e)}")
+
+    if not resp.is_success:
+        raise HTTPException(status_code=500, detail=f"Erro Mercado Pago: {resp.text[:300]}")
+
+    data = resp.json()
+    return {
+        "checkout_url": data["init_point"],
+        "subscription_id": data["id"],
+        "plan": "monthly_recurring",
+        "price": 14.90,
+        "mode": "recurring"
+    }
+
+
 @router.api_route("/webhook", methods=["GET", "POST"])
 async def mp_webhook(request: Request):
     try:
@@ -138,6 +188,52 @@ async def mp_webhook(request: Request):
         return {"status": "ignored_no_id"}
 
     token = get_mp_token()
+
+    # Se for notificacao de assinatura recorrente (preapproval)
+    if topic in ("subscription_preapproval", "preapproval"):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(
+                    f"{MP_API_BASE}/preapproval/{resource_id}",
+                    headers={"Authorization": f"Bearer {token}"}
+                )
+            if resp.is_success:
+                sub_data = resp.json()
+                sub_status = sub_data.get("status")
+                ext_ref = sub_data.get("external_reference", "")
+                tenant_id = None
+                if ext_ref and ext_ref.startswith("tenant_"):
+                    try:
+                        tenant_id = int(ext_ref.split("_")[1])
+                    except (ValueError, IndexError):
+                        pass
+
+                if not tenant_id:
+                    payer_email = sub_data.get("payer_email")
+                    if payer_email:
+                        with get_db_connection() as conn:
+                            cursor = conn.cursor()
+                            cursor.execute("SELECT id FROM tenants WHERE email = ?", (payer_email.lower(),))
+                            row = cursor.fetchone()
+                            if row:
+                                tenant_id = row[0]
+
+                if tenant_id and sub_status == "authorized":
+                    now = datetime.now()
+                    expiry_str = (now + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+                    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+                    with get_db_connection() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                            UPDATE tenants 
+                            SET subscription_status='active', plan_type='monthly_recurring', 
+                                trial_expires_at=?, status='active', last_active_at=?
+                            WHERE id=?
+                        """, (expiry_str, now_str, tenant_id))
+                    print(f"[MP PREAPPROVAL] Assinatura autorizada para Tenant #{tenant_id} ate {expiry_str}")
+                    return {"status": "subscription_activated", "tenant_id": tenant_id}
+        except Exception as e:
+            print(f"[MP PREAPPROVAL ERROR] {e}")
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
