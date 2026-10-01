@@ -508,8 +508,73 @@ window.deleteDraw = async function (id) {
 // =========================================================================
 
 let allTenantsList = [];
-let currentTenantFilter = 'all'; // 'all' | 'subscribers' | 'trial' | 'expired'
+let currentTenantField = 'active'; // 'active' | 'expired'
+let currentTenantFilter = 'all'; // 'all' | 'trial' | 'subscribers' | 'active_today' | 'never_logged'
 let currentTenantSearch = '';
+
+function isClientExpired(t) {
+  return t.subscription_status === 'expired' || 
+         (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0);
+}
+
+function isClientActiveToday(t) {
+  if (!t.last_active_at) return false;
+  const d = new Date(t.last_active_at.replace(' ', 'T'));
+  return (new Date() - d) <= (24 * 60 * 60 * 1000);
+}
+
+window.switchTenantField = function(fieldName) {
+  currentTenantField = fieldName;
+  currentTenantFilter = 'all';
+
+  const btnActive = document.getElementById('btn-field-active');
+  const btnExpired = document.getElementById('btn-field-expired');
+  const subActive = document.getElementById('subfilters-active-container');
+  const subExpired = document.getElementById('subfilters-expired-container');
+  const descEl = document.getElementById('field-description');
+  const iconEl = document.getElementById('field-list-icon');
+  const titleEl = document.getElementById('field-list-title');
+  const subtitleEl = document.getElementById('field-list-subtitle');
+
+  if (fieldName === 'active') {
+    if (btnActive) {
+      btnActive.className = 'tenant-field-tab px-4 py-2 rounded-lg text-xs font-black transition-all bg-indigo-600 text-white shadow-md flex items-center gap-2 cursor-pointer';
+    }
+    if (btnExpired) {
+      btnExpired.className = 'tenant-field-tab px-4 py-2 rounded-lg text-xs font-bold transition-all text-rose-300 hover:text-white hover:bg-slate-800/80 flex items-center gap-2 cursor-pointer';
+    }
+    if (subActive) subActive.classList.remove('hidden');
+    if (subExpired) subExpired.classList.add('hidden');
+    if (descEl) descEl.innerHTML = '🔥 Mostrando apenas clientes em teste ativo ou assinando';
+    if (iconEl) iconEl.textContent = '🚀';
+    if (titleEl) titleEl.textContent = 'Clientes Ativos & Em Teste';
+    if (subtitleEl) subtitleEl.textContent = 'Lista limpa e organizada para acompanhamento diário';
+
+    // Reset subfilter buttons
+    document.querySelectorAll('.btn-tenant-filter').forEach((btn, idx) => {
+      if (idx === 0) {
+        btn.className = 'btn-tenant-filter px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow whitespace-nowrap cursor-pointer transition-all';
+      } else {
+        btn.className = 'btn-tenant-filter px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 whitespace-nowrap cursor-pointer transition-all';
+      }
+    });
+  } else {
+    if (btnActive) {
+      btnActive.className = 'tenant-field-tab px-4 py-2 rounded-lg text-xs font-bold transition-all text-indigo-300 hover:text-white hover:bg-slate-800/80 flex items-center gap-2 cursor-pointer';
+    }
+    if (btnExpired) {
+      btnExpired.className = 'tenant-field-tab px-4 py-2 rounded-lg text-xs font-black transition-all bg-rose-600 text-white shadow-md flex items-center gap-2 cursor-pointer';
+    }
+    if (subActive) subActive.classList.add('hidden');
+    if (subExpired) subExpired.classList.remove('hidden');
+    if (descEl) descEl.innerHTML = '🔒 Clientes com teste encerrado — Prontos para contato e oferta VIP';
+    if (iconEl) iconEl.textContent = '🔒';
+    if (titleEl) titleEl.textContent = 'Arquivo de Expirados';
+    if (subtitleEl) subtitleEl.textContent = 'Envie uma mensagem no Zap ou conceda +5 dias de bônus';
+  }
+
+  window.renderFilteredClientsList();
+};
 
 window.setTenantFilter = function(filterType, btnEl) {
   currentTenantFilter = filterType;
@@ -535,7 +600,6 @@ window.handleClientSearch = function(query) {
 window.loadTenantsTable = async function() {
   const container = document.getElementById('tenants-table-container');
   const adminsContainer = document.getElementById('admins-list-container');
-  const countEl = document.getElementById('tenants-count');
   if (!container) return;
 
   try {
@@ -600,11 +664,12 @@ window.loadTenantsTable = async function() {
       }
     }
 
-    // 3. Atualizar KPIs de Clientes
+    // 3. Atualizar KPIs Gerais de Clientes
     const totalClients = clients.length;
     const subscribers = clients.filter(t => t.subscription_status === 'active' && t.plan_type !== 'free');
-    const expired = clients.filter(t => t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0));
-    const trial = clients.filter(t => !expired.includes(t) && !subscribers.includes(t));
+    const expired = clients.filter(t => isClientExpired(t));
+    const trial = clients.filter(t => !isClientExpired(t) && !subscribers.includes(t));
+    const activeClients = clients.filter(t => !isClientExpired(t));
 
     const statTotalEl = document.getElementById('stat-total-clients');
     const statSubEl = document.getElementById('stat-subscribers');
@@ -616,34 +681,34 @@ window.loadTenantsTable = async function() {
     if (statTrialEl) statTrialEl.textContent = trial.length;
     if (statExpEl) statExpEl.textContent = expired.length;
 
-    // Atualizar badges dos filtros
-    const fcAll = document.getElementById('filter-count-all');
-    const fcSub = document.getElementById('filter-count-subscribers');
+    // Badges dos Campos Principais (Ativos vs Expirados)
+    const badgeAct = document.getElementById('badge-count-active');
+    const badgeExp = document.getElementById('badge-count-expired');
+    if (badgeAct) badgeAct.textContent = activeClients.length;
+    if (badgeExp) badgeExp.textContent = expired.length;
+
+    // Badges dos Sub-Filtros de Ativos
+    const fcActAll = document.getElementById('filter-count-active-all');
     const fcTrial = document.getElementById('filter-count-trial');
-    const fcExp = document.getElementById('filter-count-expired');
-    const fcAct = document.getElementById('filter-count-active-today');
-    const fcNev = document.getElementById('filter-count-never-logged');
+    const fcSub = document.getElementById('filter-count-subscribers');
+    const fcActToday = document.getElementById('filter-count-active-today');
+    const fcNever = document.getElementById('filter-count-never-logged');
 
-    const activeToday = clients.filter(t => {
-      if (!t.last_active_at) return false;
-      const d = new Date(t.last_active_at.replace(' ', 'T'));
-      return (new Date() - d) <= (24 * 60 * 60 * 1000);
-    });
-    const neverLogged = clients.filter(t => !t.last_active_at || t.snapshots_count === 0);
+    const activeTodayList = activeClients.filter(t => isClientActiveToday(t));
+    const neverLoggedList = activeClients.filter(t => !t.last_active_at || t.snapshots_count === 0);
 
-    if (fcAll) fcAll.textContent = totalClients;
-    if (fcSub) fcSub.textContent = subscribers.length;
+    if (fcActAll) fcActAll.textContent = activeClients.length;
     if (fcTrial) fcTrial.textContent = trial.length;
-    if (fcExp) fcExp.textContent = expired.length;
-    if (fcAct) fcAct.textContent = activeToday.length;
-    if (fcNev) fcNev.textContent = neverLogged.length;
+    if (fcSub) fcSub.textContent = subscribers.length;
+    if (fcActToday) fcActToday.textContent = activeTodayList.length;
+    if (fcNever) fcNever.textContent = neverLoggedList.length;
 
-    // 4. Renderizar Lista de Clientes com Filtros Ativos
+    // 4. Renderizar Lista com os Filtros Aplicados
     window.renderFilteredClientsList();
 
   } catch (err) {
     if (container) {
-      container.innerHTML = `<p class="text-xs text-rose-400 py-6 text-center">Erro ao carregar clientes: ${err.message}</p>`;
+      container.innerHTML = `<div class="col-span-full text-center py-6 text-xs text-rose-400">Erro ao carregar clientes: ${err.message}</div>`;
     }
   }
 };
@@ -655,29 +720,30 @@ window.renderFilteredClientsList = function() {
 
   const clients = allTenantsList.filter(t => t.role !== 'admin');
 
-  // Filtragem por status/categoria
-  let filtered = clients.filter(t => {
-    const isSub = t.subscription_status === 'active' && t.plan_type !== 'free';
-    const isExp = t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0);
-    const isTrial = !isExp && !isSub;
+  // SEPARAÇÃO PRINCIPAL: CAMPO ATIVOS VS CAMPO EXPIRADOS
+  let baseList = [];
+  if (currentTenantField === 'active') {
+    baseList = clients.filter(t => !isClientExpired(t));
 
-    if (currentTenantFilter === 'subscribers') return isSub;
-    if (currentTenantFilter === 'trial') return isTrial;
-    if (currentTenantFilter === 'expired') return isExp;
-    if (currentTenantFilter === 'active_today') {
-      if (!t.last_active_at) return false;
-      const d = new Date(t.last_active_at.replace(' ', 'T'));
-      return (new Date() - d) <= (24 * 60 * 60 * 1000);
+    // Aplica sub-filtros de ativos
+    if (currentTenantFilter === 'trial') {
+      baseList = baseList.filter(t => t.subscription_status !== 'active' || t.plan_type === 'free');
+    } else if (currentTenantFilter === 'subscribers') {
+      baseList = baseList.filter(t => t.subscription_status === 'active' && t.plan_type !== 'free');
+    } else if (currentTenantFilter === 'active_today') {
+      baseList = baseList.filter(t => isClientActiveToday(t));
+    } else if (currentTenantFilter === 'never_logged') {
+      baseList = baseList.filter(t => !t.last_active_at || t.snapshots_count === 0);
     }
-    if (currentTenantFilter === 'never_logged') {
-      return (!t.last_active_at || t.snapshots_count === 0);
-    }
-    return true; // 'all'
-  });
+  } else {
+    // CAMPO EXPIRADOS (Apenas os que expiraram)
+    baseList = clients.filter(t => isClientExpired(t));
+  }
 
   // Filtragem por busca em tempo real
+  let filtered = baseList;
   if (currentTenantSearch) {
-    filtered = filtered.filter(t => {
+    filtered = baseList.filter(t => {
       const q = currentTenantSearch;
       const matchName = (t.name || '').toLowerCase().includes(q);
       const matchPhone = (t.phone || '').toLowerCase().includes(q);
@@ -689,17 +755,27 @@ window.renderFilteredClientsList = function() {
   }
 
   if (countEl) {
-    countEl.textContent = `${filtered.length} de ${clients.length}`;
+    countEl.textContent = filtered.length;
   }
 
   if (filtered.length === 0) {
-    container.innerHTML = `
-      <div class="p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800">
-        <span class="text-2xl block mb-2">🔍</span>
-        <p class="text-xs text-slate-400 font-semibold">Nenhum cliente encontrado com os filtros atuais.</p>
-        <p class="text-[11px] text-slate-500 mt-1">Experimente mudar o filtro acima ou limpar o campo de busca.</p>
-      </div>
-    `;
+    if (currentTenantField === 'active') {
+      container.innerHTML = `
+        <div class="col-span-full p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800 space-y-2">
+          <span class="text-3xl block">🚀</span>
+          <p class="text-xs text-slate-300 font-bold">Nenhum cliente ativo encontrado com este filtro.</p>
+          <p class="text-[11px] text-slate-500">Cadastre um novo cliente no formulário acima ou selecione "Todos Ativos".</p>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div class="col-span-full p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800 space-y-2">
+          <span class="text-3xl block">🎉</span>
+          <p class="text-xs text-slate-300 font-bold">Nenhum cliente expirado no momento!</p>
+          <p class="text-[11px] text-slate-500">Todos os seus clientes estão com período de teste ativo ou são assinantes VIP.</p>
+        </div>
+      `;
+    }
     return;
   }
 
@@ -707,43 +783,42 @@ window.renderFilteredClientsList = function() {
     const isActive = t.status === 'active';
     const isGoogle = t.auth_provider === 'google';
     const isSubscriber = t.subscription_status === 'active' && t.plan_type !== 'free';
-    const isExpired = t.subscription_status === 'expired' || (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0);
+    const isExpired = isClientExpired(t);
     const userPass = t.password || t.tenant_key || '---';
 
+    // Badge do Plano / Teste
     let planBadge = '';
     if (isSubscriber) {
       const planName = t.plan_type === 'monthly' ? 'MENSAL' : (t.plan_type === 'trimestral' ? 'TRIMESTRAL' : (t.plan_type === 'semestral' ? 'SEMESTRAL' : (t.plan_type === 'anual' ? 'ANUAL' : 'VIP')));
-      planBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">⭐ ASSINANTE ${planName}</span>`;
+      planBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">⭐ VIP ${planName}</span>`;
     } else if (isExpired) {
-      planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">🔒 TESTE EXPIRADO</span>';
+      planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">🔒 TESTE EXPIRADO</span>';
     } else {
       const days = t.trial_days_remaining !== undefined && t.trial_days_remaining !== null ? t.trial_days_remaining : 5;
-      planBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">⏳ TESTE VIP (${days}d restantes)</span>`;
+      planBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">⏳ Teste (${days}d restantes)</span>`;
     }
 
-    const statusBadge = isActive
-      ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ATIVO</span>'
-      : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">SUSPENSO</span>';
-
+    // Badge de Engajamento
     let engagementBadge = '';
     if (!t.last_active_at) {
-      engagementBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">💤 Nunca Entrou</span>';
+      engagementBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">💤 Nunca Entrou</span>';
     } else {
       const lastDate = new Date(t.last_active_at.replace(' ', 'T'));
       const diffHours = (new Date() - lastDate) / (1000 * 60 * 60);
       if (isNaN(diffHours) || diffHours < 0) {
-        engagementBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🟢 Ativo Recente</span>';
+        engagementBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🟢 Recente</span>';
       } else if (diffHours <= 24) {
-        engagementBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">🟢 Ativo Hoje</span>';
+        engagementBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">🟢 Ativo Hoje</span>';
       } else if (diffHours <= 72) {
         const daysAgo = Math.max(1, Math.round(diffHours / 24));
-        engagementBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">🟡 Visto há ${daysAgo}d</span>`;
+        engagementBadge = `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">🟡 Visto há ${daysAgo}d</span>`;
       } else {
         const daysAgo = Math.round(diffHours / 24);
-        engagementBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800/80 text-slate-400 border border-slate-700">⚪ Inativo (${daysAgo}d)</span>`;
+        engagementBadge = `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800/80 text-slate-400 border border-slate-700">⚪ Inativo (${daysAgo}d)</span>`;
       }
     }
 
+    // Badge de Uso (Palpites)
     let usageBadge = '';
     if (t.snapshots_count > 10) {
       usageBadge = `<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40" title="Usuário super engajado">🔥 ${t.snapshots_count} palpites</span>`;
@@ -758,21 +833,24 @@ window.renderFilteredClientsList = function() {
       : '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Manual</span>';
 
     return `
-      <div class="p-3 sm:p-3.5 rounded-xl bg-slate-900/85 border ${isSubscriber ? 'border-emerald-500/30 bg-emerald-950/10' : (isExpired ? 'border-rose-500/30 bg-rose-950/10' : 'border-slate-800')} hover:border-slate-700 flex flex-col lg:flex-row lg:items-center justify-between gap-3 transition-all shadow-sm">
+      <!-- Card Compacto em Grid de 2 Colunas -->
+      <div class="p-3 sm:p-3.5 rounded-xl bg-slate-900/90 border ${isSubscriber ? 'border-emerald-500/40 bg-emerald-950/10' : (isExpired ? 'border-rose-500/30 bg-rose-950/10' : 'border-slate-800/90 hover:border-indigo-500/40')} flex flex-col justify-between space-y-2.5 transition-all shadow-sm">
         <div class="space-y-1.5 min-w-0">
-          <!-- Linha 1: Nome, Contatos e Badges -->
-          <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-            <h4 class="font-black text-xs sm:text-sm text-white truncate max-w-[200px]">${t.name}</h4>
-            ${t.email ? `<span class="text-[11px] text-indigo-300 font-mono bg-indigo-950/40 px-1.5 py-0.2 rounded border border-indigo-900/50 truncate max-w-[220px]">${t.email}</span>` : ''}
-            ${t.phone ? `<a href="https://wa.me/55${t.phone.replace(/\D/g, '')}" target="_blank" class="text-[11px] text-emerald-400 font-mono bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-800/80 hover:bg-emerald-900/60 transition-colors inline-flex items-center gap-0.5 font-bold" title="Conversar no WhatsApp">📱 ${t.phone}</a>` : '<span class="text-[10px] text-slate-500 font-mono italic">Sem tel</span>'}
-            ${providerBadge}
-            ${planBadge}
-            ${engagementBadge}
-            ${statusBadge}
+          <!-- Linha 1: Nome, Telefone WhatsApp e Badges -->
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <h4 class="font-black text-xs sm:text-sm text-white truncate max-w-[180px]">${t.name}</h4>
+              ${t.phone ? `<a href="https://wa.me/55${t.phone.replace(/\D/g, '')}" target="_blank" class="text-[11px] text-emerald-400 font-mono bg-emerald-950/70 px-1.5 py-0.5 rounded border border-emerald-800/80 hover:bg-emerald-900/60 transition-colors inline-flex items-center gap-1 font-bold" title="Abrir no WhatsApp">📱 ${t.phone}</a>` : ''}
+              ${providerBadge}
+            </div>
+            <div class="flex items-center gap-1 flex-wrap">
+              ${planBadge}
+              ${engagementBadge}
+            </div>
           </div>
 
-          <!-- Linha 2: Senha Real, Análises, Último Acesso e Notas -->
-          <div class="flex items-center gap-2 text-[11px] text-slate-400 flex-wrap">
+          <!-- Linha 2: Senha, Análises, Acesso e Notas -->
+          <div class="flex items-center gap-2 text-[11px] text-slate-400 flex-wrap pt-0.5">
             <span class="inline-flex items-center gap-1">
               <span class="text-amber-400 font-bold">🔑 Senha:</span>
               <button type="button" onclick="copySimpleText('${userPass}', 'Senha')" title="Clique para copiar a senha deste cliente"
@@ -780,60 +858,56 @@ window.renderFilteredClientsList = function() {
                 ${userPass} 📋
               </button>
             </span>
-            ${(t.tenant_key && t.password && t.tenant_key !== t.password) ? `<span class="text-[10px] text-slate-600 font-mono hidden sm:inline" title="Chave Técnica">(${t.tenant_key})</span>` : ''}
-
             <span class="text-slate-700">•</span>
             <span>Uso: ${usageBadge}</span>
-
             <span class="text-slate-700">•</span>
-            <span>Último Acesso: <strong class="font-mono text-slate-200">${t.last_active_at ? t.last_active_at.replace(/^2026-/, '') : 'Nunca acessou'}</strong></span>
-
-            ${t.notes ? `
-              <span class="text-slate-700">•</span>
-              <span class="text-[10px] text-slate-500 italic truncate max-w-[200px]" title="${t.notes}">📝 ${t.notes}</span>
-            ` : ''}
+            <span>Acesso: <strong class="font-mono text-slate-300">${t.last_active_at ? t.last_active_at.replace(/^2026-/, '') : 'Nunca'}</strong></span>
+            ${t.notes ? `<span class="text-slate-700">•</span><span class="text-[10px] text-slate-500 italic truncate max-w-[150px]" title="${t.notes}">📝 ${t.notes}</span>` : ''}
           </div>
         </div>
 
-        <!-- Linha 3 / Ações Rápidas -->
-        <div class="pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-800 shrink-0 flex items-center gap-1.5 flex-wrap">
-          <button type="button" onclick="openPlanActivationModal(${t.id}, '${escapeJsString(t.name)}', '${t.phone || ''}', '${userPass}')"
-            class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-            title="Ativar plano VIP pago (Mensal, Trimestral, Semestral, Anual) e registrar venda">
-            <span>⭐</span> <span>Ativar Plano</span>
-          </button>
-
-          ${(!isExpired && !isSubscriber) ? `
-            <button type="button" onclick="expireTenantTrial(${t.id}, '${escapeJsString(t.name)}')"
-              class="px-2 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 border border-rose-800/80 font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-              title="Encerrar período de teste imediatamente (bloquear cliente e direcionar para tela de planos)">
-              <span>🔒</span> <span>Expirar</span>
+        <!-- Linha 3: Barra de Ações Rápidas -->
+        <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1.5 flex-wrap">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onclick="openPlanActivationModal(${t.id}, '${escapeJsString(t.name)}', '${t.phone || ''}', '${userPass}')"
+              class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+              title="Ativar plano VIP pago">
+              <span>⭐</span> <span>Ativar Plano</span>
             </button>
-          ` : ''}
 
-          ${(!isSubscriber) ? `
-            <button type="button" onclick="renewTenantTrialDays(${t.id}, '${escapeJsString(t.name)}', 5)"
-              class="px-2 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900/90 text-cyan-300 border border-cyan-800/80 font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-              title="Liberar mais 5 dias de teste grátis para este cliente">
-              <span>⏳</span> <span>+5d Teste</span>
+            ${(!isSubscriber) ? `
+              <button type="button" onclick="renewTenantTrialDays(${t.id}, '${escapeJsString(t.name)}', 5)"
+                class="px-2 py-1 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/80 font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                title="Conceder +5 dias de teste grátis">
+                <span>⏳</span> <span>+5d Teste</span>
+              </button>
+            ` : ''}
+
+            <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${escapeJsString(t.name)}', this, '${t.phone || ''}', '${userPass}')"
+              class="px-2.5 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+              title="Enviar mensagem personalizada no WhatsApp">
+              <span>📲</span> <span>WhatsApp</span>
             </button>
-          ` : ''}
 
-          <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${escapeJsString(t.name)}', this, '${t.phone || ''}', '${userPass}')"
-            class="px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-            title="${t.phone ? 'Abrir conversa direta no WhatsApp do cliente com dados de login' : 'Copiar link e senha para envio no WhatsApp'}">
-            <span>📲</span> <span>WhatsApp</span>
-          </button>
+            ${(!isExpired && !isSubscriber) ? `
+              <button type="button" onclick="expireTenantTrial(${t.id}, '${escapeJsString(t.name)}')"
+                class="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                title="Encerrar teste imediatamente">
+                <span>🔒</span> <span>Expirar</span>
+              </button>
+            ` : ''}
+          </div>
 
-          <button type="button" onclick="toggleTenantStatus(${t.id}, '${t.status}')"
-            class="px-2 py-1.5 rounded-lg ${isActive ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60 hover:bg-amber-900/60' : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60'} font-bold text-xs transition-all cursor-pointer" title="${isActive ? 'Suspender cliente' : 'Reativar cliente'}">
-            ${isActive ? '⏸️' : '▶️'}
-          </button>
-
-          <button type="button" onclick="deleteTenantAccount(${t.id}, '${escapeJsString(t.name)}')"
-            class="px-2 py-1.5 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 font-bold text-xs transition-all cursor-pointer" title="Excluir cliente">
-            🗑️
-          </button>
+          <div class="flex items-center gap-1">
+            <button type="button" onclick="toggleTenantStatus(${t.id}, '${t.status}')"
+              class="p-1 rounded-lg ${isActive ? 'bg-amber-950/40 text-amber-300 border border-amber-800/50 hover:bg-amber-900/50' : 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/50 hover:bg-emerald-900/50'} text-xs transition-all cursor-pointer" title="${isActive ? 'Suspender cliente' : 'Reativar cliente'}">
+              ${isActive ? '⏸️' : '▶️'}
+            </button>
+            <button type="button" onclick="deleteTenantAccount(${t.id}, '${escapeJsString(t.name)}')"
+              class="p-1 rounded-lg bg-rose-950/40 text-rose-300 border border-rose-800/50 hover:bg-rose-900/50 text-xs transition-all cursor-pointer" title="Excluir cliente">
+              🗑️
+            </button>
+          </div>
         </div>
       </div>
     `;
