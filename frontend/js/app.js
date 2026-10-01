@@ -6794,6 +6794,29 @@ window.getAnimalActiveLotteries = function(groupNum) {
   return matches;
 };
 
+
+window.switchMatrizSubTab = function(tabName) {
+  const tabs = ['confluence', 'ternos', 'cruzador'];
+  tabs.forEach(t => {
+    const pane = document.getElementById('matriz-subtab-' + t);
+    const btn = document.getElementById('matriz-subtab-btn-' + t);
+    if (pane) {
+      if (t === tabName) {
+        pane.classList.remove('hidden');
+      } else {
+        pane.classList.add('hidden');
+      }
+    }
+    if (btn) {
+      if (t === tabName) {
+        btn.className = 'matriz-subtab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-slate-950 shadow-sm cursor-pointer';
+      } else {
+        btn.className = 'matriz-subtab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer';
+      }
+    }
+  });
+};
+
 window.loadMatrizContent = async function(forceDate = null, forceMode = null) {
   const dateInput = document.getElementById('matriz-target-date');
   const mainDateInput = document.getElementById('target-date');
@@ -6943,7 +6966,7 @@ function renderMatrizView(data, mode) {
         }
 
         cellsHtml += `
-          <div class="relative rounded-xl border flex flex-col items-center justify-center font-mono font-black text-2xl sm:text-3xl transition-all hover:scale-105 select-none ${cellCls}">
+          <div class="relative rounded-xl border flex flex-col items-center justify-center font-mono font-black text-xl sm:text-2xl transition-all hover:scale-105 select-none ${cellCls}">
             ${badge}
             <span>${val}</span>
           </div>
