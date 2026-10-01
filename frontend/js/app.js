@@ -5016,9 +5016,9 @@ window.showTrialExpiredModal = async function() {
         <div class="flex items-center gap-3 w-full">
           <span class="text-2xl shrink-0">🔒</span>
           <div>
-            <div class="font-black text-rose-300 text-sm sm:text-base">Seu período de teste grátis de 3 dias encerrou!</div>
+            <div class="font-black text-rose-300 text-sm sm:text-base">Ative seu Plano VIP para Liberar o Acesso!</div>
             <div class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-              Para continuar gerando palpites com Inteligência Artificial, Centena Master, Cruz do Dia e fechamentos para todas as loterias, escolha um plano abaixo para liberar seu acesso imediato:
+              Para acessar palpites com Inteligência Artificial, Centena Master, Cruz do Dia e fechamentos matemáticos, escolha um plano abaixo para liberar seu acesso imediato:
             </div>
           </div>
         </div>
