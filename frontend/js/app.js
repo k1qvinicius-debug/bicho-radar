@@ -5020,7 +5020,7 @@ window.showTrialExpiredModal = async function() {
           <div>
             <div class="font-black text-rose-300 text-sm sm:text-base">Ative seu Plano VIP para Liberar o Acesso!</div>
             <div class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-              Para acessar palpites com Inteligência Artificial, Centena Master, Cruz do Dia e fechamentos matemáticos, escolha um plano abaixo para liberar seu acesso imediato:
+              Para acessar os palpites matemáticos, Chave Mestra, Cruz do Dia e fechamentos matemáticos, escolha um plano abaixo para liberar seu acesso imediato:
             </div>
           </div>
         </div>
