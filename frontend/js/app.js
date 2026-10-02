@@ -433,7 +433,420 @@ window.toggleRawListsSection = function() {
 /* ==========================================================================
    ATUALIZAR DADOS DINÂMICOS DA TELA HOME
    ========================================================================== */
+
+/* ==========================================================================
+   COLUNA DA DATA & FECHAMENTO DIÁRIO (MÉTODO CLÁSSICO DOS 5 BICHOS)
+   ========================================================================== */
+
+const COLUNA_ANIMAL_MAP = {
+  1: { name: 'Avestruz', emoji: '🪶', tens: ['01', '02', '03', '04'] },
+  2: { name: 'Águia', emoji: '🦅', tens: ['05', '06', '07', '08'] },
+  3: { name: 'Burro', emoji: '🐴', tens: ['09', '10', '11', '12'] },
+  4: { name: 'Borboleta', emoji: '🦋', tens: ['13', '14', '15', '16'] },
+  5: { name: 'Cachorro', emoji: '🐕', tens: ['17', '18', '19', '20'] },
+  6: { name: 'Cabra', emoji: '🐐', tens: ['21', '22', '23', '24'] },
+  7: { name: 'Carneiro', emoji: '🐑', tens: ['25', '26', '27', '28'] },
+  8: { name: 'Camelo', emoji: '🐫', tens: ['29', '30', '31', '32'] },
+  9: { name: 'Cobra', emoji: '🐍', tens: ['33', '34', '35', '36'] },
+  10: { name: 'Coelho', emoji: '🐇', tens: ['37', '38', '39', '40'] },
+  11: { name: 'Cavalo', emoji: '🐎', tens: ['41', '42', '43', '44'] },
+  12: { name: 'Elefante', emoji: '🐘', tens: ['45', '46', '47', '48'] },
+  13: { name: 'Galo', emoji: '🐓', tens: ['49', '50', '51', '52'] },
+  14: { name: 'Gato', emoji: '🐈', tens: ['53', '54', '55', '56'] },
+  15: { name: 'Jacaré', emoji: '🐊', tens: ['57', '58', '59', '60'] },
+  16: { name: 'Leão', emoji: '🦁', tens: ['61', '62', '63', '64'] },
+  17: { name: 'Macaco', emoji: '🐒', tens: ['65', '66', '67', '68'] },
+  18: { name: 'Porco', emoji: '🐖', tens: ['69', '70', '71', '72'] },
+  19: { name: 'Pavão', emoji: '🦚', tens: ['73', '74', '75', '76'] },
+  20: { name: 'Peru', emoji: '🦃', tens: ['77', '78', '79', '80'] },
+  21: { name: 'Touro', emoji: '🐂', tens: ['81', '82', '83', '84'] },
+  22: { name: 'Tigre', emoji: '🐅', tens: ['85', '86', '87', '88'] },
+  23: { name: 'Urso', emoji: '🐻', tens: ['89', '90', '91', '92'] },
+  24: { name: 'Veado', emoji: '🦌', tens: ['93', '94', '95', '96'] },
+  25: { name: 'Vaca', emoji: '🐄', tens: ['97', '98', '99', '00'] }
+};
+
+let _currentColunaDataCache = null;
+let _colunaModalFilter = 'pending';
+
+window.getColunaDataInfo = async function() {
+  const now = new Date();
+  const day = now.getDate();
+  const unit = day % 10;
+  
+  let colNumber = 1;
+  let groups = [];
+  if (unit === 1 || unit === 6) {
+    colNumber = 1;
+    groups = [1, 6, 11, 16, 21];
+  } else if (unit === 2 || unit === 7) {
+    colNumber = 2;
+    groups = [2, 7, 12, 17, 22];
+  } else if (unit === 3 || unit === 8) {
+    colNumber = 3;
+    groups = [3, 8, 13, 18, 23];
+  } else if (unit === 4 || unit === 9) {
+    colNumber = 4;
+    groups = [4, 9, 14, 19, 24];
+  } else {
+    colNumber = 5;
+    groups = [5, 10, 15, 20, 25];
+  }
+
+  const d1 = unit;
+  const d2 = (unit + 5) % 10;
+  const d3 = (unit + 2) % 10;
+  const d4 = (unit + 7) % 10;
+
+  // Busca apurações de hoje para checar quais bichos já saíram
+  const drawnGroups = new Set();
+  const drawnDetails = {};
+
+  try {
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const res = await fetch(`${API_BASE}/results?limit=60`);
+    if (res.ok) {
+      const data = await res.json();
+      const items = (data && data.items) ? data.items : (Array.isArray(data) ? data : []);
+      items.forEach(it => {
+        if (it.draw_date === todayStr || !it.draw_date) {
+          const lot = it.lottery || '';
+          if (Array.isArray(it.prizes_detail)) {
+            it.prizes_detail.forEach(p => {
+              const g = p.group;
+              if (g && !drawnGroups.has(g)) {
+                drawnGroups.add(g);
+                drawnDetails[g] = `${lot} ${p.label || ''} (${p.number || ''})`.trim();
+              }
+            });
+          } else if (Array.isArray(it.groups_1_to_5)) {
+            it.groups_1_to_5.forEach(g => {
+              if (g && !drawnGroups.has(g)) {
+                drawnGroups.add(g);
+                drawnDetails[g] = `${lot} (1º ao 5º)`.trim();
+              }
+            });
+          }
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('Erro ao consultar resultados do dia para Coluna da Data:', e);
+  }
+
+  const animals = groups.map(gNum => {
+    const a = COLUNA_ANIMAL_MAP[gNum];
+    const tens = a.tens;
+    const isHit = drawnGroups.has(gNum);
+
+    // Centenas da Data (Dígitos irmãos d1, d2, d3, d4)
+    const centenas = [
+      `${d1}${tens[0]}`,
+      `${d2}${tens[1]}`,
+      `${d3}${tens[2]}`,
+      `${d4}${tens[3]}`,
+      `${d2}${tens[0]}`,
+      `${d1}${tens[3]}`
+    ];
+
+    // Milhares Prontas da Data (MC)
+    const milhares = [
+      `${d1}${d2}${tens[0]}`,
+      `${d1}${d3}${tens[1]}`,
+      `${d2}${d1}${tens[2]}`,
+      `${d3}${d2}${tens[3]}`,
+      `${d4}${d1}${tens[1]}`
+    ];
+
+    return {
+      group: gNum,
+      name: a.name,
+      emoji: a.emoji,
+      tens: tens,
+      centenas: centenas,
+      milhares: milhares,
+      isHit: isHit,
+      hitDetail: drawnDetails[gNum] || null
+    };
+  });
+
+  const hitCount = animals.filter(a => a.isHit).length;
+  const pendingCount = animals.length - hitCount;
+
+  _currentColunaDataCache = {
+    day,
+    unit,
+    colNumber,
+    d1, d2, d3, d4,
+    animals,
+    hitCount,
+    pendingCount
+  };
+
+  return _currentColunaDataCache;
+};
+
+window.updateColunaDataHomeCard = async function() {
+  const card = document.getElementById('home-coluna-data-card');
+  if (!card) return;
+
+  const data = await window.getColunaDataInfo();
+  if (!data) return;
+
+  const titleEl = document.getElementById('coluna-card-title');
+  const statusBadgeEl = document.getElementById('coluna-card-status-badge');
+  const statusTextEl = document.getElementById('coluna-card-status-text');
+  const animalsRowEl = document.getElementById('coluna-card-animals-row');
+  const hotTipEl = document.getElementById('coluna-card-hot-tip');
+
+  if (titleEl) {
+    titleEl.textContent = `Coluna ${data.colNumber} da Data (Dia ${String(data.day).padStart(2, '0')})`;
+  }
+
+  if (statusTextEl) {
+    if (data.pendingCount === 0) {
+      statusTextEl.textContent = '🏆 100% Fechada Hoje!';
+    } else if (data.pendingCount === 1) {
+      statusTextEl.textContent = `🔥 1 Bicho Restante!`;
+    } else {
+      statusTextEl.textContent = `${data.hitCount}/5 Premiaram`;
+    }
+  }
+
+  if (animalsRowEl) {
+    animalsRowEl.innerHTML = data.animals.map(a => {
+      const isHit = a.isHit;
+      return `
+        <div class="p-1.5 sm:p-2 rounded-xl ${isHit ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-200' : 'bg-amber-950/40 border border-amber-500/60 text-amber-200 shadow-sm shadow-amber-500/10'} flex items-center justify-between gap-1 text-[11px] font-bold">
+          <div class="flex items-center gap-1.5 truncate">
+            <span class="text-sm shrink-0">${a.emoji}</span>
+            <span class="truncate">${a.name} (${String(a.group).padStart(2, '0')})</span>
+          </div>
+          <span class="shrink-0 text-[10px] font-black px-1.5 py-0.2 rounded ${isHit ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500 text-slate-950'}">
+            ${isHit ? '✅' : '🔥 PEND'}
+          </span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  if (hotTipEl) {
+    const pendingAnimals = data.animals.filter(a => !a.isHit);
+    if (pendingAnimals.length === 1) {
+      hotTipEl.innerHTML = `🔥 Bicho Quente da Vez: <strong class="text-amber-300 font-black">${pendingAnimals[0].emoji} ${pendingAnimals[0].name} (Grupo ${String(pendingAnimals[0].group).padStart(2, '0')})</strong>`;
+    } else if (pendingAnimals.length > 1) {
+      const names = pendingAnimals.map(a => `${a.emoji} ${a.name}`).join(', ');
+      hotTipEl.innerHTML = `⏳ Pendentes: <strong class="text-amber-300">${names}</strong>`;
+    } else {
+      hotTipEl.innerHTML = `🏆 <strong class="text-emerald-300">Todos os 5 bichos da coluna premiaram hoje!</strong>`;
+    }
+  }
+};
+
+window.openColunaDataModal = async function() {
+  const modal = document.getElementById('modal-coluna-data');
+  if (!modal) return;
+
+  modal.classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+
+  const data = _currentColunaDataCache || await window.getColunaDataInfo();
+  if (!data) return;
+
+  const dayLabelEl = document.getElementById('modal-coluna-day-label');
+  const countPendingEl = document.getElementById('count-coluna-pending');
+  const diagTitleEl = document.getElementById('modal-coluna-diag-title');
+  const diagDescEl = document.getElementById('modal-coluna-diag-desc');
+
+  if (dayLabelEl) dayLabelEl.textContent = `(Dia ${String(data.day).padStart(2, '0')})`;
+  if (countPendingEl) countPendingEl.textContent = data.pendingCount;
+
+  if (diagTitleEl && diagDescEl) {
+    if (data.pendingCount === 0) {
+      diagTitleEl.textContent = '🏆 Ciclo Fechado: Todos os 5 Bichos Premiaram!';
+      diagDescEl.textContent = 'A coluna da data de hoje teve 100% de aproveitamento nas extrações apuradas!';
+    } else if (data.pendingCount === 1) {
+      const pendingOne = data.animals.find(a => !a.isHit);
+      diagTitleEl.textContent = `🔥 4 de 5 Bichos Já Saíram! Foco Total: ${pendingOne ? pendingOne.name : ''}!`;
+      diagDescEl.textContent = `Falta apenas o ${pendingOne ? pendingOne.name : ''} (Grupo ${pendingOne ? String(pendingOne.group).padStart(2, '0') : ''}) para fechar o ciclo de hoje. Altíssima probabilidade para as próximas extrações!`;
+    } else {
+      diagTitleEl.textContent = `${data.hitCount} de 5 Bichos Premiaram • Restam ${data.pendingCount}`;
+      diagDescEl.textContent = `Acompanhamento ao vivo da Coluna ${data.colNumber}. Os bichos pendentes estão com pressão máxima de fechamento.`;
+    }
+  }
+
+  // Se houver pendentes, filtra por pendente por padrão
+  _colunaModalFilter = data.pendingCount > 0 ? 'pending' : 'all';
+  renderColunaModalAnimalsList();
+};
+
+window.filterColunaModal = function(type) {
+  _colunaModalFilter = type;
+  const btnPending = document.getElementById('btn-coluna-filter-pending');
+  const btnAll = document.getElementById('btn-coluna-filter-all');
+
+  if (btnPending && btnAll) {
+    if (type === 'pending') {
+      btnPending.className = 'px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-black text-xs transition-all shadow cursor-pointer';
+      btnAll.className = 'px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-all cursor-pointer';
+    } else {
+      btnAll.className = 'px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-black text-xs transition-all shadow cursor-pointer';
+      btnPending.className = 'px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-all cursor-pointer';
+    }
+  }
+
+  renderColunaModalAnimalsList();
+};
+
+function renderColunaModalAnimalsList() {
+  const container = document.getElementById('modal-coluna-animals-list');
+  if (!container || !_currentColunaDataCache) return;
+
+  const data = _currentColunaDataCache;
+  const list = _colunaModalFilter === 'pending'
+    ? data.animals.filter(a => !a.isHit)
+    : data.animals;
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-6 text-slate-400 text-xs">
+        <span class="text-3xl block mb-2">🎉</span>
+        Todos os bichos da coluna já foram sorteados hoje! Veja a aba "Todos os 5 Bichos" para rever as combinações.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(a => {
+    const isHit = a.isHit;
+    return `
+      <div class="p-3 sm:p-4 rounded-2xl ${isHit ? 'bg-slate-900/60 border border-slate-800' : 'bg-gradient-to-br from-amber-950/20 via-slate-900 to-slate-900 border-2 border-amber-500/60 shadow-lg shadow-amber-500/10'} space-y-2.5 transition-all">
+        <!-- Topo do Card do Bicho -->
+        <div class="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-2xl sm:text-3xl shrink-0">${a.emoji}</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <h3 class="font-black text-white text-sm sm:text-base">${a.name}</h3>
+                <span class="text-[10px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Grupo ${String(a.group).padStart(2, '0')}</span>
+              </div>
+              <p class="text-[10px] text-slate-400 truncate">
+                ${isHit ? `✅ Já premiou hoje: <strong class="text-emerald-400">${a.hitDetail || 'Sorteado'}</strong>` : '🔥 <strong class="text-amber-300">Pendente de Sorteio (Bicho Quente)</strong>'}
+              </p>
+            </div>
+          </div>
+          <button type="button" onclick="copySingleAnimalColunaGames(${a.group})"
+            class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 border border-amber-500/30" title="Copiar jogos deste bicho">
+            <span>📋</span> <span class="hidden sm:inline">Copiar</span>
+          </button>
+        </div>
+
+        <!-- 1. Linha de Dezenas -->
+        <div class="space-y-1">
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <span>🔢</span> Dezenas do Grupo:
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            ${a.tens.map(t => `<span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 font-mono font-black text-xs border border-slate-700 shadow-sm">${t}</span>`).join('')}
+          </div>
+        </div>
+
+        <!-- 2. Linha de Centenas da Data -->
+        <div class="space-y-1">
+          <div class="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+            <span>🎯</span> Centenas da Data (Com dígitos irmãos):
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            ${a.centenas.map(c => `<span class="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-200 font-mono font-black text-xs border border-amber-500/35 shadow-sm">${c}</span>`).join('')}
+          </div>
+        </div>
+
+        <!-- 3. Linha de Milhares da Data (MC) -->
+        <div class="space-y-1">
+          <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+            <span>👑</span> Milhares Prontas (1º Prêmio / MC):
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            ${a.milhares.map(m => `<span class="px-2 py-0.5 rounded-md bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 font-mono font-black text-xs border border-emerald-500/40 shadow-sm">${m}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.closeColunaDataModal = function() {
+  const modal = document.getElementById('modal-coluna-data');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+  document.body.classList.remove('overflow-hidden');
+};
+
+window.copyColunaDataGames = async function() {
+  if (!_currentColunaDataCache) return;
+  const d = _currentColunaDataCache;
+  const list = _colunaModalFilter === 'pending'
+    ? d.animals.filter(a => !a.isHit)
+    : d.animals;
+
+  let text = `🎯 BICHO MASTER PRO - COLUNA ${d.colNumber} DA DATA (DIA ${String(d.day).padStart(2, '0')})
+`;
+  text += `Status: ${d.hitCount}/5 premiaram hoje • ${d.pendingCount} pendentes
+
+`;
+
+  list.forEach(a => {
+    text += `${a.emoji} ${a.name.toUpperCase()} (GRUPO ${String(a.group).padStart(2, '0')}) ${a.isHit ? '[✅ JÁ SAIU]' : '[🔥 PENDENTE]'}
+`;
+    text += `Dezenas: ${a.tens.join(', ')}
+`;
+    text += `Centenas: ${a.centenas.join(' • ')}
+`;
+    text += `Milhares (MC): ${a.milhares.join(' • ')}
+
+`;
+  });
+
+  text += `👉 Confira os fechamentos completos em: https://bichomasterpro.tech`;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    if (typeof showToast === 'function') {
+      showToast('Jogos da Coluna copiados com sucesso!', 'success');
+    }
+  } catch (e) {
+    console.warn('Erro ao copiar:', e);
+  }
+};
+
+window.copySingleAnimalColunaGames = async function(groupNum) {
+  if (!_currentColunaDataCache) return;
+  const a = _currentColunaDataCache.animals.find(an => an.group === groupNum);
+  if (!a) return;
+
+  let text = `🎯 BICHO MASTER PRO - ${a.emoji} ${a.name.toUpperCase()} (GRUPO ${String(a.group).padStart(2, '0')})
+`;
+  text += `Dezenas: ${a.tens.join(', ')}
+`;
+  text += `Centenas da Data: ${a.centenas.join(' • ')}
+`;
+  text += `Milhares (MC): ${a.milhares.join(' • ')}
+`;
+  text += `👉 https://bichomasterpro.tech`;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    if (typeof showToast === 'function') {
+      showToast(`Jogos de ${a.name} copiados!`, 'success');
+    }
+  } catch (e) {
+    console.warn('Erro ao copiar:', e);
+  }
+};
+
 function updateHomeScreenData() {
+  if (typeof window.updateColunaDataHomeCard === "function") window.updateColunaDataHomeCard();
   const tenant = api.getCurrentTenant();
   const userNameEl = document.getElementById('home-user-name');
   const userEmail = (tenant && tenant.email ? tenant.email : '').toLowerCase();
