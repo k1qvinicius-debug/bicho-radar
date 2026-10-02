@@ -727,6 +727,38 @@
         </div>
       </div>
 
+      <!-- CARD DESTAQUE: COLUNA DA DATA & FECHAMENTO DO DIA (DINÂMICO) -->
+      <div id="home-coluna-data-card" onclick="openColunaDataModal()" class="card-glass p-3 sm:p-3.5 relative overflow-hidden bg-gradient-to-br from-amber-950/30 via-slate-900/95 to-slate-950 border border-amber-500/40 rounded-xl shadow-lg shadow-amber-500/5 cursor-pointer hover:border-amber-400 transition-all group active:scale-[0.99]">
+        <div class="absolute -top-10 -right-10 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black uppercase tracking-wider">
+              <span>🎯</span> <span id="coluna-card-title">Coluna da Data</span>
+            </span>
+            <span id="coluna-card-status-badge" class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="coluna-card-status-text">Fechamento ao Vivo</span>
+            </span>
+          </div>
+          <span class="text-[10px] sm:text-xs font-bold text-amber-400 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-all flex items-center gap-1 shrink-0">
+            <span>Ver Jogos Prontos</span>
+            <span>➔</span>
+          </span>
+        </div>
+
+        <!-- Linha dos 5 Bichos da Coluna -->
+        <div id="coluna-card-animals-row" class="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-0.5">
+          <div class="text-[11px] text-slate-500 animate-pulse py-1 col-span-full">Carregando coluna da data...</div>
+        </div>
+
+        <!-- Rodapé do Card com Dica Rápida -->
+        <div class="mt-2.5 pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
+          <span id="coluna-card-hot-tip">🔥 Bicho da vez: <strong>Carregando...</strong></span>
+          <span class="text-amber-400 font-bold underline">Toque para ver centenas e milhares (MC)</span>
+        </div>
+      </div>
+
       <!-- SEÇÃO 1: QUAL LOTERIA VOCÊ JOGA HOJE? (GRID 3 COLUNAS COMPACTO) -->
       <div class="space-y-2">
         <div class="flex items-center justify-between px-1">
@@ -2326,6 +2358,79 @@
   </div>
 
   <!-- =========================================================================
+       MODAL DE FECHAMENTO DA COLUNA DA DATA (JOGOS PRONTOS, CENTENAS E MILHARES)
+       ========================================================================= -->
+  <div id="modal-coluna-data" onclick="if (event.target === this) closeColunaDataModal()" class="fixed inset-0 z-[110] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto">
+    <div class="card-glass max-w-3xl w-full p-4 sm:p-6 rounded-3xl border border-amber-500/40 shadow-2xl space-y-4 bg-[#0B0F19] text-left my-auto">
+      
+      <!-- Header do Modal -->
+      <div class="flex items-start justify-between gap-3">
+        <div class="space-y-1">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-black uppercase tracking-wider">
+            <span>🎯</span> <span id="modal-coluna-badge-title">Coluna da Data • Fechamento Diário</span>
+          </div>
+          <h2 class="text-base sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+            <span>Fechamento da Coluna da Data</span>
+            <span id="modal-coluna-day-label" class="text-amber-400 font-bold text-sm sm:text-base">(Dia Hoje)</span>
+          </h2>
+          <p class="text-xs text-slate-400" id="modal-coluna-subtitle">
+            Cálculo matemático tradicional dos 5 bichos da data com Dezenas, Centenas e Milhares (MC).
+          </p>
+        </div>
+        <button type="button" onclick="closeColunaDataModal()"
+          class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition-colors cursor-pointer shrink-0 border border-slate-700 hover:border-slate-500" title="Fechar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Banner de Alerta / Diagnóstico do Dia -->
+      <div id="modal-coluna-diagnostic-banner" class="p-3 sm:p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-amber-200 text-xs flex items-center justify-between gap-3 shadow-md shadow-amber-950/40">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl shrink-0">🔥</span>
+          <div class="min-w-0">
+            <div id="modal-coluna-diag-title" class="font-black text-amber-300 text-xs sm:text-sm">Acompanhamento da Coluna ao Vivo</div>
+            <div id="modal-coluna-diag-desc" class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+              Carregando status dos 5 bichos nas extrações de hoje...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtro Rápido: Só os Pendentes vs Todos os 5 Bichos -->
+      <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 flex-wrap">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button id="btn-coluna-filter-pending" type="button" onclick="filterColunaModal('pending')"
+            class="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-black text-xs transition-all shadow cursor-pointer">
+            🔥 Apenas Pendentes (<span id="count-coluna-pending">0</span>)
+          </button>
+          <button id="btn-coluna-filter-all" type="button" onclick="filterColunaModal('all')"
+            class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-all cursor-pointer">
+            📋 Todos os 5 Bichos
+          </button>
+        </div>
+        <button type="button" onclick="copyColunaDataGames()"
+          class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow active:scale-95 transition-all cursor-pointer shrink-0">
+          <span>📋</span> <span class="hidden sm:inline">Copiar Jogos</span>
+        </button>
+      </div>
+
+      <!-- Lista / Grid dos Bichos -->
+      <div id="modal-coluna-animals-list" class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+
+      <!-- Rodapé do Modal -->
+      <div class="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+        <span>💡 Dica: Toda milhar também vale como <strong>Milhar e Centena (MC)</strong> na cabeça e 1º ao 5º.</span>
+        <button type="button" onclick="closeColunaDataModal()" class="w-full sm:w-auto px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold transition-colors cursor-pointer text-center">
+          Fechar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
        MODAL POP-UP DE CELEBRAÇÃO: ACERTO COMPROVADO NO 1º PRÊMIO (ALTO IMPACTO)
        ========================================================================= -->
   <div id="modal-bingo-celebration" class="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden animate-fade-in">
@@ -2411,7 +2516,7 @@
   </div>
 
   <script src="/js/api.js?v=1790660000"></script>
-  <script src="/js/app.js?v=1790867500"></script>
+  <script src="/js/app.js?v=1790869000"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
