@@ -669,6 +669,25 @@ window.renderColunaDataScreen = async function(dateOverride) {
   const pendingAnimals = data.animals.filter(a => !a.isHit);
   const hotPending = pendingAnimals.length > 0 ? pendingAnimals[0] : null;
 
+  const now = new Date();
+  const pad2 = n => String(n).padStart(2, '0');
+  const todayStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+
+  const yest = new Date();
+  yest.setDate(yest.getDate() - 1);
+  const yestStr = `${yest.getFullYear()}-${pad2(yest.getMonth() + 1)}-${pad2(yest.getDate())}`;
+
+  const tom = new Date();
+  tom.setDate(tom.getDate() + 1);
+  const tomStr = `${tom.getFullYear()}-${pad2(tom.getMonth() + 1)}-${pad2(tom.getDate())}`;
+
+  const isToday = (data.dateStr === todayStr);
+  const isTomorrow = (data.dateStr === tomStr);
+  const isYesterday = (data.dateStr === yestStr);
+
+  const activeBtnClass = "px-2.5 py-1.5 rounded-xl bg-amber-600/40 hover:bg-amber-600/60 text-amber-200 text-xs font-black border border-amber-500/70 shadow-sm transition-all cursor-pointer";
+  const inactiveBtnClass = "px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-800 transition-all cursor-pointer";
+
   let html = `
     <!-- 1. CARD SUPERIOR DE CONTROLE E DATA -->
     <div class="card-glass p-3.5 sm:p-5 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-900/95 to-slate-950 shadow-xl shadow-amber-500/5 space-y-3 relative overflow-hidden">
@@ -712,11 +731,11 @@ window.renderColunaDataScreen = async function(dateOverride) {
               class="bg-transparent text-amber-300 font-mono text-xs font-bold focus:outline-none cursor-pointer">
           </div>
           <button type="button" onclick="setColunaDateYesterday()"
-            class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-800 transition-colors cursor-pointer">Ontem</button>
+            class="${isYesterday ? activeBtnClass : inactiveBtnClass}">Ontem</button>
           <button type="button" onclick="setColunaDateToday()"
-            class="px-2.5 py-1.5 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 text-xs font-semibold border border-amber-500/50 transition-colors cursor-pointer">Hoje</button>
+            class="${isToday ? activeBtnClass : inactiveBtnClass}">Hoje</button>
           <button type="button" onclick="setColunaDateTomorrow()"
-            class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-800 transition-colors cursor-pointer">Amanhã</button>
+            class="${isTomorrow ? activeBtnClass : inactiveBtnClass}">Amanhã</button>
         </div>
 
         <!-- Chave Mestre e Status de Apuração -->
@@ -727,9 +746,27 @@ window.renderColunaDataScreen = async function(dateOverride) {
             <span class="text-slate-500 font-normal">| Inv: ${data.invPrefix}</span>
           </div>
 
-          <div class="px-3 py-1.5 rounded-xl ${data.pendingCount === 0 ? 'bg-emerald-950/60 border border-emerald-500/50 text-emerald-300' : 'bg-amber-950/60 border border-amber-500/50 text-amber-300'} text-xs font-bold flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full ${data.pendingCount === 0 ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}"></span>
-            <span>${data.pendingCount === 0 ? '🏆 5/5 Já Premiaram Hoje!' : `⚡ ${data.hitCount} de 5 já saíram (${data.pendingCount} pendente${data.pendingCount > 1 ? 's' : ''})`}</span>
+          <div class="px-3 py-1.5 rounded-xl ${
+            isTomorrow
+              ? 'bg-indigo-950/60 border border-indigo-500/50 text-indigo-300'
+              : data.pendingCount === 0
+                ? 'bg-emerald-950/60 border border-emerald-500/50 text-emerald-300'
+                : 'bg-amber-950/60 border border-amber-500/50 text-amber-300'
+          } text-xs font-bold flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full ${
+              isTomorrow
+                ? 'bg-indigo-400 animate-pulse'
+                : data.pendingCount === 0
+                  ? 'bg-emerald-400'
+                  : 'bg-amber-400 animate-pulse'
+            }"></span>
+            <span>${
+              isTomorrow
+                ? `🔮 Ciclo de Amanhã (Coluna ${data.colNumber})`
+                : data.pendingCount === 0
+                  ? '🏆 5/5 Já Premiaram Hoje!'
+                  : `⚡ ${data.hitCount} de 5 já saíram (${data.pendingCount} pendente${data.pendingCount > 1 ? 's' : ''})`
+            }</span>
           </div>
         </div>
       </div>
@@ -748,10 +785,12 @@ window.renderColunaDataScreen = async function(dateOverride) {
             <div>
               <div class="flex items-center gap-2 flex-wrap">
                 <h2 class="text-base sm:text-lg font-black text-amber-200 uppercase">
-                  Bicho da Vez na Coluna: ${hotPending.name} (Grupo ${String(hotPending.group).padStart(2, '0')})
+                  ${isTomorrow ? 'Bicho em Destaque para Amanhã:' : 'Bicho da Vez na Coluna:'} ${hotPending.name} (Grupo ${String(hotPending.group).padStart(2, '0')})
                 </h2>
-                <span class="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase animate-pulse">
-                  🔥 Pendente (Alta Pressão)
+                <span class="px-2.5 py-0.5 rounded-full ${
+                  isTomorrow ? 'bg-indigo-600 text-white' : 'bg-amber-500 text-slate-950 animate-pulse'
+                } text-[10px] font-black uppercase shadow-sm">
+                  ${isTomorrow ? `🔮 Ciclo de Amanhã (Coluna ${data.colNumber})` : '🔥 Pendente (Alta Pressão)'}
                 </span>
               </div>
               <p class="text-xs text-slate-300 mt-0.5">
