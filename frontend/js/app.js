@@ -498,6 +498,12 @@ window.getColunaDataInfo = async function() {
   const d3 = (unit + 2) % 10;
   const d4 = (unit + 7) % 10;
 
+  // Prefixo mestre da data (ex: 27 no dia 02)
+  const masterPrefix = `${d1}${d2}`;
+  const invPrefix = `${d2}${d1}`;
+  const supPrefix1 = `${d1}${d3}`;
+  const supPrefix2 = `${d3}${d1}`;
+
   // Busca apurações de hoje para checar quais bichos já saíram
   const drawnGroups = new Set();
   const drawnDetails = {};
@@ -539,23 +545,34 @@ window.getColunaDataInfo = async function() {
     const tens = a.tens;
     const isHit = drawnGroups.has(gNum);
 
-    // Centenas da Data (Dígitos irmãos d1, d2, d3, d4)
-    const centenas = [
-      `${d1}${tens[0]}`,
-      `${d2}${tens[1]}`,
-      `${d3}${tens[2]}`,
-      `${d4}${tens[3]}`,
+    // Centenas de Ouro da Data (com os dígitos mestre d2 e d1)
+    const goldCentenas = [
       `${d2}${tens[0]}`,
-      `${d1}${tens[3]}`
+      `${d2}${tens[1]}`,
+      `${d2}${tens[2]}`,
+      `${d2}${tens[3]}`
+    ];
+    const supportCentenas = [
+      `${d1}${tens[0]}`,
+      `${d1}${tens[1]}`,
+      `${d3}${tens[2]}`,
+      `${d4}${tens[3]}`
     ];
 
-    // Milhares Prontas da Data (MC)
-    const milhares = [
-      `${d1}${d2}${tens[0]}`,
-      `${d1}${d3}${tens[1]}`,
-      `${d2}${d1}${tens[2]}`,
-      `${d3}${d2}${tens[3]}`,
-      `${d4}${d1}${tens[1]}`
+    // Milhares de Ouro com Prefixo Mestre da Data (ex: 2705, 2706, 2707, 2708)
+    const goldMilhares = [
+      `${masterPrefix}${tens[0]}`,
+      `${masterPrefix}${tens[1]}`,
+      `${masterPrefix}${tens[2]}`,
+      `${masterPrefix}${tens[3]}`
+    ];
+
+    // Milhares de Apoio / Inversão
+    const supportMilhares = [
+      `${supPrefix1}${tens[0]}`,
+      `${invPrefix}${tens[1]}`,
+      `${supPrefix2}${tens[2]}`,
+      `${d4}${d1}${tens[3]}`
     ];
 
     return {
@@ -563,8 +580,12 @@ window.getColunaDataInfo = async function() {
       name: a.name,
       emoji: a.emoji,
       tens: tens,
-      centenas: centenas,
-      milhares: milhares,
+      goldCentenas: goldCentenas,
+      supportCentenas: supportCentenas,
+      centenas: [...goldCentenas, ...supportCentenas.slice(0, 2)],
+      goldMilhares: goldMilhares,
+      supportMilhares: supportMilhares,
+      milhares: [...goldMilhares, ...supportMilhares.slice(0, 2)],
       isHit: isHit,
       hitDetail: drawnDetails[gNum] || null
     };
@@ -707,11 +728,14 @@ function renderColunaModalAnimalsList() {
     ? data.animals.filter(a => !a.isHit)
     : data.animals;
 
+  const prefixBadge = document.getElementById('coluna-master-prefix-badge');
+  if (prefixBadge) prefixBadge.textContent = `${data.d1}${data.d2}`;
+
   if (list.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-6 text-slate-400 text-xs">
+      <div class="text-center py-6 text-slate-400 text-xs bg-slate-900/50 rounded-2xl border border-slate-800">
         <span class="text-3xl block mb-2">🎉</span>
-        Todos os bichos da coluna já foram sorteados hoje! Veja a aba "Todos os 5 Bichos" para rever as combinações.
+        Todos os 5 bichos da coluna já foram sorteados nas extrações apuradas de hoje! Veja a aba "Todos os 5 Bichos" para rever todas as milhares e centenas.
       </div>
     `;
     return;
@@ -719,11 +743,15 @@ function renderColunaModalAnimalsList() {
 
   container.innerHTML = list.map(a => {
     const isHit = a.isHit;
+    const goldM = a.goldMilhares || a.milhares.slice(0, 4);
+    const supM = a.supportMilhares || a.milhares.slice(4);
+    const goldC = a.goldCentenas || a.centenas.slice(0, 4);
+
     return `
-      <div class="p-3 sm:p-4 rounded-2xl ${isHit ? 'bg-slate-900/60 border border-slate-800' : 'bg-gradient-to-br from-amber-950/20 via-slate-900 to-slate-900 border-2 border-amber-500/60 shadow-lg shadow-amber-500/10'} space-y-2.5 transition-all">
+      <div class="p-3 sm:p-4 rounded-2xl ${isHit ? 'bg-slate-900/60 border border-slate-800' : 'bg-gradient-to-br from-amber-950/25 via-slate-900 to-slate-900 border-2 border-amber-500/70 shadow-lg shadow-amber-500/10'} space-y-3 transition-all">
         <!-- Topo do Card do Bicho -->
         <div class="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
-          <div class="flex items-center gap-2 min-w-0">
+          <div class="flex items-center gap-2.5 min-w-0">
             <span class="text-2xl sm:text-3xl shrink-0">${a.emoji}</span>
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
@@ -731,7 +759,7 @@ function renderColunaModalAnimalsList() {
                 <span class="text-[10px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Grupo ${String(a.group).padStart(2, '0')}</span>
               </div>
               <p class="text-[10px] text-slate-400 truncate">
-                ${isHit ? `✅ Já premiou hoje: <strong class="text-emerald-400">${a.hitDetail || 'Sorteado'}</strong>` : '🔥 <strong class="text-amber-300">Pendente de Sorteio (Bicho Quente)</strong>'}
+                ${isHit ? `✅ Já premiou hoje: <strong class="text-emerald-400">${a.hitDetail || 'Sorteado'}</strong>` : '🔥 <strong class="text-amber-300">Pendente de Sorteio (Bicho Quente da Vez)</strong>'}
               </p>
             </div>
           </div>
@@ -751,29 +779,123 @@ function renderColunaModalAnimalsList() {
           </div>
         </div>
 
-        <!-- 2. Linha de Centenas da Data -->
+        <!-- 2. Linha de Centenas de Ouro da Data -->
         <div class="space-y-1">
           <div class="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-            <span>🎯</span> Centenas da Data (Com dígitos irmãos):
+            <span>🎯</span> Centenas da Data (Dígitos irmãos):
           </div>
           <div class="flex items-center gap-1.5 flex-wrap">
-            ${a.centenas.map(c => `<span class="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-200 font-mono font-black text-xs border border-amber-500/35 shadow-sm">${c}</span>`).join('')}
+            ${goldC.map(c => `<span class="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-200 font-mono font-black text-xs border border-amber-500/40 shadow-sm">${c}</span>`).join('')}
           </div>
         </div>
 
-        <!-- 3. Linha de Milhares da Data (MC) -->
+        <!-- 3. Linha de Milhares de Ouro da Data (Prefixo Mestre da Data) -->
         <div class="space-y-1">
-          <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
-            <span>👑</span> Milhares Prontas (1º Prêmio / MC):
+          <div class="text-[10px] font-black text-amber-300 uppercase tracking-wider flex items-center justify-between">
+            <span class="flex items-center gap-1"><span>👑</span> Milhares de Ouro (Prefixo ${data.d1}${data.d2}):</span>
+            <span class="text-[9px] text-emerald-400 font-bold">1º Prêmio / MC</span>
           </div>
           <div class="flex items-center gap-1.5 flex-wrap">
-            ${a.milhares.map(m => `<span class="px-2 py-0.5 rounded-md bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 font-mono font-black text-xs border border-emerald-500/40 shadow-sm">${m}</span>`).join('')}
+            ${goldM.map(m => `<span class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 text-amber-300 font-mono font-black text-xs sm:text-sm border-2 border-amber-500/60 shadow-md shadow-amber-500/10">${m}</span>`).join('')}
+          </div>
+        </div>
+
+        <!-- 4. Milhares de Apoio / Inversão -->
+        <div class="space-y-1 pt-0.5">
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <span>⚡</span> Milhares de Apoio (Inversão e Cerco):
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            ${supM.map(m => `<span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono font-black text-xs border border-slate-700">${m}</span>`).join('')}
           </div>
         </div>
       </div>
     `;
   }).join('');
 }
+
+window.generateCustomDezenaMilhares = function() {
+  const input = document.getElementById('input-custom-coluna-dezena');
+  const box = document.getElementById('custom-dezena-result-box');
+  if (!input || !box) return;
+
+  let val = input.value.trim().replace(/\D/g, '');
+  if (!val) {
+    if (typeof showToast === 'function') showToast('Digite uma dezena válida (00 a 99)', 'warning');
+    return;
+  }
+  if (val.length === 1) val = '0' + val;
+
+  const data = _currentColunaDataCache || { d1: 2, d2: 7, d3: 4, d4: 9, day: new Date().getDate() };
+  const d1 = data.d1 !== undefined ? data.d1 : 2;
+  const d2 = data.d2 !== undefined ? data.d2 : 7;
+  const d3 = data.d3 !== undefined ? data.d3 : 4;
+  const d4 = data.d4 !== undefined ? data.d4 : 9;
+
+  const goldM = [
+    `${d1}${d2}${val}`,
+    `${d2}${d1}${val}`,
+    `${d1}${d3}${val}`,
+    `${d3}${d1}${val}`
+  ];
+
+  const centenas = [
+    `${d2}${val}`,
+    `${d1}${val}`,
+    `${d3}${val}`,
+    `${d4}${val}`
+  ];
+
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <div class="p-2.5 rounded-xl bg-slate-950/80 border border-amber-500/50 space-y-2">
+      <div class="flex items-center justify-between text-xs">
+        <span class="font-black text-amber-300 flex items-center gap-1">
+          <span>🎯</span> Dezena <strong>${val}</strong> desdobrada com a data:
+        </span>
+        <button type="button" onclick="copyCustomDezenaGames('${val}')"
+          class="px-2 py-0.5 rounded bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-[10px] transition-colors cursor-pointer">
+          📋 Copiar Jogos
+        </button>
+      </div>
+
+      <div>
+        <div class="text-[10px] font-bold text-amber-400">👑 Milhares de Ouro (1º Prêmio / MC):</div>
+        <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+          ${goldM.map(m => `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 font-mono font-black text-xs border border-amber-500/40">${m}</span>`).join('')}
+        </div>
+      </div>
+
+      <div>
+        <div class="text-[10px] font-bold text-slate-400">🎯 Centenas da Data:</div>
+        <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+          ${centenas.map(c => `<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-mono font-black text-xs border border-slate-700">${c}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+window.copyCustomDezenaGames = async function(dezena) {
+  const data = _currentColunaDataCache || { d1: 2, d2: 7, d3: 4, d4: 9, day: new Date().getDate() };
+  const d1 = data.d1 !== undefined ? data.d1 : 2;
+  const d2 = data.d2 !== undefined ? data.d2 : 7;
+  const d3 = data.d3 !== undefined ? data.d3 : 4;
+  const d4 = data.d4 !== undefined ? data.d4 : 9;
+
+  let text = `🎯 BICHO MASTER PRO - DESDOBRAMENTO DA DEZENA ${dezena} (DIA ${String(data.day).padStart(2, '0')})
+`;
+  text += `👑 Milhares de Ouro (MC): ${d1}${d2}${dezena} • ${d2}${d1}${dezena} • ${d1}${d3}${dezena} • ${d3}${d1}${dezena}
+`;
+  text += `🎯 Centenas da Data: ${d2}${dezena} • ${d1}${dezena} • ${d3}${dezena} • ${d4}${dezena}
+`;
+  text += `👉 https://bichomasterpro.tech`;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    if (typeof showToast === 'function') showToast(`Jogos da dezena ${dezena} copiados!`, 'success');
+  } catch (e) {}
+};
 
 window.closeColunaDataModal = function() {
   const modal = document.getElementById('modal-coluna-data');
