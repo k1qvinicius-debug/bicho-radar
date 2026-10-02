@@ -492,6 +492,23 @@ function getAnimalByDezena(dezVal) {
 /**
  * Calcula os dados da coluna de uma data específica
  */
+let _colunaSelectedLottery = localStorage.getItem('bicho_coluna_lottery') || 'RJ';
+window._colunaSelectedLottery = _colunaSelectedLottery;
+
+window.setColunaLotteryFilter = function(lotCode) {
+  _colunaSelectedLottery = lotCode;
+  window._colunaSelectedLottery = lotCode;
+  try {
+    localStorage.setItem('bicho_coluna_lottery', lotCode);
+  } catch(e) {}
+  if (typeof window.renderColunaDataScreen === 'function') {
+    window.renderColunaDataScreen();
+  }
+};
+
+/**
+ * Calcula os dados da coluna de uma data específica
+ */
 window.getColunaDataInfo = async function(dateOverride) {
   let targetDate = new Date();
   if (dateOverride) {
@@ -543,33 +560,48 @@ window.getColunaDataInfo = async function(dateOverride) {
   const supPrefix1 = `${d1}${d3}`;
   const supPrefix2 = `${d3}${d1}`;
 
-  const dateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+  const pad2 = n => String(n).padStart(2, '0');
+  const dateStr = `${targetDate.getFullYear()}-${pad2(targetDate.getMonth() + 1)}-${pad2(targetDate.getDate())}`;
 
   // Busca apurações do dia
-  const drawnGroups = new Set();
-  const drawnDetails = {};
+  const groupHits = {};
+  groups.forEach(g => { groupHits[g] = []; });
 
   try {
-    const res = await fetch(`${API_BASE}/results?limit=60`);
+    const res = await fetch(`${API_BASE}/results?limit=100`);
     if (res.ok) {
       const data = await res.json();
       const items = (data && data.items) ? data.items : (Array.isArray(data) ? data : []);
       items.forEach(it => {
         if (it.draw_date === dateStr || !it.draw_date) {
-          const lot = it.lottery || '';
+          const lot = (it.lottery || '').toUpperCase().trim();
+          const slot = (it.slot || '').trim();
           if (Array.isArray(it.prizes_detail)) {
             it.prizes_detail.forEach(p => {
               const g = p.group;
-              if (g && !drawnGroups.has(g)) {
-                drawnGroups.add(g);
-                drawnDetails[g] = `${lot} ${p.label || ''} (${p.number || ''})`.trim();
+              if (g && groupHits[g] !== undefined) {
+                const lbl = (p.label || '').trim();
+                const isHead = Boolean(lbl && (lbl.includes('1º') || lbl.toLowerCase().includes('cabeça')));
+                groupHits[g].push({
+                  lottery: lot,
+                  slot: slot,
+                  label: lbl,
+                  number: (p.number || '').trim(),
+                  isHead: isHead
+                });
               }
             });
           } else if (Array.isArray(it.groups_1_to_5)) {
-            it.groups_1_to_5.forEach(g => {
-              if (g && !drawnGroups.has(g)) {
-                drawnGroups.add(g);
-                drawnDetails[g] = `${lot} (1º ao 5º)`.trim();
+            it.groups_1_to_5.forEach((g, idx) => {
+              if (g && groupHits[g] !== undefined) {
+                const isHead = (idx === 0);
+                groupHits[g].push({
+                  lottery: lot,
+                  slot: slot,
+                  label: `${idx + 1}º Prêmio`,
+                  number: '',
+                  isHead: isHead
+                });
               }
             });
           }
@@ -583,7 +615,20 @@ window.getColunaDataInfo = async function(dateOverride) {
   const animals = groups.map(gNum => {
     const a = COLUNA_ANIMAL_MAP[gNum];
     const tens = a.tens;
-    const isHit = drawnGroups.has(gNum);
+    const rawHits = groupHits[gNum] || [];
+
+    // Ordenação inteligente:
+    // 1º: 1º Prêmio (Cabeça 🏆)
+    // 2º: Rio de Janeiro (RJ)
+    // 3º: Demais bancas
+    const hits = [...rawHits].sort((x, y) => {
+      if (x.isHead !== y.isHead) return y.isHead ? 1 : -1;
+      if (x.lottery === 'RJ' && y.lottery !== 'RJ') return -1;
+      if (y.lottery === 'RJ' && x.lottery !== 'RJ') return 1;
+      return 0;
+    });
+
+    const isHit = hits.length > 0;
 
     const goldCentenas = [
       `${d2}${tens[0]}`,
@@ -623,8 +668,9 @@ window.getColunaDataInfo = async function(dateOverride) {
       goldMilhares: goldMilhares,
       supportMilhares: supportMilhares,
       milhares: [...goldMilhares, ...supportMilhares.slice(0, 2)],
+      hits: hits,
       isHit: isHit,
-      hitDetail: drawnDetails[gNum] || null
+      hitDetail: hits.length > 0 ? `${hits[0].lottery} ${hits[0].slot} ${hits[0].label} (${hits[0].number})`.trim() : null
     };
   });
 
@@ -650,7 +696,7 @@ window.getColunaDataInfo = async function(dateOverride) {
 };
 
 /**
- * TELA DEDICADA: COLUNA DA DATA (FECHAMENTO DIÁRIO)
+ * Renderiza a tela completa da Coluna da Data
  */
 window.renderColunaDataScreen = async function(dateOverride) {
   const container = document.getElementById('coluna-data-screen-content');
@@ -666,8 +712,40 @@ window.renderColunaDataScreen = async function(dateOverride) {
   const data = await window.getColunaDataInfo(_colunaScreenTargetDate);
   if (!data) return;
 
-  const pendingAnimals = data.animals.filter(a => !a.isHit);
+  const selectedLottery = window._colunaSelectedLottery || window.currentLottery || 'RJ';
+
+  const lotteryLabels = {
+    'RJ': 'Rio de Janeiro',
+    'ALL': 'Todas as Bancas',
+    'SP': 'São Paulo',
+    'LOOK': 'Look Goiás',
+    'NACIONAL': 'Nacional',
+    'BAHIA': 'Bahia',
+    'MINAS': 'Minas Gerais',
+    'FEDERAL': 'Federal'
+  };
+
+  const selectedLotteryName = lotteryLabels[selectedLottery] || selectedLottery;
+
+  // Enriquece os dados com base na banca selecionada
+  const animalsWithLottery = data.animals.map(a => {
+    const lotHits = (selectedLottery === 'ALL') ? a.hits : a.hits.filter(h => h.lottery === selectedLottery);
+    const otherHits = (selectedLottery === 'ALL') ? [] : a.hits.filter(h => h.lottery !== selectedLottery);
+    const otherLots = Array.from(new Set(otherHits.map(h => h.lottery)));
+    const isHitInSelected = lotHits.length > 0;
+    return {
+      ...a,
+      lotHits,
+      otherHits,
+      otherLots,
+      isHitInSelected
+    };
+  });
+
+  const pendingAnimals = animalsWithLottery.filter(a => !a.isHitInSelected);
   const hotPending = pendingAnimals.length > 0 ? pendingAnimals[0] : null;
+  const hitCount = animalsWithLottery.filter(a => a.isHitInSelected).length;
+  const pendingCount = animalsWithLottery.length - hitCount;
 
   const now = new Date();
   const pad2 = n => String(n).padStart(2, '0');
@@ -685,12 +763,15 @@ window.renderColunaDataScreen = async function(dateOverride) {
   const isTomorrow = (data.dateStr === tomStr);
   const isYesterday = (data.dateStr === yestStr);
 
-  const activeBtnClass = "px-2.5 py-1.5 rounded-xl bg-amber-600/40 hover:bg-amber-600/60 text-amber-200 text-xs font-black border border-amber-500/70 shadow-sm transition-all cursor-pointer";
-  const inactiveBtnClass = "px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-800 transition-all cursor-pointer";
+  const activeDateBtnClass = "px-2.5 py-1.5 rounded-xl bg-amber-600/40 hover:bg-amber-600/60 text-amber-200 text-xs font-black border border-amber-500/70 shadow-sm transition-all cursor-pointer";
+  const inactiveDateBtnClass = "px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-800 transition-all cursor-pointer";
+
+  const activeLotteryBtnClass = "px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs shadow-md border border-amber-400 transition-all cursor-pointer flex items-center gap-1.5 shrink-0";
+  const inactiveLotteryBtnClass = "px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700/80 transition-all cursor-pointer flex items-center gap-1.5 shrink-0";
 
   let html = `
-    <!-- 1. CARD SUPERIOR DE CONTROLE E DATA -->
-    <div class="card-glass p-3.5 sm:p-5 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-900/95 to-slate-950 shadow-xl shadow-amber-500/5 space-y-3 relative overflow-hidden">
+    <!-- 1. CARD SUPERIOR DE CONTROLE, DATA E BANCA -->
+    <div class="card-glass p-3.5 sm:p-5 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-900/95 to-slate-950 shadow-xl shadow-amber-500/5 space-y-3.5 relative overflow-hidden">
       <div class="absolute -top-12 -right-12 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
       <!-- Topo: Título + Botão WhatsApp -->
@@ -731,11 +812,11 @@ window.renderColunaDataScreen = async function(dateOverride) {
               class="bg-transparent text-amber-300 font-mono text-xs font-bold focus:outline-none cursor-pointer">
           </div>
           <button type="button" onclick="setColunaDateYesterday()"
-            class="${isYesterday ? activeBtnClass : inactiveBtnClass}">Ontem</button>
+            class="${isYesterday ? activeDateBtnClass : inactiveDateBtnClass}">Ontem</button>
           <button type="button" onclick="setColunaDateToday()"
-            class="${isToday ? activeBtnClass : inactiveBtnClass}">Hoje</button>
+            class="${isToday ? activeDateBtnClass : inactiveDateBtnClass}">Hoje</button>
           <button type="button" onclick="setColunaDateTomorrow()"
-            class="${isTomorrow ? activeBtnClass : inactiveBtnClass}">Amanhã</button>
+            class="${isTomorrow ? activeDateBtnClass : inactiveDateBtnClass}">Amanhã</button>
         </div>
 
         <!-- Chave Mestre e Status de Apuração -->
@@ -749,26 +830,69 @@ window.renderColunaDataScreen = async function(dateOverride) {
           <div class="px-3 py-1.5 rounded-xl ${
             isTomorrow
               ? 'bg-indigo-950/60 border border-indigo-500/50 text-indigo-300'
-              : data.pendingCount === 0
+              : pendingCount === 0
                 ? 'bg-emerald-950/60 border border-emerald-500/50 text-emerald-300'
                 : 'bg-amber-950/60 border border-amber-500/50 text-amber-300'
-          } text-xs font-bold flex items-center gap-2">
+          } text-xs font-bold flex items-center gap-2 shadow-inner">
             <span class="w-2 h-2 rounded-full ${
               isTomorrow
                 ? 'bg-indigo-400 animate-pulse'
-                : data.pendingCount === 0
+                : pendingCount === 0
                   ? 'bg-emerald-400'
                   : 'bg-amber-400 animate-pulse'
             }"></span>
             <span>${
               isTomorrow
                 ? `🔮 Ciclo de Amanhã (Coluna ${data.colNumber})`
-                : data.pendingCount === 0
-                  ? '🏆 5/5 Já Premiaram Hoje!'
-                  : `⚡ ${data.hitCount} de 5 já saíram (${data.pendingCount} pendente${data.pendingCount > 1 ? 's' : ''})`
+                : pendingCount === 0
+                  ? (selectedLottery === 'ALL' ? '🏆 5/5 Já Premiaram no Brasil Hoje!' : `🏆 5/5 Já Premiaram no ${selectedLotteryName}!`)
+                  : (selectedLottery === 'ALL'
+                      ? `⚡ ${hitCount} de 5 já saíram (${pendingCount} pendente${pendingCount > 1 ? 's' : ''})`
+                      : `⚡ No ${selectedLotteryName}: ${hitCount} de 5 saíram (${pendingCount} pendente${pendingCount > 1 ? 's' : ''})`
+                    )
             }</span>
           </div>
         </div>
+      </div>
+
+      <!-- Linha 3: Seletor de Banca / Loteria para Apuração da Coluna -->
+      <div class="pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
+          <span class="text-[10px] font-bold text-slate-400 uppercase shrink-0 mr-1 flex items-center gap-1">
+            <span>🎯</span> <span>Apuração por Banca:</span>
+          </span>
+          <button type="button" onclick="setColunaLotteryFilter('RJ')"
+            class="${selectedLottery === 'RJ' ? activeLotteryBtnClass : inactiveLotteryBtnClass}">
+            <span>🌴 Rio de Janeiro</span>
+          </button>
+          <button type="button" onclick="setColunaLotteryFilter('ALL')"
+            class="${selectedLottery === 'ALL' ? activeLotteryBtnClass : inactiveLotteryBtnClass}">
+            <span>🌐 Todas as Bancas</span>
+          </button>
+          <button type="button" onclick="setColunaLotteryFilter('SP')"
+            class="${selectedLottery === 'SP' ? activeLotteryBtnClass : inactiveLotteryBtnClass}">
+            <span>🏙️ São Paulo</span>
+          </button>
+          <button type="button" onclick="setColunaLotteryFilter('LOOK')"
+            class="${selectedLottery === 'LOOK' ? activeLotteryBtnClass : inactiveLotteryBtnClass}">
+            <span>🎯 Look Goiás</span>
+          </button>
+          <button type="button" onclick="setColunaLotteryFilter('NACIONAL')"
+            class="${selectedLottery === 'NACIONAL' ? activeLotteryBtnClass : inactiveLotteryBtnClass}">
+            <span>🇧🇷 Nacional</span>
+          </button>
+          <button type="button" onclick="setColunaLotteryFilter('BAHIA')"
+            class="${selectedLottery === 'BAHIA' ? activeLotteryBtnClass : inactiveLotteryBtnClass}">
+            <span>☀️ Bahia</span>
+          </button>
+          <button type="button" onclick="setColunaLotteryFilter('MINAS')"
+            class="${selectedLottery === 'MINAS' ? activeLotteryBtnClass : inactiveLotteryBtnClass}">
+            <span>⛰️ Minas</span>
+          </button>
+        </div>
+        <span class="text-[11px] text-slate-400 shrink-0">
+          Vendo resultados de: <strong class="text-amber-300 font-bold">${selectedLotteryName}</strong>
+        </span>
       </div>
     </div>
   `;
@@ -785,16 +909,19 @@ window.renderColunaDataScreen = async function(dateOverride) {
             <div>
               <div class="flex items-center gap-2 flex-wrap">
                 <h2 class="text-base sm:text-lg font-black text-amber-200 uppercase">
-                  ${isTomorrow ? 'Bicho em Destaque para Amanhã:' : 'Bicho da Vez na Coluna:'} ${hotPending.name} (Grupo ${String(hotPending.group).padStart(2, '0')})
+                  ${isTomorrow ? 'Bicho em Destaque para Amanhã:' : (selectedLottery === 'ALL' ? 'Bicho da Vez na Coluna:' : `Bicho da Vez no ${selectedLotteryName}:`)} ${hotPending.name} (Grupo ${String(hotPending.group).padStart(2, '0')})
                 </h2>
                 <span class="px-2.5 py-0.5 rounded-full ${
-                  isTomorrow ? 'bg-indigo-600 text-white' : 'bg-amber-500 text-slate-950 animate-pulse'
+                  isTomorrow ? 'bg-indigo-600 text-white' : 'bg-amber-500 text-slate-950 animate-pulse font-black'
                 } text-[10px] font-black uppercase shadow-sm">
-                  ${isTomorrow ? `🔮 Ciclo de Amanhã (Coluna ${data.colNumber})` : '🔥 Pendente (Alta Pressão)'}
+                  ${isTomorrow ? `🔮 Ciclo de Amanhã (Coluna ${data.colNumber})` : (selectedLottery === 'ALL' ? '🔥 Pendente Geral' : `🔥 Pendente no ${selectedLotteryName}`)}
                 </span>
               </div>
               <p class="text-xs text-slate-300 mt-0.5">
                 Dezenas do Bicho: <span class="font-mono text-amber-300 font-bold">${hotPending.tens.join(', ')}</span>
+                ${hotPending.otherLots && hotPending.otherLots.length > 0 ? `
+                  <span class="ml-2 text-emerald-400 font-semibold">• ⚡ Já premiou hoje em: <strong class="text-emerald-300">${hotPending.otherLots.join(', ')}</strong></span>
+                ` : ''}
               </p>
             </div>
           </div>
@@ -855,6 +982,22 @@ window.renderColunaDataScreen = async function(dateOverride) {
         </div>
       </div>
     `;
+  } else if (!isTomorrow && hitCount === 5) {
+    html += `
+      <div class="card-glass p-4 sm:p-5 rounded-2xl border-2 border-emerald-500/60 bg-gradient-to-br from-emerald-950/40 via-slate-900/95 to-slate-950 shadow-xl space-y-2">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">🏆</span>
+          <div>
+            <h2 class="text-base sm:text-lg font-black text-emerald-300 uppercase">
+              Ciclo Completo: Todos os 5 Bichos Premiaram no ${selectedLotteryName}!
+            </h2>
+            <p class="text-xs text-slate-300">
+              Fechamento com 100% de aproveitamento na Coluna ${data.colNumber} hoje. Veja os detalhes de cada saída nos cards abaixo.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   // 3. GRADE COMPLETA DOS 5 BICHOS DA COLUNA
@@ -867,75 +1010,169 @@ window.renderColunaDataScreen = async function(dateOverride) {
             Todos os 5 Bichos da Coluna ${data.colNumber}
           </h2>
         </div>
-        <span class="text-xs text-slate-400">Jogos completos de cada animal</span>
+        <span class="text-xs text-slate-400">Jogos completos e apuração detalhada</span>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        ${data.animals.map(a => `
-          <div class="card-glass p-3.5 rounded-2xl border ${
-            a.isHit
-              ? 'border-emerald-500/40 bg-slate-950/70'
-              : 'border-amber-500/60 bg-gradient-to-b from-amber-950/30 to-slate-950/90 shadow-md shadow-amber-500/5'
-          } space-y-2.5 flex flex-col justify-between">
-            <div class="space-y-2">
-              <!-- Cabeçalho do Bicho -->
-              <div class="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-800">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="text-2xl shrink-0">${a.emoji}</span>
-                  <div class="truncate">
-                    <div class="text-xs font-black text-white truncate">${a.name}</div>
-                    <div class="text-[10px] text-slate-400 font-mono">Grupo ${String(a.group).padStart(2, '0')}</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+        ${animalsWithLottery.map(a => {
+          const isHit = a.isHitInSelected;
+          const hitsList = a.lotHits;
+          const hasHead = hitsList.some(h => h.isHead);
+
+          let badgeHtml = '';
+          if (selectedLottery === 'ALL') {
+            if (a.hits.length > 0) {
+              const headCount = a.hits.filter(h => h.isHead).length;
+              badgeHtml = `<span class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                ✅ ${a.hits.length} acerto${a.hits.length > 1 ? 's' : ''}${headCount > 0 ? ' 🏆' : ''}
+              </span>`;
+            } else {
+              badgeHtml = `<span class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 animate-pulse font-black">🔥 Pendente</span>`;
+            }
+          } else {
+            if (isHit) {
+              badgeHtml = `<span class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                ✅ Saiu no ${selectedLottery}${hasHead ? ' 🏆' : ''}
+              </span>`;
+            } else {
+              badgeHtml = `<span class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 animate-pulse font-black">🔥 Pendente</span>`;
+            }
+          }
+
+          let hitsDetailHtml = '';
+          if (selectedLottery === 'ALL') {
+            if (a.hits.length > 0) {
+              const topHits = a.hits.slice(0, 3);
+              const extraCount = a.hits.length - topHits.length;
+              hitsDetailHtml = `
+                <div class="space-y-1">
+                  <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Saídas no Brasil:</div>
+                  <div class="flex flex-col gap-1">
+                    ${topHits.map(h => `
+                      <div class="text-[10px] px-2 py-1 rounded flex items-center justify-between ${
+                        h.isHead 
+                          ? 'bg-amber-500/25 text-amber-200 border border-amber-500/50 font-black shadow-sm' 
+                          : 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/20'
+                      }">
+                        <span class="truncate">${h.isHead ? '🏆 ' : ''}${h.lottery} ${h.slot || ''} ${h.label}</span>
+                        <strong class="font-mono ${h.isHead ? 'text-amber-300 font-black' : 'text-slate-200'} ml-1 shrink-0">${h.number}</strong>
+                      </div>
+                    `).join('')}
+                    ${extraCount > 0 ? `
+                      <div class="text-[9px] text-slate-400 text-right px-1">
+                        +${extraCount} outro${extraCount > 1 ? 's' : ''} prêmio${extraCount > 1 ? 's' : ''} hoje
+                      </div>
+                    ` : ''}
                   </div>
                 </div>
-                <span class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md ${
-                  a.isHit ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500 text-slate-950 animate-pulse'
-                }">
-                  ${a.isHit ? '✅ Saiu' : '🔥 PEND'}
-                </span>
+              `;
+            } else {
+              hitsDetailHtml = `
+                <div class="text-[10px] text-amber-400/90 font-medium bg-amber-950/30 px-2 py-1 rounded border border-amber-500/20 text-center">
+                  ⏳ Ainda não premiou hoje
+                </div>
+              `;
+            }
+          } else {
+            if (isHit) {
+              hitsDetailHtml = `
+                <div class="space-y-1">
+                  <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-wide flex items-center gap-1">
+                    <span>🎯 Onde saiu no ${selectedLotteryName}:</span>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    ${hitsList.map(h => `
+                      <div class="text-[10px] px-2 py-1 rounded flex items-center justify-between ${
+                        h.isHead 
+                          ? 'bg-amber-500/25 text-amber-200 border border-amber-500/50 font-black shadow-sm' 
+                          : 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 font-semibold'
+                      }">
+                        <span class="truncate">${h.isHead ? '🏆 ' : ''}${h.slot ? h.slot + ' • ' : ''}${h.label}</span>
+                        <strong class="font-mono ${h.isHead ? 'text-amber-300 font-black' : 'text-slate-200'} ml-1 shrink-0">${h.number}</strong>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            } else {
+              hitsDetailHtml = `
+                <div class="text-[10px] text-amber-300 bg-amber-950/40 p-2 rounded-xl border border-amber-500/30 space-y-1">
+                  <div class="font-bold flex items-center gap-1">
+                    <span>🔥</span> <span>Pendente no ${selectedLotteryName}</span>
+                  </div>
+                  ${a.otherLots.length > 0 ? `
+                    <div class="text-[9px] text-slate-300 leading-tight">
+                      ⚡ Já premiou hoje em: <strong class="text-amber-200 font-bold">${a.otherLots.join(', ')}</strong>
+                    </div>
+                  ` : `
+                    <div class="text-[9px] text-slate-400">
+                      Aguardando apuração dos horários
+                    </div>
+                  `}
+                </div>
+              `;
+            }
+          }
+
+          return `
+            <div class="card-glass p-3.5 rounded-2xl border ${
+              isHit
+                ? 'border-emerald-500/40 bg-slate-950/70'
+                : 'border-amber-500/60 bg-gradient-to-b from-amber-950/30 to-slate-950/90 shadow-md shadow-amber-500/5'
+            } space-y-2.5 flex flex-col justify-between">
+              <div class="space-y-2">
+                <!-- Cabeçalho do Bicho (Sem truncar nome!) -->
+                <div class="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-800">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="text-2xl shrink-0">${a.emoji}</span>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs sm:text-sm font-black text-white leading-tight">${a.name}</div>
+                      <div class="text-[10px] text-slate-400 font-mono">Grupo ${String(a.group).padStart(2, '0')}</div>
+                    </div>
+                  </div>
+                  ${badgeHtml}
+                </div>
+
+                <!-- Detalhes de Onde Saiu / Onde Está Pendente -->
+                ${hitsDetailHtml}
+
+                <!-- Dezenas -->
+                <div class="text-[11px] text-slate-400">
+                  Dezenas: <strong class="font-mono text-slate-200">${a.tens.join(', ')}</strong>
+                </div>
+
+                <!-- Milhares de Ouro (MC) -->
+                <div class="space-y-1 pt-1 border-t border-slate-800/80">
+                  <div class="text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                    <span>👑</span> <span>Milhares de Ouro (Prefixo ${data.masterPrefix}):</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-1">
+                    ${a.goldMilhares.map(m => `
+                      <button type="button" onclick="navigator.clipboard.writeText('${m}'); showToast('Milhar ${m} copiada!', 'success')"
+                        class="py-1 px-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 rounded text-center cursor-pointer transition-all active:scale-95">
+                        <span class="font-mono font-bold text-xs text-amber-200">${m}</span>
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+
+                <!-- Centenas -->
+                <div class="space-y-0.5 pt-1">
+                  <div class="text-[10px] font-semibold text-slate-400">Centenas da Data:</div>
+                  <div class="flex items-center gap-1 flex-wrap font-mono text-[11px] text-indigo-300">
+                    ${a.goldCentenas.map(c => `<span class="bg-indigo-950/40 px-1 rounded">${c}</span>`).join(' ')}
+                  </div>
+                </div>
               </div>
 
-              ${a.hitDetail ? `
-                <div class="text-[10px] text-emerald-400 font-medium truncate bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">
-                  ${a.hitDetail}
-                </div>
-              ` : ''}
-
-              <!-- Dezenas -->
-              <div class="text-[11px] text-slate-400">
-                Dezenas: <strong class="font-mono text-slate-200">${a.tens.join(', ')}</strong>
-              </div>
-
-              <!-- Milhares de Ouro (MC) -->
-              <div class="space-y-1 pt-1 border-t border-slate-800/80">
-                <div class="text-[10px] font-bold text-amber-400 flex items-center gap-1">
-                  <span>👑</span> <span>Milhares de Ouro (Prefixo ${data.masterPrefix}):</span>
-                </div>
-                <div class="grid grid-cols-2 gap-1">
-                  ${a.goldMilhares.map(m => `
-                    <button type="button" onclick="navigator.clipboard.writeText('${m}'); showToast('Milhar ${m} copiada!', 'success')"
-                      class="py-1 px-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 rounded text-center cursor-pointer transition-all active:scale-95">
-                      <span class="font-mono font-bold text-xs text-amber-200">${m}</span>
-                    </button>
-                  `).join('')}
-                </div>
-              </div>
-
-              <!-- Centenas -->
-              <div class="space-y-0.5 pt-1">
-                <div class="text-[10px] font-semibold text-slate-400">Centenas da Data:</div>
-                <div class="flex items-center gap-1 flex-wrap font-mono text-[11px] text-indigo-300">
-                  ${a.goldCentenas.map(c => `<span class="bg-indigo-950/40 px-1 rounded">${c}</span>`).join(' ')}
-                </div>
-              </div>
+              <!-- Botão Copiar Jogo -->
+              <button type="button" onclick="copySingleAnimalColunaGames(${a.group})"
+                class="w-full mt-2 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-200 hover:text-white cursor-pointer transition-colors active:scale-95 flex items-center justify-center gap-1.5">
+                <span>📋</span> <span>Copiar Jogo</span>
+              </button>
             </div>
-
-            <!-- Botão Copiar Jogo -->
-            <button type="button" onclick="copySingleAnimalColunaGames(${a.group})"
-              class="w-full mt-2 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-200 hover:text-white cursor-pointer transition-colors active:scale-95 flex items-center justify-center gap-1.5">
-              <span>📋</span> <span>Copiar Jogo</span>
-            </button>
-          </div>
-        `).join('')}
+          `;
+        }).join('')}
       </div>
     </div>
   `;
@@ -1045,119 +1282,82 @@ function updateColunaScreenCustomDezenaOutput(val) {
         <span class="text-slate-300 font-bold">Milhar de Ouro Master:</span>
         <span class="px-2.5 py-0.5 bg-amber-500/25 border border-amber-500/60 rounded-lg text-amber-200 font-mono font-black text-sm">${goldM}</span>
       </div>
-      <div class="text-xs text-slate-400 flex items-center gap-2 flex-wrap">
-        <span>Apoio: <strong class="font-mono text-slate-200">${invM} • ${sup1} • ${sup2}</strong></span>
+      <div class="flex items-center gap-3 flex-wrap text-slate-300 text-xs">
+        <div>Inversão: <strong class="font-mono text-amber-200">${invM}</strong></div>
         <span class="text-slate-600">|</span>
-        <span>Centenas: <strong class="font-mono text-indigo-300">${c1} • ${c2}</strong></span>
+        <div>Apoio: <strong class="font-mono text-slate-200">${sup1}, ${sup2}</strong></div>
+        <span class="text-slate-600">|</span>
+        <div>Centenas: <strong class="font-mono text-indigo-300">${c1}, ${c2}</strong></div>
       </div>
     </div>
-    <button type="button" onclick="copyColunaScreenCustomDezenaGames('${padded}', '${goldM}', '${invM}', '${sup1}', '${sup2}', '${c1}', '${c2}', '${animal ? animal.name : ''}')"
-      class="h-8 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95 transition-all shadow-sm">
-      <span>📋</span> <span>Copiar Milhares da Dezena</span>
+    <button type="button" onclick="copyColunaScreenCustomDezenaGames('${padded}', '${goldM}', '${invM}', '${sup1}', '${sup2}', '${c1}', '${c2}')"
+      class="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-200 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shrink-0">
+      <span>📋</span> <span>Copiar Milhares</span>
     </button>
   `;
 }
 
-window.copyColunaScreenCustomDezenaGames = async function(padded, goldM, invM, sup1, sup2, c1, c2, animalName) {
-  let text = `🎯 BICHO MASTER PRO - DESDOBRAMENTO DA DATA
-🔢 Dezena: ${padded} ${animalName ? '(' + animalName + ')' : ''}
+window.copyColunaScreenCustomDezenaGames = async function(padded, goldM, invM, sup1, sup2, c1, c2) {
+  const d = _currentColunaDataCache || { colNumber: 2, masterPrefix: '27' };
+  const animal = getAnimalByDezena(padded);
+  const animalName = animal ? `${animal.emoji} ${animal.name.toUpperCase()}` : `DEZENA ${padded}`;
+
+  const text = `🎯 BICHO MASTER PRO - DESDOBRAMENTO ${animalName}
+Dezena: ${padded} • Prefixo da Data: ${d.masterPrefix}
 👑 Milhar de Ouro Master: ${goldM}
-🛡️ Milhares de Apoio: ${invM} • ${sup1} • ${sup2}
-⚡ Centenas da Data: ${c1} • ${c2}
+🛡️ Milhar Invertida: ${invM}
+🛡️ Milhares de Apoio: ${sup1} • ${sup2}
+⚡ Centenas: ${c1} • ${c2}
 👉 https://bichomasterpro.tech`;
 
   try {
     await navigator.clipboard.writeText(text);
     if (typeof showToast === 'function') {
-      showToast(`Milhares da dezena ${padded} copiadas!`, 'success');
+      showToast(`Jogos da dezena ${padded} copiados!`, 'success');
     }
   } catch (e) {
     console.warn('Erro ao copiar:', e);
   }
 };
 
-/**
- * Atualiza o card de resumo na Home
- */
 window.updateColunaDataHomeCard = async function() {
-  const card = document.getElementById('home-coluna-data-card');
-  if (!card) return;
-
-  const data = await window.getColunaDataInfo();
-  if (!data) return;
-
-  const titleEl = document.getElementById('coluna-card-title');
-  const statusTextEl = document.getElementById('coluna-card-status-text');
-  const animalsRowEl = document.getElementById('coluna-card-animals-row');
-  const hotTipEl = document.getElementById('coluna-card-hot-tip');
-
-  if (titleEl) {
-    titleEl.textContent = `Coluna ${data.colNumber} da Data (Dia ${String(data.day).padStart(2, '0')})`;
-  }
-
-  if (statusTextEl) {
-    if (data.pendingCount === 0) {
-      statusTextEl.textContent = '🏆 100% Fechada Hoje!';
-    } else if (data.pendingCount === 1) {
-      statusTextEl.textContent = `🔥 1 Bicho Restante!`;
-    } else {
-      statusTextEl.textContent = `${data.hitCount}/5 Premiaram`;
-    }
-  }
-
-  if (animalsRowEl) {
-    animalsRowEl.innerHTML = data.animals.map(a => {
-      const isHit = a.isHit;
-      return `
-        <div onclick="event.stopPropagation(); switchScreen('coluna-data')"
-          class="p-1.5 sm:p-2 rounded-xl cursor-pointer hover:border-amber-400 transition-all ${
-            isHit
-              ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-200'
-              : 'bg-amber-950/40 border border-amber-500/60 text-amber-200 shadow-sm shadow-amber-500/10'
-          } flex items-center justify-between gap-1 text-[11px] font-bold">
-          <div class="flex items-center gap-1.5 truncate">
-            <span class="text-sm shrink-0">${a.emoji}</span>
-            <span class="truncate">${a.name} (${String(a.group).padStart(2, '0')})</span>
-          </div>
-          <span class="shrink-0 text-[10px] font-black px-1.5 py-0.2 rounded ${isHit ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500 text-slate-950'}">
-            ${isHit ? '✅' : '🔥 PEND'}
-          </span>
-        </div>
-      `;
-    }).join('');
-  }
-
-  if (hotTipEl) {
-    const pendingAnimals = data.animals.filter(a => !a.isHit);
-    if (pendingAnimals.length === 1) {
-      hotTipEl.innerHTML = `🔥 Bicho Quente da Vez: <strong class="text-amber-300 font-black">${pendingAnimals[0].emoji} ${pendingAnimals[0].name} (Grupo ${String(pendingAnimals[0].group).padStart(2, '0')})</strong>`;
-    } else if (pendingAnimals.length > 1) {
-      const names = pendingAnimals.map(a => `${a.emoji} ${a.name}`).join(', ');
-      hotTipEl.innerHTML = `⏳ Pendentes: <strong class="text-amber-300">${names}</strong>`;
-    } else {
-      hotTipEl.innerHTML = `🏆 <strong class="text-emerald-300">Todos os 5 bichos da coluna premiaram hoje!</strong>`;
-    }
-  }
+  // Mantido para compatibilidade retroativa
 };
 
 window.copyColunaDataGames = async function() {
   const d = _currentColunaDataCache || await window.getColunaDataInfo();
   if (!d) return;
 
+  const selectedLottery = window._colunaSelectedLottery || window.currentLottery || 'RJ';
+  const lotteryLabels = {
+    'RJ': 'Rio de Janeiro',
+    'ALL': 'Todas as Bancas',
+    'SP': 'São Paulo',
+    'LOOK': 'Look Goiás',
+    'NACIONAL': 'Nacional',
+    'BAHIA': 'Bahia',
+    'MINAS': 'Minas Gerais',
+    'FEDERAL': 'Federal'
+  };
+  const lotName = lotteryLabels[selectedLottery] || selectedLottery;
+
   let text = `🎯 BICHO MASTER PRO - COLUNA ${d.colNumber} DA DATA (DIA ${String(d.day).padStart(2, '0')})
 👑 Prefixo Mestre: ${d.masterPrefix} (Inversão: ${d.invPrefix})
-⚡ Status Hoje: ${d.hitCount}/5 já saíram (${d.pendingCount} pendente(s))
+🎯 Apuração: ${lotName}
 
 `;
 
   d.animals.forEach(a => {
-    text += `${a.emoji} ${a.name.toUpperCase()} (GRUPO ${String(a.group).padStart(2, '0')}) ${a.isHit ? '[✅ JÁ SAIU]' : '[🔥 PENDENTE]'}
+    const hits = (selectedLottery === 'ALL') ? a.hits : a.hits.filter(h => h.lottery === selectedLottery);
+    const isHit = hits.length > 0;
+    const hitInfo = isHit ? `[✅ SAIU - ${hits.map(h => (h.slot ? h.slot + ' ' : '') + h.label + ' ' + h.number).join(', ')}]` : '[🔥 PENDENTE]';
+    text += `${a.emoji} ${a.name.toUpperCase()} (GRUPO ${String(a.group).padStart(2, '0')}) ${hitInfo}
 `;
     text += `Dezenas: ${a.tens.join(', ')}
 `;
     text += `Centenas da Data: ${a.centenas.join(' • ')}
 `;
-    text += `Milhares (MC): ${a.milhares.join(' • ')}
+    text += `Milhares (MC): ${a.goldMilhares.join(' • ')}
 
 `;
   });
@@ -1197,7 +1397,6 @@ Milhares de Apoio: ${a.supportMilhares.join(' • ')}
   }
 };
 
-// Aliases para retrocompatibilidade
 window.goToColunaDataScreen = function() {
   switchScreen('coluna-data');
 };
