@@ -728,7 +728,7 @@
       </div>
 
       <!-- CARD DESTAQUE: COLUNA DA DATA & FECHAMENTO DO DIA (DINÂMICO) -->
-      <div id="home-coluna-data-card" onclick="openColunaDataModal()" class="card-glass p-3 sm:p-3.5 relative overflow-hidden bg-gradient-to-br from-amber-950/30 via-slate-900/95 to-slate-950 border border-amber-500/40 rounded-xl shadow-lg shadow-amber-500/5 cursor-pointer hover:border-amber-400 transition-all group active:scale-[0.99]">
+      <div id="home-coluna-data-card" onclick="goToPalpitesColuna()" class="card-glass p-3 sm:p-3.5 relative overflow-hidden bg-gradient-to-br from-amber-950/30 via-slate-900/95 to-slate-950 border border-amber-500/40 rounded-xl shadow-lg shadow-amber-500/5 cursor-pointer hover:border-amber-400 transition-all group active:scale-[0.99]">
         <div class="absolute -top-10 -right-10 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
         <div class="flex items-center justify-between gap-2 mb-2">
@@ -742,7 +742,7 @@
             </span>
           </div>
           <span class="text-[10px] sm:text-xs font-bold text-amber-400 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-all flex items-center gap-1 shrink-0">
-            <span>Ver Jogos Prontos</span>
+            <span>Abrir nos Palpites</span>
             <span>➔</span>
           </span>
         </div>
@@ -755,7 +755,7 @@
         <!-- Rodapé do Card com Dica Rápida -->
         <div class="mt-2.5 pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
           <span id="coluna-card-hot-tip">🔥 Bicho da vez: <strong>Carregando...</strong></span>
-          <span class="text-amber-400 font-bold underline">Toque para ver centenas e milhares (MC)</span>
+          <span class="text-amber-400 font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">Ver nos Palpites ➔</span>
         </div>
       </div>
 
@@ -1064,6 +1064,13 @@
       <div id="topic-content-animals" class="space-y-4">
         <!-- RADAR DE TRANSIÇÃO HISTÓRICA (CADEIAS DE MARKOV - ALTA PRECISÃO) -->
         <div id="transition-matrix-card" class="hidden"></div>
+
+        <!-- ============================================================== -->
+        <!-- DESTAQUE VIP: COLUNA DA DATA & FECHAMENTO DIÁRIO (DIRETO NA TELA) -->
+        <!-- ============================================================== -->
+        <div id="palpites-coluna-data-spotlight" class="space-y-3">
+          <!-- Renderizado dinamicamente via renderColunaDataPalpitesSpotlight() -->
+        </div>
 
         <!-- JOGOS PRONTOS DE GRUPOS: TERNO DE GRUPO & PASSES (DUQUES) -->
         <div id="ready-bets-container">
@@ -2544,7 +2551,7 @@
   </div>
 
   <script src="/js/api.js?v=1790660000"></script>
-  <script src="/js/app.js?v=1790869500"></script>
+  <script src="/js/app.js?v=1790872000"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
