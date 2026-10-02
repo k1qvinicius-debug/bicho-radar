@@ -226,7 +226,7 @@ window.switchScreen = switchScreen;
 
 function switchScreen(screenName, updateHash = true) {
   window.switchScreen = switchScreen;
-  const screens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+  const screens = ['home', 'palpites', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   if (!screens.includes(screenName)) screenName = 'home';
 
   const currentTenant = api.getCurrentTenant();
@@ -250,6 +250,12 @@ function switchScreen(screenName, updateHash = true) {
   document.documentElement.removeAttribute('data-initial-screen');
 
   // Oculta todas as telas e exibe a selecionada
+  if (screenName === 'coluna-data') {
+    if (typeof window.renderColunaDataScreen === 'function') {
+      window.renderColunaDataScreen();
+    }
+  }
+
   screens.forEach(s => {
     const el = document.getElementById(`view-${s}`);
     if (el) {
@@ -264,7 +270,7 @@ function switchScreen(screenName, updateHash = true) {
   // Oculta a barra de loterias na tela da Cruz do Dia e no Início
   const globalLotteryBar = document.getElementById('global-lottery-bar-container');
   if (globalLotteryBar) {
-    if (screenName === 'cruz' || screenName === 'home' || screenName === 'milhares-atrasadas' || screenName === 'centena-master' || screenName === 'matriz') {
+    if (screenName === 'cruz' || screenName === 'home' || screenName === 'coluna-data' || screenName === 'milhares-atrasadas' || screenName === 'centena-master' || screenName === 'matriz') {
       globalLotteryBar.classList.add('hidden');
     } else {
       globalLotteryBar.classList.remove('hidden');
@@ -275,7 +281,6 @@ function switchScreen(screenName, updateHash = true) {
   const slotsSection = document.getElementById('lottery-slots-section');
   if (slotsSection) {
     if (screenName === 'palpites') {
-      if (typeof window.renderColunaDataPalpitesSpotlight === 'function') window.renderColunaDataPalpitesSpotlight();
       slotsSection.classList.remove('hidden');
       // Sincronização garantida: se a tela aberta for Palpites e os horários no DOM pertencerem a outra banca, sincroniza imediatamente
       const firstPill = document.querySelector('#lottery-slots-pills .slot-pill-btn');
@@ -309,6 +314,8 @@ function switchScreen(screenName, updateHash = true) {
   if (navBtnPalpites) navBtnPalpites.className = (screenName === 'palpites') ? activeDesktopClass : inactiveDesktopClass;
   if (navBtnCruz) navBtnCruz.className = (screenName === 'cruz') ? activeDesktopClass : inactiveDesktopClass;
   if (navBtnResultados) navBtnResultados.className = (screenName === 'resultados') ? activeDesktopClass : inactiveDesktopClass;
+  const navBtnColunaData = document.getElementById('nav-btn-coluna-data');
+  if (navBtnColunaData) navBtnColunaData.className = (screenName === 'coluna-data') ? activeDesktopClass : inactiveDesktopClass;
     const navBtnMilhares = document.getElementById('nav-btn-milhares-atrasadas');
     if (navBtnMilhares) navBtnMilhares.remove();
 
@@ -357,6 +364,9 @@ function switchScreen(screenName, updateHash = true) {
     loadAtrasadosModalList();
   } else if (screenName === 'resultados') {
     loadDrawResults();
+  } else if (screenName === 'coluna-data') {
+    const colBtn = document.getElementById('sidebar-btn-coluna-data');
+    if (colBtn) colBtn.classList.add('sidebar-item-active');
   } else if (screenName === 'home') {
     updateHomeScreenData();
         checkAndRenderMilharBingoBanner(false);
@@ -437,7 +447,7 @@ window.toggleRawListsSection = function() {
 
 /* ==========================================================================
    COLUNA DA DATA & FECHAMENTO DIÁRIO (MÉTODO CLÁSSICO DOS 5 BICHOS)
-   Exibição direta e aberta na Tela de Palpites (Spotlight VIP) e Card na Home
+   Tela exclusiva (view-coluna-data) e item direto na Navegação Principal
    ========================================================================== */
 
 const COLUNA_ANIMAL_MAP = {
@@ -469,14 +479,18 @@ const COLUNA_ANIMAL_MAP = {
 };
 
 let _currentColunaDataCache = null;
-let _colunaModalFilter = 'pending';
-let _spotlightActiveGroup = null;
-let _spotlightGridExpanded = false;
-let _spotlightCustomDezena = '52';
+let _colunaScreenTargetDate = null;
+let _colunaScreenCustomDezena = '52';
+
+function getAnimalByDezena(dezVal) {
+  const n = parseInt(dezVal, 10);
+  if (isNaN(n) || n < 0 || n > 99) return null;
+  const g = (n === 0) ? 25 : Math.floor((n - 1) / 4) + 1;
+  return COLUNA_ANIMAL_MAP[g] ? { group: g, ...COLUNA_ANIMAL_MAP[g] } : null;
+}
 
 /**
- * Calcula a coluna do dia, prefixos de milhares e centenas,
- * e consulta os resultados apurados para identificar quais já saíram e quais estão pendentes.
+ * Calcula os dados da coluna de uma data específica
  */
 window.getColunaDataInfo = async function(dateOverride) {
   let targetDate = new Date();
@@ -489,13 +503,10 @@ window.getColunaDataInfo = async function(dateOverride) {
     } else if (dateOverride instanceof Date) {
       targetDate = dateOverride;
     }
-  } else {
-    const inputVal = document.getElementById('target-date')?.value;
-    if (inputVal) {
-      const parts = inputVal.split('-');
-      if (parts.length === 3) {
-        targetDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-      }
+  } else if (_colunaScreenTargetDate) {
+    const parts = _colunaScreenTargetDate.split('-');
+    if (parts.length === 3) {
+      targetDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
     }
   }
 
@@ -532,12 +543,13 @@ window.getColunaDataInfo = async function(dateOverride) {
   const supPrefix1 = `${d1}${d3}`;
   const supPrefix2 = `${d3}${d1}`;
 
-  // Busca apurações do dia selecionado
+  const dateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+
+  // Busca apurações do dia
   const drawnGroups = new Set();
   const drawnDetails = {};
 
   try {
-    const dateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
     const res = await fetch(`${API_BASE}/results?limit=60`);
     if (res.ok) {
       const data = await res.json();
@@ -573,7 +585,6 @@ window.getColunaDataInfo = async function(dateOverride) {
     const tens = a.tens;
     const isHit = drawnGroups.has(gNum);
 
-    // Centenas de Ouro da Data (dígitos d2 e d1)
     const goldCentenas = [
       `${d2}${tens[0]}`,
       `${d2}${tens[1]}`,
@@ -587,7 +598,6 @@ window.getColunaDataInfo = async function(dateOverride) {
       `${d4}${tens[3]}`
     ];
 
-    // Milhares de Ouro com Prefixo Mestre da Data (ex: 2745, 2746, 2747, 2748)
     const goldMilhares = [
       `${masterPrefix}${tens[0]}`,
       `${masterPrefix}${tens[1]}`,
@@ -595,7 +605,6 @@ window.getColunaDataInfo = async function(dateOverride) {
       `${masterPrefix}${tens[3]}`
     ];
 
-    // Milhares de Apoio / Inversão
     const supportMilhares = [
       `${supPrefix1}${tens[0]}`,
       `${invPrefix}${tens[1]}`,
@@ -623,6 +632,7 @@ window.getColunaDataInfo = async function(dateOverride) {
   const pendingCount = animals.length - hitCount;
 
   _currentColunaDataCache = {
+    dateStr,
     day,
     unit,
     colNumber,
@@ -640,153 +650,135 @@ window.getColunaDataInfo = async function(dateOverride) {
 };
 
 /**
- * Função utilitária para descobrir o bicho a partir de qualquer dezena digitada
+ * TELA DEDICADA: COLUNA DA DATA (FECHAMENTO DIÁRIO)
  */
-function getAnimalByDezena(dezVal) {
-  const n = parseInt(dezVal, 10);
-  if (isNaN(n) || n < 0 || n > 99) return null;
-  const g = (n === 0) ? 25 : Math.floor((n - 1) / 4) + 1;
-  return COLUNA_ANIMAL_MAP[g] ? { group: g, ...COLUNA_ANIMAL_MAP[g] } : null;
-}
-
-/**
- * RENDERIZAÇÃO DO SPOTLIGHT DA COLUNA DA DATA DIRETO NA TELA DE PALPITES
- */
-window.renderColunaDataPalpitesSpotlight = async function(preferredGroupNum) {
-  const container = document.getElementById('palpites-coluna-data-spotlight');
+window.renderColunaDataScreen = async function(dateOverride) {
+  const container = document.getElementById('coluna-data-screen-content');
   if (!container) return;
 
-  const targetDateInput = document.getElementById('target-date')?.value;
-  const data = await window.getColunaDataInfo(targetDateInput);
-  if (!data || !data.animals || data.animals.length === 0) return;
-
-  // Define bicho ativo
-  if (preferredGroupNum) {
-    _spotlightActiveGroup = preferredGroupNum;
-  } else if (!_spotlightActiveGroup || !data.animals.some(a => a.group === _spotlightActiveGroup)) {
-    const firstPending = data.animals.find(a => !a.isHit);
-    _spotlightActiveGroup = firstPending ? firstPending.group : data.animals[0].group;
+  if (dateOverride) {
+    _colunaScreenTargetDate = dateOverride;
+  } else if (!_colunaScreenTargetDate) {
+    const today = new Date();
+    _colunaScreenTargetDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   }
 
-  const activeAnimal = data.animals.find(a => a.group === _spotlightActiveGroup) || data.animals[0];
+  const data = await window.getColunaDataInfo(_colunaScreenTargetDate);
+  if (!data) return;
 
-  const html = `
-    <div class="card-glass rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-900/95 to-slate-950 p-3 sm:p-4 shadow-xl shadow-amber-500/5 relative overflow-hidden transition-all">
-      <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+  const pendingAnimals = data.animals.filter(a => !a.isHit);
+  const hotPending = pendingAnimals.length > 0 ? pendingAnimals[0] : null;
 
-      <!-- Topo: Título + Chave Mestre + Botão Copiar Tudo -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-800/80">
-        <div class="space-y-1">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-300 text-[10px] font-black uppercase tracking-wider shadow-sm">
-              <span>🎯</span> <span>Coluna ${data.colNumber} da Data</span>
-            </span>
-            <span class="px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-300 text-[10px] font-bold border border-slate-700/80">
-              Dia ${String(data.day).padStart(2, '0')} • Chave Mestre: <strong class="text-amber-400 font-mono">${data.masterPrefix}</strong> (Inv: ${data.invPrefix})
-            </span>
-            <span class="text-[10px] font-bold ${data.pendingCount === 0 ? 'text-emerald-400' : 'text-amber-400'} flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full ${data.pendingCount === 0 ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}"></span>
-              ${data.pendingCount === 0 ? '5/5 já premiaram hoje!' : `${data.hitCount}/5 já saíram hoje (${data.pendingCount} pendente${data.pendingCount > 1 ? 's' : ''})`}
-            </span>
+  let html = `
+    <!-- 1. CARD SUPERIOR DE CONTROLE E DATA -->
+    <div class="card-glass p-3.5 sm:p-5 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-900/95 to-slate-950 shadow-xl shadow-amber-500/5 space-y-3 relative overflow-hidden">
+      <div class="absolute -top-12 -right-12 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+      <!-- Topo: Título + Botão WhatsApp -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl text-amber-400 shrink-0 shadow-inner">
+            ⚡
           </div>
-          <div class="text-xs sm:text-sm font-black text-white flex items-center gap-2">
-            <span>Fechamento Diário dos 5 Bichos</span>
-            <span class="text-[11px] font-normal text-slate-400 hidden sm:inline">• Milhares de Ouro (MC), Centenas e Dezenas</span>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="text-base sm:text-xl font-black uppercase tracking-wider text-slate-100">
+                Coluna da Data • Fechamento Diário
+              </h1>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-300 text-xs font-black uppercase shadow-sm">
+                Coluna ${data.colNumber}
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Ciclo dos 5 bichos da data • Milhares de Ouro (MC), Centenas e Dezenas
+            </p>
           </div>
         </div>
 
-        <div class="flex items-center gap-1.5 shrink-0">
-          <button type="button" onclick="copyColunaDataGames()" title="Copiar fechamento completo para WhatsApp"
-            class="h-7 sm:h-8 px-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-            <span>Copiar Fechamento</span>
-          </button>
-          <button type="button" onclick="toggleSpotlightFullGrid()" id="btn-toggle-spotlight-grid" title="Ver grade de todos os 5 bichos"
-            class="h-7 sm:h-8 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 text-slate-300 text-[11px] font-bold flex items-center gap-1 active:scale-95 transition-all cursor-pointer">
-            <span id="label-toggle-grid">${_spotlightGridExpanded ? '▲ Recolher' : '👁️ Ver os 5'}</span>
-          </button>
-        </div>
+        <button type="button" onclick="copyColunaDataGames()"
+          class="h-9 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer self-start sm:self-auto">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+          <span>Copiar Fechamento Completo</span>
+        </button>
       </div>
 
-      <!-- Pílulas dos 5 Bichos da Coluna -->
-      <div class="pt-2.5 space-y-1.5">
-        <div class="flex items-center justify-between text-[11px]">
-          <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Bichos da Coluna de Hoje:</span>
-          <span class="text-[10px] text-amber-400 font-medium">Toque para ver o jogo</span>
+      <!-- Linha 2: Seletor de Data + Chave Mestre + Status ao Vivo -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 flex-wrap">
+        <!-- Controles de Data -->
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 rounded-xl px-2.5 py-1.5 shadow-sm">
+            <label for="coluna-screen-target-date" class="text-[10px] font-bold text-slate-400 uppercase">Data:</label>
+            <input type="date" id="coluna-screen-target-date" value="${data.dateStr}" onchange="renderColunaDataScreen(this.value)"
+              class="bg-transparent text-amber-300 font-mono text-xs font-bold focus:outline-none cursor-pointer">
+          </div>
+          <button type="button" onclick="setColunaDateYesterday()"
+            class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-800 transition-colors cursor-pointer">Ontem</button>
+          <button type="button" onclick="setColunaDateToday()"
+            class="px-2.5 py-1.5 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 text-xs font-semibold border border-amber-500/50 transition-colors cursor-pointer">Hoje</button>
+          <button type="button" onclick="setColunaDateTomorrow()"
+            class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-800 transition-colors cursor-pointer">Amanhã</button>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-          ${data.animals.map(a => {
-            const isSelected = a.group === activeAnimal.group;
-            const isHit = a.isHit;
-            return `
-              <button type="button" onclick="selectSpotlightAnimal(${a.group})"
-                class="p-1.5 sm:p-2 rounded-xl text-left transition-all cursor-pointer relative ${
-                  isSelected
-                    ? 'bg-amber-500/25 border-2 border-amber-400 shadow-md shadow-amber-500/20 text-white font-black'
-                    : isHit
-                      ? 'bg-emerald-950/30 border border-emerald-500/30 text-emerald-200 hover:border-emerald-400'
-                      : 'bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white'
-                }">
-                <div class="flex items-center justify-between gap-1">
-                  <div class="flex items-center gap-1.5 truncate">
-                    <span class="text-base">${a.emoji}</span>
-                    <div class="truncate">
-                      <div class="text-[11px] leading-tight truncate font-bold">${a.name}</div>
-                      <div class="text-[9px] text-slate-400 font-mono">Gr. ${String(a.group).padStart(2, '0')}</div>
-                    </div>
-                  </div>
-                  <span class="shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded ${
-                    isHit ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500 text-slate-950 animate-pulse'
-                  }">
-                    ${isHit ? '✅' : '🔥 PEND'}
-                  </span>
-                </div>
-              </button>
-            `;
-          }).join('')}
+
+        <!-- Chave Mestre e Status de Apuração -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 shadow-inner">
+            <span>Prefixo Mestre:</span>
+            <strong class="text-amber-200 text-sm font-black font-mono">${data.masterPrefix}</strong>
+            <span class="text-slate-500 font-normal">| Inv: ${data.invPrefix}</span>
+          </div>
+
+          <div class="px-3 py-1.5 rounded-xl ${data.pendingCount === 0 ? 'bg-emerald-950/60 border border-emerald-500/50 text-emerald-300' : 'bg-amber-950/60 border border-amber-500/50 text-amber-300'} text-xs font-bold flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full ${data.pendingCount === 0 ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}"></span>
+            <span>${data.pendingCount === 0 ? '🏆 5/5 Já Premiaram Hoje!' : `⚡ ${data.hitCount} de 5 já saíram (${data.pendingCount} pendente${data.pendingCount > 1 ? 's' : ''})`}</span>
+          </div>
         </div>
       </div>
+    </div>
+  `;
 
-      <!-- Painel do Bicho em Foco -->
-      <div class="mt-2.5 p-3 rounded-xl bg-slate-950/85 border border-amber-500/30 space-y-2.5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
-          <div class="flex items-center gap-2">
-            <span class="text-2xl">${activeAnimal.emoji}</span>
+  // 2. CARD DESTAQUE: O BICHO DA VEZ (PENDENTE COM MAIOR PRESSÃO)
+  if (hotPending) {
+    html += `
+      <div class="card-glass p-4 sm:p-5 rounded-2xl border-2 border-amber-400/80 bg-gradient-to-br from-amber-950/40 via-slate-900/95 to-slate-950 shadow-2xl shadow-amber-500/10 space-y-4 relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-40 h-40 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-500/30">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl sm:text-4xl">${hotPending.emoji}</span>
             <div>
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm sm:text-base font-black text-amber-300">${activeAnimal.name} (Grupo ${String(activeAnimal.group).padStart(2, '0')})</span>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  activeAnimal.isHit ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/50'
-                }">
-                  ${activeAnimal.isHit ? `✅ Já Premiou Hoje ${activeAnimal.hitDetail ? '• ' + activeAnimal.hitDetail : ''}` : '🔥 PENDENTE (Maior Pressão para Sair)'}
+                <h2 class="text-base sm:text-lg font-black text-amber-200 uppercase">
+                  Bicho da Vez na Coluna: ${hotPending.name} (Grupo ${String(hotPending.group).padStart(2, '0')})
+                </h2>
+                <span class="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase animate-pulse">
+                  🔥 Pendente (Alta Pressão)
                 </span>
               </div>
-              <div class="text-[11px] text-slate-400 mt-0.5">
-                Dezenas do Bicho: <span class="font-mono text-slate-200 font-bold">${activeAnimal.tens.join(', ')}</span>
-              </div>
+              <p class="text-xs text-slate-300 mt-0.5">
+                Dezenas do Bicho: <span class="font-mono text-amber-300 font-bold">${hotPending.tens.join(', ')}</span>
+              </p>
             </div>
           </div>
 
-          <button type="button" onclick="copySingleAnimalColunaGames(${activeAnimal.group})"
-            class="h-7 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto cursor-pointer active:scale-95 transition-all">
-            <span>📋</span>
-            <span>Copiar Jogo de ${activeAnimal.name}</span>
+          <button type="button" onclick="copySingleAnimalColunaGames(${hotPending.group})"
+            class="h-8 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/60 text-amber-200 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer self-start sm:self-auto">
+            <span>📋</span> <span>Copiar Jogo de ${hotPending.name}</span>
           </button>
         </div>
 
-        <!-- Milhares de Ouro (MC 1º ao 5º) -->
+        <!-- Milhares de Ouro (MC) em destaque gigante -->
         <div>
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-[11px] font-bold text-amber-400 flex items-center gap-1">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
               <span>👑</span> <span>Milhares de Ouro (Prefixo Mestre ${data.masterPrefix} + Dezenas) - Jogar MC 1º ao 5º:</span>
             </span>
-            <span class="text-[10px] text-slate-400 hidden xs:inline">Toque para copiar</span>
+            <span class="text-[11px] text-slate-400">Toque em qualquer milhar para copiar</span>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-            ${activeAnimal.goldMilhares.map(m => `
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            ${hotPending.goldMilhares.map(m => `
               <button type="button" onclick="navigator.clipboard.writeText('${m}'); showToast('Milhar ${m} copiada!', 'success')"
-                class="py-1.5 px-2 bg-gradient-to-r from-amber-500/20 to-amber-600/10 hover:from-amber-500/30 hover:to-amber-600/20 border border-amber-500/60 rounded-lg text-center cursor-pointer transition-all active:scale-95 group">
-                <span class="text-sm sm:text-base font-black font-mono text-amber-200 tracking-wider group-hover:text-amber-100">${m}</span>
+                class="py-2.5 px-3 bg-gradient-to-r from-amber-500/25 to-amber-600/15 hover:from-amber-500/35 hover:to-amber-600/25 border border-amber-500/70 rounded-xl text-center cursor-pointer transition-all active:scale-95 shadow-sm group">
+                <span class="text-base sm:text-lg font-black font-mono text-amber-200 tracking-wider group-hover:text-amber-100">${m}</span>
               </button>
             `).join('')}
           </div>
@@ -794,14 +786,14 @@ window.renderColunaDataPalpitesSpotlight = async function(preferredGroupNum) {
 
         <!-- Milhares de Apoio / Inversão -->
         <div>
-          <div class="text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+          <div class="text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
             <span>🛡️</span> <span>Milhares de Apoio / Inversão:</span>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-            ${activeAnimal.supportMilhares.map(m => `
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            ${hotPending.supportMilhares.map(m => `
               <button type="button" onclick="navigator.clipboard.writeText('${m}'); showToast('Milhar ${m} copiada!', 'success')"
-                class="py-1 px-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 rounded-lg text-center cursor-pointer transition-all active:scale-95">
-                <span class="text-xs sm:text-sm font-bold font-mono text-slate-200 tracking-wider">${m}</span>
+                class="py-2 px-3 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-center cursor-pointer transition-all active:scale-95">
+                <span class="text-sm font-bold font-mono text-slate-200 tracking-wider">${m}</span>
               </button>
             `).join('')}
           </div>
@@ -809,112 +801,188 @@ window.renderColunaDataPalpitesSpotlight = async function(preferredGroupNum) {
 
         <!-- Centenas da Data -->
         <div>
-          <div class="text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+          <div class="text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
             <span>⚡</span> <span>Centenas da Data (Dígitos ${data.d2} e ${data.d1}):</span>
           </div>
-          <div class="flex items-center gap-1.5 flex-wrap">
-            ${activeAnimal.goldCentenas.map(c => `
-              <span class="px-2 py-0.5 bg-indigo-950/50 border border-indigo-500/40 rounded text-xs font-mono font-bold text-indigo-200">${c}</span>
+          <div class="flex items-center gap-2 flex-wrap">
+            ${hotPending.goldCentenas.map(c => `
+              <span class="px-2.5 py-1 bg-indigo-950/60 border border-indigo-500/50 rounded-lg text-xs sm:text-sm font-mono font-bold text-indigo-200">${c}</span>
             `).join('')}
             <span class="text-slate-600 text-xs">|</span>
-            ${activeAnimal.supportCentenas.map(c => `
-              <span class="px-2 py-0.5 bg-slate-900 border border-slate-800 rounded text-xs font-mono text-slate-300">${c}</span>
+            ${hotPending.supportCentenas.map(c => `
+              <span class="px-2.5 py-1 bg-slate-900 border border-slate-800 rounded-lg text-xs sm:text-sm font-mono text-slate-300">${c}</span>
             `).join('')}
           </div>
         </div>
       </div>
+    `;
+  }
 
-      <!-- Grade Completa dos 5 Bichos (Expansível) -->
-      <div id="spotlight-full-grid-section" class="${_spotlightGridExpanded ? '' : 'hidden'} mt-3 pt-3 border-t border-slate-800/80 space-y-2 animate-fade-in">
-        <div class="flex items-center justify-between text-xs text-amber-300 font-bold">
-          <span>📋 Todos os 5 Bichos da Coluna ${data.colNumber} (Visão Completa)</span>
+  // 3. GRADE COMPLETA DOS 5 BICHOS DA COLUNA
+  html += `
+    <div class="space-y-3">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2">
+          <span class="text-amber-400 font-bold text-base">🐾</span>
+          <h2 class="text-sm font-black uppercase tracking-wider text-slate-200">
+            Todos os 5 Bichos da Coluna ${data.colNumber}
+          </h2>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-5 gap-2">
-          ${data.animals.map(a => `
-            <div class="p-2 rounded-xl bg-slate-950/80 border ${a.isHit ? 'border-emerald-500/40' : 'border-amber-500/50'} space-y-1.5">
-              <div class="flex items-center justify-between gap-1">
-                <span class="text-xs font-black text-white truncate">${a.emoji} ${a.name}</span>
-                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded ${a.isHit ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500 text-slate-950'}">
+        <span class="text-xs text-slate-400">Jogos completos de cada animal</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        ${data.animals.map(a => `
+          <div class="card-glass p-3.5 rounded-2xl border ${
+            a.isHit
+              ? 'border-emerald-500/40 bg-slate-950/70'
+              : 'border-amber-500/60 bg-gradient-to-b from-amber-950/30 to-slate-950/90 shadow-md shadow-amber-500/5'
+          } space-y-2.5 flex flex-col justify-between">
+            <div class="space-y-2">
+              <!-- Cabeçalho do Bicho -->
+              <div class="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="text-2xl shrink-0">${a.emoji}</span>
+                  <div class="truncate">
+                    <div class="text-xs font-black text-white truncate">${a.name}</div>
+                    <div class="text-[10px] text-slate-400 font-mono">Grupo ${String(a.group).padStart(2, '0')}</div>
+                  </div>
+                </div>
+                <span class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md ${
+                  a.isHit ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500 text-slate-950 animate-pulse'
+                }">
                   ${a.isHit ? '✅ Saiu' : '🔥 PEND'}
                 </span>
               </div>
-              <div class="text-[10px] text-slate-400 font-mono">Dez: ${a.tens.join(', ')}</div>
-              <div class="space-y-0.5 pt-1 border-t border-slate-800/80">
-                <div class="text-[9px] font-bold text-amber-400">Milhares de Ouro:</div>
-                <div class="font-mono text-[11px] font-bold text-amber-200">${a.goldMilhares.slice(0, 2).join(' • ')}</div>
-                <div class="font-mono text-[11px] font-bold text-amber-200">${a.goldMilhares.slice(2, 4).join(' • ')}</div>
+
+              ${a.hitDetail ? `
+                <div class="text-[10px] text-emerald-400 font-medium truncate bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">
+                  ${a.hitDetail}
+                </div>
+              ` : ''}
+
+              <!-- Dezenas -->
+              <div class="text-[11px] text-slate-400">
+                Dezenas: <strong class="font-mono text-slate-200">${a.tens.join(', ')}</strong>
               </div>
-              <button type="button" onclick="copySingleAnimalColunaGames(${a.group})"
-                class="w-full mt-1 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-300 hover:text-white cursor-pointer transition-colors">
-                Copiar Jogo
-              </button>
+
+              <!-- Milhares de Ouro (MC) -->
+              <div class="space-y-1 pt-1 border-t border-slate-800/80">
+                <div class="text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                  <span>👑</span> <span>Milhares de Ouro (Prefixo ${data.masterPrefix}):</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1">
+                  ${a.goldMilhares.map(m => `
+                    <button type="button" onclick="navigator.clipboard.writeText('${m}'); showToast('Milhar ${m} copiada!', 'success')"
+                      class="py-1 px-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 rounded text-center cursor-pointer transition-all active:scale-95">
+                      <span class="font-mono font-bold text-xs text-amber-200">${m}</span>
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Centenas -->
+              <div class="space-y-0.5 pt-1">
+                <div class="text-[10px] font-semibold text-slate-400">Centenas da Data:</div>
+                <div class="flex items-center gap-1 flex-wrap font-mono text-[11px] text-indigo-300">
+                  ${a.goldCentenas.map(c => `<span class="bg-indigo-950/40 px-1 rounded">${c}</span>`).join(' ')}
+                </div>
+              </div>
             </div>
-          `).join('')}
-        </div>
-      </div>
 
-      <!-- Desdobrador Rápido com Qualquer Dezena -->
-      <div class="mt-3 pt-2.5 border-t border-slate-800/80 space-y-2">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div class="flex items-center gap-1.5">
-            <span class="text-amber-400 text-xs">💡</span>
-            <span class="text-[11px] font-bold text-slate-200">
-              Quer puxar outra dezena com o Prefixo Mestre de Hoje (<span class="text-amber-400 font-mono">${data.masterPrefix}</span>)?
-            </span>
+            <!-- Botão Copiar Jogo -->
+            <button type="button" onclick="copySingleAnimalColunaGames(${a.group})"
+              class="w-full mt-2 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-200 hover:text-white cursor-pointer transition-colors active:scale-95 flex items-center justify-center gap-1.5">
+              <span>📋</span> <span>Copiar Jogo</span>
+            </button>
           </div>
-          <div class="flex items-center gap-1.5">
-            <input type="number" id="input-spotlight-custom-dezena" value="${_spotlightCustomDezena}" placeholder="Ex: 52" min="0" max="99"
-              class="w-16 h-7 bg-slate-900 border border-slate-700 rounded-lg px-2 text-center text-xs font-mono font-bold text-amber-300 focus:outline-none focus:border-amber-400 shadow-inner"
-              oninput="onSpotlightCustomDezenaInput(this.value)" />
-            <span class="text-[10px] text-slate-400">Digite a dezena</span>
-          </div>
-        </div>
-
-        <div id="spotlight-custom-dezena-output" class="p-2 rounded-xl bg-slate-950/70 border border-slate-800/90 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <!-- Renderizado via updateSpotlightCustomDezenaOutput -->
-        </div>
+        `).join('')}
       </div>
     </div>
   `;
 
+  // 4. DESDOBRADOR RÁPIDO COM QUALQUER DEZENA (EX: 52 DO GALO)
+  html += `
+    <div class="card-glass p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-3 bg-[#0B0F19]">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-800">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-lg">💡</span>
+            <h3 class="text-sm font-black text-white uppercase tracking-wider">
+              Desdobrador da Chave Mestre com Qualquer Dezena
+            </h3>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Gere instantaneamente as milhares de ouro e centenas para qualquer dezena que você goste usando o prefixo da data (${data.masterPrefix}).
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="number" id="input-coluna-screen-custom-dezena" value="${_colunaScreenCustomDezena}" placeholder="Ex: 52" min="0" max="99"
+            class="w-20 h-9 bg-slate-900 border border-amber-500/60 rounded-xl px-2 text-center text-sm font-mono font-black text-amber-300 focus:outline-none focus:border-amber-400 shadow-inner"
+            oninput="onColunaScreenCustomDezenaInput(this.value)" />
+          <span class="text-xs text-slate-400">Digite a dezena</span>
+        </div>
+      </div>
+
+      <div id="coluna-screen-custom-dezena-output" class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <!-- Renderizado dinamicamente via updateColunaScreenCustomDezenaOutput -->
+      </div>
+    </div>
+  `;
+
+  // 5. METODOLOGIA TRADICIONAL
+  html += `
+    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 space-y-1.5 leading-relaxed">
+      <div class="flex items-center gap-2 font-bold text-amber-300">
+        <span>📖</span> <span>Como funciona a Coluna da Data tradicional:</span>
+      </div>
+      <p>
+        No método tradicional dos 5 bichos, cada dia do mês possui uma coluna de 5 animais que ciclam juntos (ex: dias com final 2 e 7 acionam a Coluna 2: Águia, Carneiro, Elefante, Macaco e Tigre).
+        O <strong>Prefixo Mestre da Milhar</strong> cruza os dígitos do dia e da contra-data.
+        Estatisticamente, em mais de <strong>87% dos dias</strong> saem ao menos 3 a 5 desses bichos nas extrações oficiais.
+      </p>
+    </div>
+  `;
+
   container.innerHTML = html;
-  updateSpotlightCustomDezenaOutput(_spotlightCustomDezena);
+  updateColunaScreenCustomDezenaOutput(_colunaScreenCustomDezena);
 };
 
-window.selectSpotlightAnimal = function(groupNum) {
-  _spotlightActiveGroup = groupNum;
-  window.renderColunaDataPalpitesSpotlight(groupNum);
+window.setColunaDateToday = function() {
+  const d = new Date();
+  _colunaScreenTargetDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  window.renderColunaDataScreen(_colunaScreenTargetDate);
 };
 
-window.toggleSpotlightFullGrid = function() {
-  _spotlightGridExpanded = !_spotlightGridExpanded;
-  const section = document.getElementById('spotlight-full-grid-section');
-  const label = document.getElementById('label-toggle-grid');
-  if (section) {
-    if (_spotlightGridExpanded) {
-      section.classList.remove('hidden');
-      if (label) label.textContent = '▲ Recolher';
-    } else {
-      section.classList.add('hidden');
-      if (label) label.textContent = '👁️ Ver os 5';
-    }
-  }
+window.setColunaDateTomorrow = function() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  _colunaScreenTargetDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  window.renderColunaDataScreen(_colunaScreenTargetDate);
 };
 
-window.onSpotlightCustomDezenaInput = function(val) {
-  _spotlightCustomDezena = val;
-  updateSpotlightCustomDezenaOutput(val);
+window.setColunaDateYesterday = function() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  _colunaScreenTargetDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  window.renderColunaDataScreen(_colunaScreenTargetDate);
 };
 
-function updateSpotlightCustomDezenaOutput(val) {
-  const container = document.getElementById('spotlight-custom-dezena-output');
+window.onColunaScreenCustomDezenaInput = function(val) {
+  _colunaScreenCustomDezena = val;
+  updateColunaScreenCustomDezenaOutput(val);
+};
+
+function updateColunaScreenCustomDezenaOutput(val) {
+  const container = document.getElementById('coluna-screen-custom-dezena-output');
   if (!container) return;
 
   const d = _currentColunaDataCache || { masterPrefix: '27', invPrefix: '72', d1: 2, d2: 7, d3: 4, d4: 9 };
   const clean = String(val || '').replace(/\D/g, '').slice(0, 2);
 
   if (clean.length === 0) {
-    container.innerHTML = `<span class="text-slate-500 text-[11px]">Digite uma dezena de 00 a 99 para gerar as milhares exatas.</span>`;
+    container.innerHTML = `<span class="text-slate-500 text-xs">Digite uma dezena de 00 a 99 para desdobrar.</span>`;
     return;
   }
 
@@ -930,28 +998,28 @@ function updateSpotlightCustomDezenaOutput(val) {
   const c2 = `${d.d1}${padded}`;
 
   container.innerHTML = `
-    <div class="space-y-1">
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-amber-400 font-bold">Dezena ${padded}</span>
-        ${animalStr ? `<span class="text-slate-400 text-[10px]">(${animalStr})</span>` : ''}
+    <div class="space-y-1.5">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-amber-300 font-bold text-sm">Dezena ${padded}</span>
+        ${animalStr ? `<span class="text-slate-300 font-semibold text-xs">(${animalStr})</span>` : ''}
         <span class="text-slate-600">•</span>
-        <span class="text-slate-300 font-bold">Milhar Master:</span>
-        <span class="px-2 py-0.5 bg-amber-500/25 border border-amber-500/60 rounded text-amber-200 font-mono font-black text-xs">${goldM}</span>
+        <span class="text-slate-300 font-bold">Milhar de Ouro Master:</span>
+        <span class="px-2.5 py-0.5 bg-amber-500/25 border border-amber-500/60 rounded-lg text-amber-200 font-mono font-black text-sm">${goldM}</span>
       </div>
-      <div class="text-[11px] text-slate-400 flex items-center gap-1.5 flex-wrap">
-        <span>Apoio: <strong class="font-mono text-slate-300">${invM} • ${sup1} • ${sup2}</strong></span>
+      <div class="text-xs text-slate-400 flex items-center gap-2 flex-wrap">
+        <span>Apoio: <strong class="font-mono text-slate-200">${invM} • ${sup1} • ${sup2}</strong></span>
         <span class="text-slate-600">|</span>
         <span>Centenas: <strong class="font-mono text-indigo-300">${c1} • ${c2}</strong></span>
       </div>
     </div>
-    <button type="button" onclick="copySpotlightCustomDezenaGames('${padded}', '${goldM}', '${invM}', '${sup1}', '${sup2}', '${c1}', '${c2}', '${animal ? animal.name : ''}')"
-      class="h-7 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0 active:scale-95 transition-all">
-      <span>📋</span> <span>Copiar Jogo</span>
+    <button type="button" onclick="copyColunaScreenCustomDezenaGames('${padded}', '${goldM}', '${invM}', '${sup1}', '${sup2}', '${c1}', '${c2}', '${animal ? animal.name : ''}')"
+      class="h-8 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95 transition-all shadow-sm">
+      <span>📋</span> <span>Copiar Milhares da Dezena</span>
     </button>
   `;
 }
 
-window.copySpotlightCustomDezenaGames = async function(padded, goldM, invM, sup1, sup2, c1, c2, animalName) {
+window.copyColunaScreenCustomDezenaGames = async function(padded, goldM, invM, sup1, sup2, c1, c2, animalName) {
   let text = `🎯 BICHO MASTER PRO - DESDOBRAMENTO DA DATA
 🔢 Dezena: ${padded} ${animalName ? '(' + animalName + ')' : ''}
 👑 Milhar de Ouro Master: ${goldM}
@@ -970,25 +1038,6 @@ window.copySpotlightCustomDezenaGames = async function(padded, goldM, invM, sup1
 };
 
 /**
- * Navega da Home diretamente para a Tela de Palpites focando no Spotlight da Coluna
- */
-window.goToPalpitesColuna = function(groupNum) {
-  if (typeof switchScreen === 'function') {
-    switchScreen('palpites');
-  }
-  if (groupNum) {
-    _spotlightActiveGroup = groupNum;
-  }
-  window.renderColunaDataPalpitesSpotlight(groupNum);
-  setTimeout(() => {
-    const el = document.getElementById('palpites-coluna-data-spotlight');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, 100);
-};
-
-/**
  * Atualiza o card de resumo na Home
  */
 window.updateColunaDataHomeCard = async function() {
@@ -999,7 +1048,6 @@ window.updateColunaDataHomeCard = async function() {
   if (!data) return;
 
   const titleEl = document.getElementById('coluna-card-title');
-  const statusBadgeEl = document.getElementById('coluna-card-status-badge');
   const statusTextEl = document.getElementById('coluna-card-status-text');
   const animalsRowEl = document.getElementById('coluna-card-animals-row');
   const hotTipEl = document.getElementById('coluna-card-hot-tip');
@@ -1022,7 +1070,7 @@ window.updateColunaDataHomeCard = async function() {
     animalsRowEl.innerHTML = data.animals.map(a => {
       const isHit = a.isHit;
       return `
-        <div onclick="event.stopPropagation(); goToPalpitesColuna(${a.group})"
+        <div onclick="event.stopPropagation(); switchScreen('coluna-data')"
           class="p-1.5 sm:p-2 rounded-xl cursor-pointer hover:border-amber-400 transition-all ${
             isHit
               ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-200'
@@ -1050,21 +1098,6 @@ window.updateColunaDataHomeCard = async function() {
     } else {
       hotTipEl.innerHTML = `🏆 <strong class="text-emerald-300">Todos os 5 bichos da coluna premiaram hoje!</strong>`;
     }
-  }
-};
-
-/**
- * Mantém o modal funcional para retrocompatibilidade
- */
-window.openColunaDataModal = async function() {
-  window.goToPalpitesColuna();
-};
-
-window.closeColunaDataModal = function() {
-  const modal = document.getElementById('modal-coluna-data');
-  if (modal) {
-    modal.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
   }
 };
 
@@ -1123,6 +1156,21 @@ Milhares de Apoio: ${a.supportMilhares.join(' • ')}
   } catch (e) {
     console.warn('Erro ao copiar:', e);
   }
+};
+
+// Aliases para retrocompatibilidade
+window.goToColunaDataScreen = function() {
+  switchScreen('coluna-data');
+};
+window.goToPalpitesColuna = function() {
+  switchScreen('coluna-data');
+};
+window.openColunaDataModal = function() {
+  switchScreen('coluna-data');
+};
+window.closeColunaDataModal = function() {
+  const m = document.getElementById('modal-coluna-data');
+  if (m) m.classList.add('hidden');
 };
 
 function updateHomeScreenData() {
@@ -2033,7 +2081,10 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
   document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('sidebar-item-active'));
   document.querySelectorAll('.subitem-btn').forEach(el => el.classList.remove('subitem-btn-active'));
 
-  if (screenName === 'home') {
+  if (screenName === 'coluna-data') {
+    const colBtn = document.getElementById('sidebar-btn-coluna-data');
+    if (colBtn) colBtn.classList.add('sidebar-item-active');
+  } else if (screenName === 'home') {
     const homeBtn = document.getElementById('sidebar-btn-home');
     if (homeBtn) homeBtn.classList.add('sidebar-item-active');
   } else if (screenName === 'centena-master') {
@@ -2057,6 +2108,7 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
   const screenTitles = {
     'home': 'Visão Geral',
     'palpites': 'Jogos Prontos',
+    'coluna-data': 'Coluna da Data (Fechamento Diário)',
     'centena-master': 'Centena Master',
     'matriz': 'Chave Mestra (Matriz 3x3)',
     'cruz': 'Cruz do Dia',
@@ -3334,7 +3386,6 @@ window.copyReadyBetsToClipboard = function () {
 };
 
 function renderDashboard(data) {
-  if (typeof window.renderColunaDataPalpitesSpotlight === 'function') window.renderColunaDataPalpitesSpotlight();
   // Informações do Topo
   const slotNameEl = document.getElementById('header-slot-name');
   if (slotNameEl) slotNameEl.textContent = data.target_slot_name || data.target_slot;
