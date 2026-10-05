@@ -127,7 +127,7 @@
       try {
         var hash = window.location.hash.replace('#', '');
         var saved = localStorage.getItem('bicho_active_screen');
-        var valid = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'matriz'];
+        var valid = ['home', 'palpites', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
         var target = (hash && valid.indexOf(hash) !== -1) ? hash : ((saved && valid.indexOf(saved) !== -1) ? saved : 'home');
         if (target && target !== 'home') {
           document.documentElement.setAttribute('data-initial-screen', target);
@@ -138,11 +138,13 @@
   <style id="screen-persistence-styles">
     html[data-initial-screen] #view-home { display: none !important; }
     html[data-initial-screen="palpites"] #view-palpites { display: block !important; }
+    html[data-initial-screen="coluna-data"] #view-coluna-data { display: block !important; }
     html[data-initial-screen="cruz"] #view-cruz { display: block !important; }
     html[data-initial-screen="puxadas"] #view-puxadas { display: block !important; }
     html[data-initial-screen="atrasados"] #view-atrasados { display: block !important; }
     html[data-initial-screen="resultados"] #view-resultados { display: block !important; }
     html[data-initial-screen="milhares-atrasadas"] #view-milhares-atrasadas { display: block !important; }
+    html[data-initial-screen="centena-master"] #view-centena-master { display: block !important; }
     html[data-initial-screen="matriz"] #view-matriz { display: block !important; }
   </style>
   <!-- Captura antecipada e infalivel do evento de instalacao PWA -->
@@ -2427,7 +2429,7 @@
   </div>
 
   <script src="/js/api.js?v=1790660000"></script>
-  <script src="/js/app.js?v=1790883000"></script>
+  <script src="/js/app.js?v=1790905000"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
