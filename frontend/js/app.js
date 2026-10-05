@@ -162,20 +162,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateLotteryButtonsUI();
   await initSlotSelector(currentLottery, window._userSelectedSlot);
 
-  // 2. Determina tela alvo antes do carregamento inicial
-  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+  // 2. Determina tela alvo antes do carregamento inicial (mantém na mesma tela ao atualizar com F5)
+  const validScreens = ['home', 'palpites', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   let savedScreen = null;
   try { savedScreen = localStorage.getItem('bicho_active_screen'); } catch(e) {}
 
   let targetScreen = 'home';
-  if (paramLottery || paramSlot || paramDate || hash === 'palpites') {
-    targetScreen = 'palpites';
-  } else if (hash && validScreens.includes(hash)) {
+  // Prioridade 1: Hash na URL (ex: #coluna-data, #resultados, #cruz, #palpites)
+  if (hash && validScreens.includes(hash)) {
     targetScreen = hash;
+  // Prioridade 2: Parâmetro explícito de tab (ex: ?tab=coluna-data)
   } else if (urlParams.get('tab') && validScreens.includes(urlParams.get('tab'))) {
     targetScreen = urlParams.get('tab');
+  // Prioridade 3: Tela salva no localStorage da navegação anterior do usuário
   } else if (savedScreen && validScreens.includes(savedScreen)) {
     targetScreen = savedScreen;
+  // Prioridade 4: Se o usuário veio por link com parâmetros de loteria/slot sem hash explícito
+  } else if ((paramLottery || paramSlot || paramDate) && (!hash || hash === 'palpites')) {
+    targetScreen = 'palpites';
   }
 
   switchScreen(targetScreen, true);
@@ -195,7 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Suporte ao botão voltar/avançar do navegador entre as telas
 window.addEventListener('hashchange', () => {
-  const validScreens = ['home', 'palpites', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+  const validScreens = ['home', 'palpites', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   const hash = window.location.hash.replace('#', '');
   if (validScreens.includes(hash)) {
     switchScreen(hash, false);
