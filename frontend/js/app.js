@@ -1633,9 +1633,15 @@ window.filterPredictionsCategory = function(category) {
 
 function setDefaultDate() {
   const dateInput = document.getElementById('target-date');
-  if (dateInput && !dateInput.value) {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
+  if (dateInput) {
+    const today = getLocalDateStr();
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramDate = urlParams.get('date');
+    if (paramDate) {
+      dateInput.value = paramDate;
+    } else {
+      dateInput.value = today;
+    }
   }
 }
 
@@ -5708,7 +5714,7 @@ async function loadDrawResults(dateOverride = null) {
           if (draw) {
             return renderDrawSlotCard(draw, slotInfo);
           } else {
-            return renderPendingSlotCard(slotInfo, isViewingToday);
+            return renderPendingSlotCard(slotInfo, isViewingToday, selectedResultDate);
           }
         })
         .join('');
@@ -5845,7 +5851,8 @@ function renderDrawSlotCard(draw, slotInfo) {
   `;
 }
 
-function renderPendingSlotCard(slotInfo, isToday) {
+function renderPendingSlotCard(slotInfo, isToday, targetDateStr = null) {
+  const effDate = targetDateStr || selectedResultDate || getLocalDateStr();
   const statusText = isToday
     ? `Aguardando apuração às ${slotInfo.time}. Clique em "Puxar Resultados" no topo após o horário para sincronizar.`
     : `Nenhum resultado registrado para esta extração nesta data.`;
@@ -5869,7 +5876,7 @@ function renderPendingSlotCard(slotInfo, isToday) {
         <p class="text-xs text-slate-400 max-w-xs leading-relaxed">${statusText}</p>
       </div>
       <div class="pt-2 border-t border-slate-800/60 flex items-center justify-end">
-        <button type="button" onclick="selectSlotForPrediction('${slotInfo.code}')" 
+        <button type="button" onclick="selectSlotForPrediction('${slotInfo.code}', '${effDate}')" 
           class="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 transition-colors cursor-pointer">
           <span>Gerar Palpite Prévio</span> &rarr;
         </button>
@@ -5896,12 +5903,14 @@ window.selectSlotForPrediction = function(slotCode, dateStr = null) {
     const currentSlotName = document.getElementById('current-slot-name');
     if (currentSlotName && selectedOpt) currentSlotName.textContent = selectedOpt.textContent;
   }
-  if (dateStr) {
-    const targetDateEl = document.getElementById('target-date');
-    if (targetDateEl) targetDateEl.value = dateStr;
+  const effDate = dateStr || getLocalDateStr();
+  const targetDateEl = document.getElementById('target-date');
+  if (targetDateEl) {
+    targetDateEl.value = effDate;
   }
   updateSlotPillsUI(slotCode);
-  loadPrediction();
+  _predictionCache.clear();
+  loadPrediction(true);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
