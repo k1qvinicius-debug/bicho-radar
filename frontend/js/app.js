@@ -1837,7 +1837,12 @@ async function initSlotSelector(lottery = currentLottery, preferredSlot = null) 
   if (!slotSelect) return;
 
   try {
-    const targetDate = document.getElementById('target-date')?.value || null;
+    const dateInput = document.getElementById('target-date');
+    const todayStr = getLocalDateStr();
+    if (dateInput && (!dateInput.value || dateInput.value < todayStr)) {
+      dateInput.value = todayStr;
+    }
+    const targetDate = dateInput ? dateInput.value : todayStr;
     let slots = [];
     try {
       const rawSlots = await api.getSlots(lottery, targetDate);
