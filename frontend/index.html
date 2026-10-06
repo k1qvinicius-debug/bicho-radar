@@ -2,6 +2,9 @@
 <html lang="pt-BR" class="dark">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <link rel="dns-prefetch" href="//cdn.tailwindcss.com" />
   <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -957,7 +960,7 @@
           </div>
 
           <div class="flex items-center gap-1 shrink-0">
-            <input type="date" id="target-date"
+            <input type="date" id="target-date" autocomplete="off"
               class="w-[105px] sm:w-auto bg-slate-900 border border-slate-700/80 rounded-lg px-1.5 sm:px-2 py-1 text-[11px] sm:text-xs text-slate-200 font-mono focus:outline-none focus:border-indigo-500 shadow-inner" />
             <button id="btn-refresh" title="Recalcular Palpites"
               class="h-7 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer">
@@ -1227,7 +1230,7 @@
             <div class="flex items-center gap-1 bg-slate-900/90 border border-cyan-500/40 rounded-xl px-2 py-1 shadow-sm">
               <span class="text-cyan-400 text-xs">📅</span>
               <label for="cruz-target-date" class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Data:</label>
-              <input type="date" id="cruz-target-date" onchange="changeCruzDate(this.value)"
+              <input type="date" id="cruz-target-date" autocomplete="off" onchange="changeCruzDate(this.value)"
                 class="bg-transparent text-cyan-300 font-mono text-xs font-semibold focus:outline-none cursor-pointer" />
             </div>
             <div class="flex items-center gap-1">
@@ -2428,8 +2431,8 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=1790660000"></script>
-  <script src="/js/app.js?v=1790910000"></script>
+  <script src="/js/api.js?v=1790920000"></script>
+  <script src="/js/app.js?v=1790920000"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
@@ -2580,7 +2583,7 @@
     </div>
   </div>
 
-  <script src="/js/pwa.js?v=3.0"></script>
+  <script src="/js/pwa.js?v=10.0"></script>
 
 </body>
 </html>
