@@ -381,7 +381,12 @@ function switchScreen(screenName, updateHash = true) {
   } else if (screenName === 'centena-master') {
     loadCentenaMasterContent();
   } else if (screenName === 'cruz') {
-    loadCruzModalContent();
+    const today = getLocalDateStr();
+    const cruzDateInput = document.getElementById('cruz-target-date');
+    if (cruzDateInput && (!cruzDateInput.value || cruzDateInput.value !== today)) {
+      cruzDateInput.value = today;
+    }
+    loadCruzModalContent(cruzDateInput ? cruzDateInput.value : today);
   } else if (screenName === 'puxadas') {
     _puxadasDataCache = null;
         _predictionCache.clear();
@@ -1654,9 +1659,9 @@ window.filterPredictionsCategory = function(category) {
 };
 
 function setDefaultDate() {
+  const today = getLocalDateStr();
   const dateInput = document.getElementById('target-date');
   if (dateInput) {
-    const today = getLocalDateStr();
     const urlParams = new URLSearchParams(window.location.search);
     const paramDate = urlParams.get('date');
     if (paramDate) {
@@ -1664,6 +1669,10 @@ function setDefaultDate() {
     } else {
       dateInput.value = today;
     }
+  }
+  const cruzDateInput = document.getElementById('cruz-target-date');
+  if (cruzDateInput) {
+    cruzDateInput.value = today;
   }
 }
 
@@ -3199,17 +3208,14 @@ window.copyAllPuxadasHundreds = async function (btn) {
 
 window.loadCruzModalContent = async function(forceDate = null) {
   const cruzDateInput = document.getElementById('cruz-target-date');
-  const mainDateInput = document.getElementById('target-date');
+  const today = getLocalDateStr();
 
   let dateVal = forceDate;
   if (!dateVal && cruzDateInput && cruzDateInput.value) {
     dateVal = cruzDateInput.value;
   }
-  if (!dateVal && mainDateInput && mainDateInput.value) {
-    dateVal = mainDateInput.value;
-  }
   if (!dateVal) {
-    dateVal = new Date().toISOString().split('T')[0];
+    dateVal = today;
   }
 
   if (cruzDateInput && cruzDateInput.value !== dateVal) {
