@@ -201,6 +201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   switchScreen(targetScreen, true);
+  setupEventListeners();
 
   try {
     await Promise.all([loadPrediction(), loadDrawResults()]);
@@ -209,7 +210,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Erro ao carregar dados iniciais:', err);
     try { await loadDrawResults(); } catch(e) {}
   }
-  setupEventListeners();
 
   // Inicia monitor em tempo real para detecção instantânea de novos resultados (a cada 25 segundos)
   startInstantResultsMonitor();
@@ -1961,7 +1961,6 @@ async function initSlotSelector(lottery = currentLottery, preferredSlot = null) 
 
     // Determina horário alvo automático com precisão em tempo real
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const isToday = !targetDate || targetDate === todayStr;
 
     // Coleta slots já apurados hoje no backend
@@ -2726,10 +2725,8 @@ async function loadPrediction(forceRefresh = false) {
       }
     }
   } finally {
-    if (reqSeq === _activePredictionReqSeq) {
-      if (loadingEl) loadingEl.classList.add('hidden');
-      if (contentEl) contentEl.classList.remove('opacity-40', 'pointer-events-none');
-    }
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (contentEl) contentEl.classList.remove('opacity-40', 'pointer-events-none');
   }
 }
 
