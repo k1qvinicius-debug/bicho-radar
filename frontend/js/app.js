@@ -142,9 +142,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  if (paramLottery) {
+  const validLots = ['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL', 'BAHIA', 'MINAS'];
+  if (paramLottery && validLots.includes(paramLottery.toUpperCase())) {
     currentLottery = paramLottery.toUpperCase();
     localStorage.setItem('bicho_active_lottery', currentLottery);
+    window.currentLottery = currentLottery;
+  } else {
+    const savedLot = localStorage.getItem('bicho_active_lottery');
+    if (savedLot && validLots.includes(savedLot.toUpperCase())) {
+      currentLottery = savedLot.toUpperCase();
+    } else {
+      currentLottery = 'LOOK';
+      localStorage.setItem('bicho_active_lottery', currentLottery);
+    }
     window.currentLottery = currentLottery;
   }
 
@@ -157,6 +167,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (paramSlot) {
     window._userSelectedSlot = paramSlot.toUpperCase();
+  } else {
+    window._userSelectedSlot = null; // Garante que ao recarregar ou navegar calcule o próximo sorteio
+  }
+
+  // LIMPEZA DA URL: Se a página foi aberta com parâmetros de busca, limpa para que o F5 não fique preso na loteria antiga
+  if (paramLottery || paramSlot) {
+    try {
+      const cleanUrl = new URL(window.location);
+      cleanUrl.searchParams.delete('lottery');
+      cleanUrl.searchParams.delete('slot');
+      window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + (hash ? '#' + hash : ''));
+    } catch (e) {}
   }
 
   updateLotteryButtonsUI();
@@ -1933,6 +1955,7 @@ async function initSlotSelector(lottery = currentLottery, preferredSlot = null) 
 
     let defaultSlot = slots[0].code;
 
+    // Se houver preferredSlot explícito e pertencer a esta banca
     if (preferredSlot && slots.some(s => s.code === preferredSlot)) {
       defaultSlot = preferredSlot;
     } else if (window._userSelectedSlot && slots.some(s => s.code === window._userSelectedSlot)) {
@@ -1940,12 +1963,12 @@ async function initSlotSelector(lottery = currentLottery, preferredSlot = null) 
     } else if (isToday) {
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-      // Encontra o próximo horário alvo que ainda não foi apurado hoje e não passou
+      // Encontra o PRÓXIMO SORTEIO: não apurado hoje e cujo horário é o próximo a correr
       const upcomingSlot = slots.find(s => {
         const isDrawn = drawnCodes.has(s.code.toUpperCase());
         if (isDrawn) return false;
         const sMin = getSlotMinutes(s, todayStr);
-        return sMin >= (currentMinutes - 5);
+        return sMin >= (currentMinutes - 10);
       });
 
       if (upcomingSlot) {
@@ -1959,6 +1982,7 @@ async function initSlotSelector(lottery = currentLottery, preferredSlot = null) 
         }
       }
     }
+    window._userSelectedSlot = defaultSlot;
 
     slots.forEach((s) => {
       const opt = document.createElement('option');
@@ -2314,7 +2338,8 @@ window.toggleLotteryAccordion = function(lotteryCode, forceOpen = null) {
 
 window.navigateTo = async function(lotteryCode, screenName) {
   if (lotteryCode) {
-    await switchLottery(lotteryCode, true);
+    window._userSelectedSlot = null; // Sempre limpa seleção manual anterior para buscar o PRÓXIMO SORTEIO
+    await switchLottery(lotteryCode.toUpperCase(), true);
   }
   if (screenName) {
     switchScreen(screenName);
@@ -2373,19 +2398,20 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
 
 window.switchLottery = async function(lotteryCode, force = false) {
   if (!lotteryCode) return;
+  const targetLot = lotteryCode.toUpperCase();
 
   // Verifica se o estado visual das pílulas de horário bate com a loteria desejada
   const firstPill = document.querySelector('#lottery-slots-pills .slot-pill-btn');
   const pillSlot = firstPill ? firstPill.getAttribute('data-slot') : null;
-  const hasMismatch = !firstPill || !doesSlotBelongToLottery(pillSlot, lotteryCode);
+  const hasMismatch = !firstPill || !doesSlotBelongToLottery(pillSlot, targetLot);
 
-  if (!force && !hasMismatch && lotteryCode === currentLottery) {
+  if (!force && !hasMismatch && targetLot === currentLottery) {
     return;
   }
-  window._userSelectedSlot = null; // Reseta seleção cravada ao mudar de banca
-  currentLottery = lotteryCode;
-  window.currentLottery = lotteryCode;
-  localStorage.setItem('bicho_active_lottery', lotteryCode);
+  window._userSelectedSlot = null; // Reseta seleção cravada ao mudar de banca para buscar o PRÓXIMO SORTEIO
+  currentLottery = targetLot;
+  window.currentLottery = targetLot;
+  localStorage.setItem('bicho_active_lottery', targetLot);
   _lastKnownDrawId = null; // Reseta cache de ID para evitar falsos alertas de novo sorteio ao trocar de banca
   updateLotteryButtonsUI();
 
@@ -5411,9 +5437,11 @@ const RESULTS_LOTTERIES_CATALOG = [
 
 window.selectResultLottery = async function (lotteryCode) {
   if (!lotteryCode) return;
-  currentLottery = lotteryCode.toUpperCase();
-  window.currentLottery = currentLottery;
-  localStorage.setItem('bicho_active_lottery', currentLottery);
+  const targetLot = lotteryCode.toUpperCase();
+  currentLottery = targetLot;
+  window.currentLottery = targetLot;
+  localStorage.setItem('bicho_active_lottery', targetLot);
+  window._userSelectedSlot = null;
   _lastKnownDrawId = null;
   updateLotteryButtonsUI();
   await initSlotSelector(currentLottery);
