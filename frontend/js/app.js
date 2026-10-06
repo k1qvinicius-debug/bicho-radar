@@ -7706,15 +7706,9 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
       return;
     }
 
-    // REGRA: Aparecer SOMENTE UMA VEZ por acerto!
+    // REGRA: Modal apenas sob demanda do usuário (clique no banner), sem travar a navegação inicial
     if (!forceShow) {
-      if (localStorage.getItem(seenModalKey) !== '1') {
-        // Marca IMEDIATAMENTE para garantir que NUNCA reabra na mesma sessão ou navegação
-        try { localStorage.setItem(seenModalKey, '1'); } catch(e) {}
-        setTimeout(() => {
-          openBingoCelebrationModal(b);
-        }, 800);
-      }
+      try { localStorage.setItem(seenModalKey, '1'); } catch(e) {}
     }
 
     // Se usuário já fechou o banner fixo nesta versão, respeita e não exibe o banner fixo
