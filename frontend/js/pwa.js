@@ -8,9 +8,10 @@
   // 1. Registro do Service Worker
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js?v=3.2', { scope: '/' })
+      navigator.serviceWorker.register('/sw.js?v=10.0', { scope: '/' })
         .then((reg) => {
           console.log('[PWA] Service Worker registrado no escopo:', reg.scope);
+          reg.update();
         })
         .catch((err) => {
           console.warn('[PWA] Erro ao registrar Service Worker:', err);
