@@ -215,13 +215,23 @@ def get_cruz_do_dia(target_date: Optional[str] = None) -> Dict[str, Any]:
     day = dt.day
     cruz_data = _calculate_cruz_math(day)
 
-    # Identificar Bicho do Dia determinístico:
-    # Seleciona o animal com maior presença de dezenas na Cruz
-    if cruz_data["animals"]:
-        sorted_by_tens = sorted(cruz_data["animals"], key=lambda a: len(a["tens"]), reverse=True)
-        bicho_group = sorted_by_tens[0]["group"]
-    else:
-        bicho_group = 11  # Cavalo como padrão de sorte
+    # Identificar Bicho do Dia:
+    # 1. Sincroniza prioritariamente com o Bicho do Dia oficial do portal de referência
+    bicho_group = None
+    try:
+        remote = _fetch_remote_highlights()
+        if remote and remote.get("bicho_do_dia_group"):
+            bicho_group = remote["bicho_do_dia_group"]
+    except Exception:
+        bicho_group = None
+
+    # 2. Se não houver sincronização remota ou para outras datas, seleciona o animal mais forte na Cruz
+    if not bicho_group:
+        if cruz_data["animals"]:
+            sorted_by_tens = sorted(cruz_data["animals"], key=lambda a: (len(a["thousands"]), len(a["tens"])), reverse=True)
+            bicho_group = sorted_by_tens[0]["group"]
+        else:
+            bicho_group = 5  # Cachorro como padrão clássico
 
     bicho_info = ANIMALS.get(bicho_group, ANIMALS[11])
     projections = _generate_bicho_do_dia_projections(
