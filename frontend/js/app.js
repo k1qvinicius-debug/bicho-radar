@@ -1672,14 +1672,14 @@ function getSlotMinutes(slot, dateStr = null) {
   const code = (slot.code || (typeof slot === 'string' ? slot : '')).toUpperCase().trim();
 
   if (code === 'FED' || code === 'FEDERAL') {
-    // Federal corre aos domingos às 11:00 e quartas às 20:00
-    const dStr = dateStr || document.getElementById('target-date')?.value || new Date().toISOString().split('T')[0];
+    const dStr = dateStr || document.getElementById('target-date')?.value || getLocalDateStr();
+    if (dStr === '2026-10-03' || dStr === '2026-10-24') return 20 * 60;
     try {
       const parts = dStr.split('-');
       if (parts.length === 3) {
         const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-        if (d.getDay() === 0) { // 0 = Domingo
-          return 11 * 60;
+        if (d.getDay() === 0 && dStr !== '2026-10-04' && dStr !== '2026-10-25') {
+          return 11 * 60; // Domingo regular 11h
         }
       }
     } catch (e) {}
@@ -1724,10 +1724,32 @@ function getSlotMinutes(slot, dateStr = null) {
   return 9999;
 }
 
+function isFederalDrawDate(dateStr) {
+  if (!dateStr) return false;
+  // Exceções do Calendário de Eleições 2026:
+  // 1º Turno: Sábado 03/10 teve Federal; Domingo 04/10 NÃO teve Federal!
+  // 2º Turno: Sábado 24/10 terá Federal; Domingo 25/10 NÃO terá Federal!
+  if (dateStr === '2026-10-04' || dateStr === '2026-10-25') return false;
+  if (dateStr === '2026-10-03' || dateStr === '2026-10-24') return true;
+
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      const dow = dt.getDay(); // 0 = Domingo, 3 = Quarta
+      return dow === 0 || dow === 3;
+    }
+  } catch (e) {}
+  return false;
+}
+
 function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
   const code = (drawSlotCode || '').toUpperCase().trim();
   if (code === 'FED' || code === 'FEDERAL') {
     const dStr = dateStr || document.getElementById('target-date')?.value || getLocalDateStr();
+    if (dStr === '2026-10-03' || dStr === '2026-10-24') {
+      return { code: 'FED', name: 'Federal 20h (Sábado - Eleições) - 20:00', time: '20:00' };
+    }
     let isSunday = false;
     let isWednesday = false;
     try {
@@ -1739,12 +1761,12 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
       }
     } catch (e) {}
 
-    if (isSunday) {
+    if (isSunday && dStr !== '2026-10-04' && dStr !== '2026-10-25') {
       return { code: 'FED', name: 'Federal 11h (Domingo) - 11:00', time: '11:00' };
     } else if (isWednesday) {
       return { code: 'FED', name: 'Federal 20h (Quarta) - 20:00', time: '20:00' };
     } else {
-      return { code: 'FED', name: 'Federal (Quarta e Domingo)', time: '20:00' };
+      return { code: 'FED', name: 'Federal 20h (Quarta) • 11h (Domingo)', time: '20:00' };
     }
   }
   if (code === 'PPT') return { code, name: 'PPT - 09:20', time: '09:20' };
@@ -1828,18 +1850,22 @@ async function initSlotSelector(lottery = currentLottery, preferredSlot = null) 
     // Fallback garantido se a API retornar vazio ou falhar
     if (!slots || slots.length === 0) {
       if (lottery === 'FEDERAL') {
-        const now = new Date();
-        let dow = now.getDay();
-        if (targetDate) {
-          try {
-            const parts = targetDate.split('-');
-            if (parts.length === 3) dow = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getDay();
-          } catch (e) {}
-        }
-        if (dow === 0) {
-          slots = [{ code: 'FED', name: 'Federal 11h (Domingo) - 11:00', time: '11:00', order: 1 }];
+        const dStr = targetDate || getLocalDateStr();
+        if (dStr === '2026-10-03' || dStr === '2026-10-24') {
+          slots = [{ code: 'FED', name: 'Federal 20h (Sábado - Eleições) - 20:00', time: '20:00', order: 1 }];
         } else {
-          slots = [{ code: 'FED', name: 'Federal 20h (Quarta e Sábado) - 20:00', time: '20:00', order: 1 }];
+          let dow = new Date().getDay();
+          if (targetDate) {
+            try {
+              const parts = targetDate.split('-');
+              if (parts.length === 3) dow = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getDay();
+            } catch (e) {}
+          }
+          if (dow === 0 && dStr !== '2026-10-04' && dStr !== '2026-10-25') {
+            slots = [{ code: 'FED', name: 'Federal 11h (Domingo) - 11:00', time: '11:00', order: 1 }];
+          } else {
+            slots = [{ code: 'FED', name: 'Federal 20h (Quarta) - 20:00', time: '20:00', order: 1 }];
+          }
         }
       } else if (lottery === 'BAHIA') {
         const now = new Date();
@@ -5496,16 +5522,7 @@ async function loadDrawResults(dateOverride = null) {
     allRecentDrawsByDate = {};
     items.forEach((draw) => {
       if (activeLotKey === 'FEDERAL') {
-        let isFedDay = false;
-        try {
-          const parts = draw.draw_date.split('-');
-          if (parts.length === 3) {
-            const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            const dow = dt.getDay(); // 0 = Domingo, 3 = Quarta, 6 = Sábado
-            if (dow === 0 || dow === 3 || dow === 6) isFedDay = true;
-          }
-        } catch (e) {}
-        if (!isFedDay) return;
+        if (!isFederalDrawDate(draw.draw_date)) return;
         if (draw.lottery && draw.lottery.toUpperCase() !== 'FEDERAL' && draw.slot !== 'FED') {
           return;
         }
@@ -5549,21 +5566,11 @@ async function loadDrawResults(dateOverride = null) {
     const datesSet = new Set(Object.keys(allRecentDrawsByDate));
 
     if (activeLotKey === 'FEDERAL') {
-      if (todayDow === 0 || todayDow === 3) {
+      if (isFederalDrawDate(todayStr)) {
         datesSet.add(todayStr);
       }
       availableDatesList = Array.from(datesSet)
-        .filter(dateStr => {
-          try {
-            const parts = dateStr.split('-');
-            if (parts.length === 3) {
-              const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-              const dow = dt.getDay();
-              return dow === 0 || dow === 3 || dow === 6;
-            }
-          } catch (e) {}
-          return false;
-        })
+        .filter(dateStr => isFederalDrawDate(dateStr))
         .sort().reverse().slice(0, 14);
     } else {
       datesSet.add(todayStr);
