@@ -141,6 +141,9 @@ def sync_rj_and_federal(url: str = TARGET_URL_RJ) -> Dict[str, Any]:
                 not (p1 == "0000" and p2 == "0000" and p3 == "0000" and p4 == "0000" and p5 == "0000")):
 
                 lottery_val = "FEDERAL" if slot == "FED" else "RJ"
+                # Bloqueia Federal em domingos de eleição (04/10/2026 e 25/10/2026)
+                if slot == "FED" and today_date in ("2026-10-04", "2026-10-25"):
+                    continue
 
                 cursor.execute("""
                     INSERT INTO draw_results (
@@ -193,6 +196,8 @@ def sync_rj_and_federal(url: str = TARGET_URL_RJ) -> Dict[str, Any]:
                             p5 = clean_number(tds[6])
 
                             lottery_val = "FEDERAL" if prev_slot == "FED" else "RJ"
+                            if prev_slot == "FED" and prev_date in ("2026-10-04", "2026-10-25"):
+                                continue
 
                             cursor.execute("""
                                 INSERT INTO draw_results (
