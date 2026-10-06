@@ -158,12 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.currentLottery = currentLottery;
   }
 
-  if (paramDate) {
-    const dEl = document.getElementById('target-date');
-    if (dEl) dEl.value = paramDate;
-  } else {
-    setDefaultDate();
-  }
+  setDefaultDate();
 
   if (paramSlot) {
     window._userSelectedSlot = paramSlot.toUpperCase();
@@ -171,12 +166,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     window._userSelectedSlot = null; // Garante que ao recarregar ou navegar calcule o próximo sorteio
   }
 
-  // LIMPEZA DA URL: Se a página foi aberta com parâmetros de busca, limpa para que o F5 não fique preso na loteria antiga
-  if (paramLottery || paramSlot) {
+  // LIMPEZA DA URL: Se a página foi aberta com parâmetros de busca (?date=, ?lottery=, ?slot=), limpa para que o F5 não fique preso no dia ou loteria anterior
+  if (paramLottery || paramSlot || paramDate) {
     try {
       const cleanUrl = new URL(window.location);
       cleanUrl.searchParams.delete('lottery');
       cleanUrl.searchParams.delete('slot');
+      cleanUrl.searchParams.delete('date');
       window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + (hash ? '#' + hash : ''));
     } catch (e) {}
   }
@@ -1662,13 +1658,7 @@ function setDefaultDate() {
   const today = getLocalDateStr();
   const dateInput = document.getElementById('target-date');
   if (dateInput) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const paramDate = urlParams.get('date');
-    if (paramDate) {
-      dateInput.value = paramDate;
-    } else {
-      dateInput.value = today;
-    }
+    dateInput.value = today;
   }
   const cruzDateInput = document.getElementById('cruz-target-date');
   if (cruzDateInput) {
@@ -2434,6 +2424,12 @@ window.updateSidebarActiveUI = function(lotteryCode, screenName) {
 window.switchLottery = async function(lotteryCode, force = false) {
   if (!lotteryCode) return;
   const targetLot = lotteryCode.toUpperCase();
+
+  // Garante que a data ao trocar de banca seja SEMPRE a data de HOJE
+  const dateInput = document.getElementById('target-date');
+  if (dateInput) {
+    dateInput.value = getLocalDateStr();
+  }
 
   // Verifica se o estado visual das pílulas de horário bate com a loteria desejada
   const firstPill = document.querySelector('#lottery-slots-pills .slot-pill-btn');
