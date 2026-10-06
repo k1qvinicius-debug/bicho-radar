@@ -19,17 +19,21 @@ _CRUZ_CACHE: Dict[str, Dict[str, Any]] = {}
 
 def _calculate_cruz_math(day: int) -> Dict[str, Any]:
     """
-    Executa o cálculo matemático canônico da Cruz do Dia:
+    Executa o cálculo matemático canônico da Cruz do Dia (Regra tradicional do Jogo do Bicho):
     Dado o dia D do mês:
-      n1 = (D + 3) % 10 (Topo)
-      n2 = (n1 + 3) % 10 (Direita)
-      n3 = (n2 + 3) % 10 (Base)
-      n4 = (n3 + 3) % 10 (Esquerda)
+      1ª soma: (D + 3) % 10       -> Topo     (ex dia 06: 6+3 = 9)
+      2ª soma: (Topo + 3) % 10    -> Base     (ex dia 06: 9+3 = 12 -> 2)
+      3ª soma: (Base + 3) % 10    -> Direita  (ex dia 06: 2+3 = 5)
+      4ª soma: (Direita + 3) % 10 -> Esquerda (ex dia 06: 5+3 = 8)
+    Layout cardeal canônico:
+           Topo (9)
+    Esq(8)        Dir(5)
+           Base (2)
     """
-    n1 = (day + 3) % 10
-    n2 = (n1 + 3) % 10
-    n3 = (n2 + 3) % 10
-    n4 = (n3 + 3) % 10
+    n1 = (day + 3) % 10   # Topo
+    n2 = (n1 + 3) % 10    # Base
+    n3 = (n2 + 3) % 10    # Direita
+    n4 = (n3 + 3) % 10    # Esquerda
 
     digits = [n1, n2, n3, n4]
     digits_set = list(dict.fromkeys(digits))
@@ -71,12 +75,12 @@ def _calculate_cruz_math(day: int) -> Dict[str, Any]:
         item_thousands = [m for m in all_thousands if m[-2:] in item["tens"]]
         item["thousands"] = item_thousands
 
-    # Ordena os animais por número do grupo
-    sorted_animals = [animals_map[g] for g in sorted(animals_map.keys())]
+    # Ordena os animais: primeiro os com maior quantidade de milhares (destaques com 4 milhares), depois por grupo
+    sorted_animals = sorted(animals_map.values(), key=lambda a: (-len(a["thousands"]), a["group"]))
 
     return {
-        "digits": {"top": str(n1), "right": str(n2), "bottom": str(n3), "left": str(n4)},
-        "raw_digits": [str(x) for x in digits],
+        "digits": {"top": str(n1), "right": str(n3), "bottom": str(n2), "left": str(n4)},
+        "raw_digits": [str(n1), str(n3), str(n2), str(n4)],
         "animals": sorted_animals,
         "all_thousands": all_thousands
     }
