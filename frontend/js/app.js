@@ -7744,17 +7744,25 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
 
     container.className = 'w-full transition-all duration-300 transform';
     container.innerHTML = `
-      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r ${gradientBg} border backdrop-blur-md p-3.5 sm:p-4 shadow-xl">
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r ${gradientBg} border backdrop-blur-md p-3.5 sm:p-4 shadow-xl pr-12 sm:pr-14">
         <!-- Brilho animado de fundo -->
         <div class="absolute -top-12 -right-12 w-36 h-36 bg-yellow-400/15 rounded-full blur-2xl pointer-events-none animate-pulse"></div>
 
-        <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <!-- Lado Esquerdo: Ícone + Título + Info -->
-          <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl bg-slate-950/80 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner shrink-0 cursor-pointer" onclick="openBingoCelebrationModal()">
+        <!-- Botao Fechar elegante no canto superior direito (sem vazar a borda) -->
+        <button type="button" onclick="dismissMilharBingoBanner('${b.id}')" title="Fechar este aviso"
+          class="absolute top-3 right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-950/70 hover:bg-slate-900 text-slate-400 hover:text-white border border-slate-700/60 hover:border-slate-500 flex items-center justify-center transition-all active:scale-90 cursor-pointer z-20 shadow-md backdrop-blur-sm">
+          <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+
+        <div class="relative flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+          <!-- Lado Esquerdo: Icone + Titulo + Info -->
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-slate-950/85 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner shrink-0 cursor-pointer hover:scale-105 transition-transform" onclick="openBingoCelebrationModal()">
               ${icon}
             </div>
-            <div class="space-y-0.5">
+            <div class="space-y-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${badgeColor} shadow-sm flex items-center gap-1">
                   <span>${badgeLabel}</span>
@@ -7762,17 +7770,17 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
                 <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${b.origin === 'CHAVE_MESTRA' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'} shadow-sm flex items-center gap-1">
                   ${b.origin === 'CHAVE_MESTRA' ? '⚡ Chave Mestra 3x3' : '🎯 Radar de Horário'}
                 </span>
-                <span class="text-xs sm:text-sm font-black text-white">
-                  🔥 BINGO! Nossa análise cravou em cheio!
-                </span>
               </div>
-              <div class="flex items-baseline gap-2 pt-0.5 flex-wrap">
-                <span class="text-[11px] text-slate-300 font-semibold">
+              <h4 class="text-xs sm:text-sm font-black text-white leading-snug">
+                🔥 BINGO! Nossa análise cravou em cheio!
+              </h4>
+              <div class="flex items-center gap-1.5 pt-0.5 flex-wrap text-[11px] text-slate-300">
+                <span class="font-semibold">
                   Extração: <b class="text-amber-200">${b.lottery}</b> (${b.slot}) - ${formattedDate}
                 </span>
-                <span class="text-slate-500 text-xs">•</span>
-                <span class="text-xs font-medium text-slate-300">${b.prize_desc}</span>
-                <span class="text-slate-500 text-xs">•</span>
+                <span class="text-slate-500">•</span>
+                <span class="font-medium text-slate-300">${b.prize_desc}</span>
+                <span class="text-slate-500 hidden sm:inline">•</span>
                 <span class="text-[10px] sm:text-[11px] font-bold ${b.origin === 'CHAVE_MESTRA' ? 'text-amber-300 bg-amber-950/70 border-amber-500/40' : 'text-cyan-300 bg-cyan-950/70 border-cyan-500/40'} px-2 py-0.5 rounded-md border shadow-sm">
                   Origem: ${b.origin_label || (b.origin === 'CHAVE_MESTRA' ? 'Chave Mestra (Matriz 3x3)' : 'Radar do Horário')}
                 </span>
@@ -7780,27 +7788,22 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
             </div>
           </div>
 
-          <!-- Centro/Destaque: O Número Cravado -->
-          <div class="flex items-center gap-3 self-end sm:self-center">
-            <div class="flex flex-col items-center bg-slate-950/85 border border-amber-500/40 rounded-xl px-3.5 py-1 shadow-lg cursor-pointer" onclick="openBingoCelebrationModal()">
-              <span class="text-[9px] uppercase tracking-widest text-amber-400 font-bold">Número Premiado</span>
-              <span class="font-mono text-xl sm:text-2xl font-black text-yellow-300 tracking-wider drop-shadow-[0_2px_8px_rgba(253,224,71,0.6)]">
+          <!-- Lado Direito: O Numero Cravado + Botao Ver Detalhes -->
+          <div class="flex items-center gap-2.5 sm:gap-3 shrink-0 self-end md:self-center">
+            <div class="flex flex-col items-center justify-center bg-slate-950/90 border border-amber-500/50 rounded-xl px-3.5 py-1.5 shadow-lg shadow-black/40 cursor-pointer hover:border-amber-400 transition-colors" onclick="openBingoCelebrationModal()" title="Ver celebração completa">
+              <span class="text-[9px] uppercase tracking-widest text-amber-400 font-bold leading-none mb-0.5">Número Premiado</span>
+              <span class="font-mono text-xl sm:text-2xl font-black text-yellow-300 tracking-wider leading-none drop-shadow-[0_2px_8px_rgba(253,224,71,0.6)]">
                 ${b.hit_number}
               </span>
             </div>
 
-            <!-- Botões de Ação -->
-            <div class="flex items-center gap-1.5">
-              <button type="button" onclick="goToBingoDetails()" title="Ver detalhes do acerto"
-                class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shrink-0">
-                <span>Ver Detalhes</span>
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
-              </button>
-              <button type="button" onclick="dismissMilharBingoBanner('${b.id}')" title="Fechar este aviso"
-                class="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60 active:scale-95 transition-all cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
+            <button type="button" onclick="goToBingoDetails()" title="Ver detalhes do acerto"
+              class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs shadow-md shadow-amber-500/25 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shrink-0">
+              <span>Ver Detalhes</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
