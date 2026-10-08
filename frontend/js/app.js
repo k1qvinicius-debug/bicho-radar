@@ -1832,17 +1832,19 @@ function getFriendlySlotMeta(drawSlotCode, dateStr = null) {
   return { code, name: drawSlotCode, time: '' };
 }
 
-async function initSlotSelector(lottery = currentLottery, preferredSlot = null) {
+async function initSlotSelector(lottery = currentLottery, preferredSlot = null, forceDate = null) {
   const slotSelect = document.getElementById('target-slot');
   if (!slotSelect) return;
 
   try {
     const dateInput = document.getElementById('target-date');
     const todayStr = getLocalDateStr();
-    if (dateInput && (!dateInput.value || dateInput.value < todayStr)) {
+    if (forceDate && dateInput) {
+      dateInput.value = forceDate;
+    } else if (dateInput && !dateInput.value) {
       dateInput.value = todayStr;
     }
-    const targetDate = dateInput ? dateInput.value : todayStr;
+    const targetDate = (dateInput && dateInput.value) ? dateInput.value : (forceDate || todayStr);
     let slots = [];
     try {
       const rawSlots = await api.getSlots(lottery, targetDate);
@@ -2496,17 +2498,38 @@ window.switchLottery = async function(lotteryCode, force = false) {
   showToast(`Loteria alterada para ${lotLabels[lotteryCode] || lotteryCode}!`, 'info');
 };
 
+
+window.stepTargetDate = async function(days) {
+  const dateInput = document.getElementById('target-date');
+  if (!dateInput) return;
+  const currentVal = dateInput.value || getLocalDateStr();
+  const parts = currentVal.split('-');
+  if (parts.length === 3) {
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    d.setDate(d.getDate() + days);
+    const newDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    dateInput.value = newDateStr;
+    showToast(`Carregando análise e palpites de ${newDateStr.split('-').reverse().join('/')}...`, 'info');
+    await initSlotSelector(currentLottery, null, newDateStr);
+    await loadPrediction(true);
+    await loadDrawResults();
+    updateHomeScreenData();
+  }
+};
+
 function setupEventListeners() {
   const btnRefresh = document.getElementById('btn-refresh');
   if (btnRefresh) {
     btnRefresh.addEventListener('click', async () => {
       btnRefresh.classList.add('animate-spin');
       try {
-        showToast('Atualizando resultados e recalculando palpites...', 'info');
+        const dateVal = document.getElementById('target-date')?.value || getLocalDateStr();
+        showToast(`Recalculando palpites de ${dateVal.split('-').reverse().join('/')}...`, 'info');
         try {
           await fetch(`${API_BASE}/results/sync-web?lottery=${currentLottery}`, { method: 'POST' });
         } catch (e) {}
-        await Promise.all([loadPrediction(), loadDrawResults()]);
+        await initSlotSelector(currentLottery, null, dateVal);
+        await Promise.all([loadPrediction(true), loadDrawResults()]);
         updateHomeScreenData();
         showToast('Palpites e resultados atualizados com sucesso!', 'success');
       } catch (err) {
@@ -2530,12 +2553,14 @@ function setupEventListeners() {
 
   const dateInput = document.getElementById('target-date');
   if (dateInput) {
-    dateInput.addEventListener('change', () => {
-      if (currentLottery === 'FEDERAL') {
-        initSlotSelector('FEDERAL');
-      }
-      loadPrediction();
-      loadDrawResults();
+    dateInput.addEventListener('change', async () => {
+      const chosenDate = dateInput.value;
+      if (!chosenDate) return;
+      showToast(`Carregando análise e palpites de ${chosenDate.split('-').reverse().join('/')}...`, 'info');
+      await initSlotSelector(currentLottery, null, chosenDate);
+      await loadPrediction(true);
+      await loadDrawResults();
+      updateHomeScreenData();
     });
   }
 
