@@ -1,7 +1,7 @@
 {
-  "name": "Bicho Master Pro - Inteligência em Resultados",
-  "short_name": "Bicho Master",
-  "description": "Plataforma profissional de estatísticas, atrasados, puxadas e palpites precisos do Jogo do Bicho.",
+  "name": "Radar 5×5 Pro — Inteligência de Loteria & Fechamentos",
+  "short_name": "Radar 5×5",
+  "description": "Central de inteligência preditiva, grade 5x5, ciclos estatísticos e fechamentos cirúrgicos.",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
