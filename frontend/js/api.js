@@ -864,8 +864,9 @@ const api = {
   // =========================================================================
   // MILHARES ATRASADAS & RASTREADOR ESTATISTICO
   // =========================================================================
-  async getMilharesRankings() {
-    const res = await fetch(`${API_BASE}/milhares/rankings`, {
+  async getMilharesRankings(lottery) {
+    const query = lottery ? `?lottery=${encodeURIComponent(lottery)}` : '';
+    const res = await fetch(`${API_BASE}/milhares/rankings${query}`, {
       headers: { ...getAuthHeaders() },
     });
     if (!res.ok) throw new Error('Erro ao obter ranking de milhares.');
