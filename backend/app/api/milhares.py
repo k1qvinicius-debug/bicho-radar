@@ -171,15 +171,142 @@ async def fetch_rankings_data() -> Dict[str, Any]:
     return data or _CACHE_RANKINGS["data"] or {}
 
 
+# Lista oficial de Bancas suportadas no Radar de Milhares
+LOTTERIES_AVAILABLE = [
+    {"id": "LOOK", "name": "Look Goiás", "badge": "🎯 Look-GO"},
+    {"id": "NACIONAL", "name": "Loto Nacional", "badge": "🇧🇷 Nacional"},
+    {"id": "RJ", "name": "Rio de Janeiro", "badge": "🏖️ Rio (RJ)"},
+    {"id": "FEDERAL", "name": "Loteria Federal", "badge": "🏛️ Federal"},
+    {"id": "MINAS", "name": "Minas Gerais", "badge": "🔺 Minas"},
+    {"id": "BAHIA", "name": "Bahia", "badge": "🌴 Bahia"},
+    {"id": "SP", "name": "São Paulo", "badge": "🏙️ SP"},
+]
+
+# Cache para estatísticas por banca (TTL: 10 minutos)
+_CACHE_LOTTERY_STATS: Dict[str, Dict[str, Any]] = {}
+
+
+def get_lottery_milhares_stats(lottery: str = "LOOK", limit: int = 30) -> Dict[str, Any]:
+    """Calcula as milhares mais atrasadas e mais frequentes a partir do histórico real da banca no banco de dados."""
+    lot_key = (lottery or "LOOK").strip().upper()
+    now = time.time()
+    
+    if lot_key in _CACHE_LOTTERY_STATS:
+        cached = _CACHE_LOTTERY_STATS[lot_key]
+        if now < cached["expires_at"]:
+            return cached["data"]
+            
+    try:
+        from app.database import get_db_connection
+    except ImportError:
+        get_db_connection = None
+
+    if not get_db_connection:
+        return {"lottery": lot_key, "atrasadas": [], "frequentes": [], "total_tracked": 0}
+
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        
+        # Consulta compatível SQLite e PostgreSQL
+        sql_query = """
+        SELECT m, MAX(draw_date) as last_date, COUNT(*) as total_hits
+        FROM (
+            SELECT prize_1 as m, draw_date FROM draw_results WHERE lottery = ? AND length(prize_1) = 4
+            UNION ALL SELECT prize_2, draw_date FROM draw_results WHERE lottery = ? AND length(prize_2) = 4
+            UNION ALL SELECT prize_3, draw_date FROM draw_results WHERE lottery = ? AND length(prize_3) = 4
+            UNION ALL SELECT prize_4, draw_date FROM draw_results WHERE lottery = ? AND length(prize_4) = 4
+            UNION ALL SELECT prize_5, draw_date FROM draw_results WHERE lottery = ? AND length(prize_5) = 4
+        ) t
+        GROUP BY m
+        """
+        try:
+            cur.execute(sql_query, (lot_key, lot_key, lot_key, lot_key, lot_key))
+            rows = cur.fetchall()
+        except Exception as e:
+            logger.error(f"Erro ao consultar milhares da banca {lot_key}: {e}")
+            rows = []
+
+        today = date.today()
+        all_milhares = []
+        for r in rows:
+            m = str(r[0]).zfill(4)
+            last_date_str = str(r[1])
+            total_hits = int(r[2])
+
+            dias_atraso = 0
+            try:
+                ld = date.fromisoformat(last_date_str[:10])
+                dias_atraso = max(0, (today - ld).days)
+            except Exception:
+                dias_atraso = parse_days_ago(last_date_str) or 0
+
+            bicho_data = get_bicho_for_milhar(m)
+
+            all_milhares.append({
+                "milhar": m,
+                "ultima_data": last_date_str,
+                "extracao": lot_key,
+                "premio": "1º ao 5º",
+                "dias_atraso": dias_atraso,
+                "vezes_sorteada": total_hits,
+                "grupo": bicho_data["grupo"],
+                "bicho": bicho_data["bicho"],
+                "icone": bicho_data["icone"],
+                "centena": bicho_data["centena"],
+                "dezena": bicho_data["dezena"],
+            })
+
+        # Ordenação inteligente
+        atrasadas = sorted(all_milhares, key=lambda x: (x["dias_atraso"], -x["vezes_sorteada"]), reverse=True)[:limit]
+        frequentes = sorted(all_milhares, key=lambda x: (x["vezes_sorteada"], -x["dias_atraso"]), reverse=True)[:limit]
+
+        lot_info = next((item for item in LOTTERIES_AVAILABLE if item["id"] == lot_key), {"id": lot_key, "name": lot_key, "badge": lot_key})
+
+        result_data = {
+            "lottery": lot_key,
+            "lottery_name": lot_info["name"],
+            "lottery_badge": lot_info["badge"],
+            "atrasadas": atrasadas,
+            "frequentes": frequentes,
+            "total_tracked": len(all_milhares),
+            "updated_at": datetime.now().isoformat()
+        }
+
+        _CACHE_LOTTERY_STATS[lot_key] = {
+            "data": result_data,
+            "expires_at": now + 600 # 10 minutos
+        }
+
+        return result_data
+
+
 @router.get("/rankings")
-async def get_milhares_rankings():
-    """Retorna os rankings consolidados de milhares mais atrasadas e mais sorteadas."""
-    data = await fetch_rankings_data()
+async def get_milhares_rankings(lottery: Optional[str] = None):
+    """
+    Retorna os rankings consolidados de milhares mais atrasadas e mais sorteadas.
+    Suporta filtro por qualquer banca do sistema: LOOK, NACIONAL, RJ, FEDERAL, MINAS, BAHIA, SP.
+    """
+    # 1. Se informou banca específica
+    target_lot = (lottery or "").strip().upper()
+    if target_lot:
+        stats = get_lottery_milhares_stats(target_lot)
+        return {
+            "success": True,
+            "lottery": target_lot,
+            "data": stats,
+            "available_lotteries": LOTTERIES_AVAILABLE,
+            "total_atrasadas": len(stats.get("atrasadas", [])),
+            "total_frequentes": len(stats.get("frequentes", [])),
+        }
+
+    # 2. Caso legado sem parâmetro: retorna rankings do RJ/Federal + bancas disponíveis
+    legacy_data = await fetch_rankings_data()
     return {
         "success": True,
-        "data": data,
-        "total_rj_atrasadas": len(data.get("rj_atrasadas", [])),
-        "total_federal_atrasadas": len(data.get("federal_atrasadas", [])),
+        "data": legacy_data,
+        "available_lotteries": LOTTERIES_AVAILABLE,
+        "total_rj_atrasadas": len(legacy_data.get("rj_atrasadas", [])),
+        "total_federal_atrasadas": len(legacy_data.get("federal_atrasadas", [])),
     }
 
 
