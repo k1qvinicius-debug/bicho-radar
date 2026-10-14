@@ -248,7 +248,7 @@ window.switchScreen = switchScreen;
 
 function switchScreen(screenName, updateHash = true) {
   window.switchScreen = switchScreen;
-  const screens = ['home', 'palpites', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+  const screens = ['home', 'palpites', 'aps', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   if (!screens.includes(screenName)) screenName = 'home';
 
   const currentTenant = api.getCurrentTenant();
@@ -272,6 +272,11 @@ function switchScreen(screenName, updateHash = true) {
   document.documentElement.removeAttribute('data-initial-screen');
 
   // Oculta todas as telas e exibe a selecionada
+  if (screenName === 'aps') {
+    if (typeof window.renderApsScreen === 'function') {
+      window.renderApsScreen();
+    }
+  }
   if (screenName === 'coluna-data') {
     if (typeof window.renderColunaDataScreen === 'function') {
       window.renderColunaDataScreen();
@@ -292,7 +297,7 @@ function switchScreen(screenName, updateHash = true) {
   // Oculta a barra de loterias na tela da Cruz do Dia e no Início
   const globalLotteryBar = document.getElementById('global-lottery-bar-container');
   if (globalLotteryBar) {
-    if (screenName === 'cruz' || screenName === 'home' || screenName === 'coluna-data' || screenName === 'milhares-atrasadas' || screenName === 'centena-master' || screenName === 'matriz') {
+    if (screenName === 'cruz' || screenName === 'home' || screenName === 'aps' || screenName === 'coluna-data' || screenName === 'milhares-atrasadas' || screenName === 'centena-master' || screenName === 'matriz') {
       globalLotteryBar.classList.add('hidden');
     } else {
       globalLotteryBar.classList.remove('hidden');
@@ -334,6 +339,13 @@ function switchScreen(screenName, updateHash = true) {
 
   if (navBtnHome) navBtnHome.className = (screenName === 'home') ? activeDesktopClass : inactiveDesktopClass;
   if (navBtnPalpites) navBtnPalpites.className = (screenName === 'palpites') ? activeDesktopClass : inactiveDesktopClass;
+  const navBtnAps = document.getElementById('nav-btn-aps');
+  if (navBtnAps) {
+    navBtnAps.className = (screenName === 'aps')
+      ? 'px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-bold transition-all'
+      : 'px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-400 hover:text-white hover:bg-slate-800 transition-all border border-amber-500/30';
+  }
+  
   if (navBtnCruz) navBtnCruz.className = (screenName === 'cruz') ? activeDesktopClass : inactiveDesktopClass;
   if (navBtnResultados) navBtnResultados.className = (screenName === 'resultados') ? activeDesktopClass : inactiveDesktopClass;
   const navBtnColunaData = document.getElementById('nav-btn-coluna-data');
@@ -8952,3 +8964,518 @@ document.addEventListener('keydown', function(e) {
     }
   }
 });
+
+
+// =============================================================================
+// IMPLEMENTAÇÃO COMPLETA DO MÉTODO APS (APOSTANDO COM SABEDORIA)
+// =============================================================================
+
+window.currentApsLottery = 'NACIONAL';
+window.currentApsData = null;
+
+function switchApsLottery(lottery) {
+  window.currentApsLottery = lottery || 'NACIONAL';
+  
+  // Atualiza pílulas do seletor
+  const pills = document.querySelectorAll('.aps-lot-pill');
+  pills.forEach(p => {
+    const lot = p.getAttribute('data-aps-lot');
+    if (lot === window.currentApsLottery) {
+      p.className = 'aps-lot-pill px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer bg-amber-500 text-slate-950 border-amber-400 shadow-sm';
+    } else {
+      p.className = 'aps-lot-pill px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer bg-slate-800/90 text-slate-300 border-slate-700 hover:text-white';
+    }
+  });
+
+  renderApsScreen(true);
+}
+window.switchApsLottery = switchApsLottery;
+
+function refreshApsAnalysis() {
+  renderApsScreen(true);
+}
+window.refreshApsAnalysis = refreshApsAnalysis;
+
+function toggleApsLiveSimulator() {
+  const panel = document.getElementById('aps-live-simulator-panel');
+  if (panel) {
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) {
+      const p1 = document.getElementById('sim-p1');
+      if (p1) p1.focus();
+    }
+  }
+}
+window.toggleApsLiveSimulator = toggleApsLiveSimulator;
+
+async function executeApsSimulation() {
+  const p1 = document.getElementById('sim-p1')?.value?.trim();
+  const p2 = document.getElementById('sim-p2')?.value?.trim();
+  const p3 = document.getElementById('sim-p3')?.value?.trim();
+  const p4 = document.getElementById('sim-p4')?.value?.trim();
+
+  const prizes = [p1, p2, p3, p4].filter(p => p && p.length >= 3);
+  if (prizes.length === 0) {
+    showToast('Informe ao menos 1 milhar válida (ex: 2050)', 'error');
+    return;
+  }
+
+  const topPedras = window.currentApsData?.pedras_analysis?.top_pedras || [8, 6, 3];
+
+  try {
+    const btn = document.querySelector('#aps-live-simulator-panel button');
+    if (btn) btn.innerText = 'Calculando...';
+
+    const simRes = await api.simulateAps(prizes, topPedras);
+    
+    // Atualiza 12 Ternos e 60 MC com o resultado simulado
+    if (simRes && simRes.ternos_12) {
+      renderApsTernos(simRes.ternos_12);
+    }
+    if (simRes && simRes.fechamento_60_mc) {
+      renderAps60MC(simRes.fechamento_60_mc);
+    }
+
+    showToast('Simulação calculada com sucesso! Ternos e 60 MC atualizados.', 'success');
+  } catch (err) {
+    showToast(err.message || 'Erro na simulação.', 'error');
+  } finally {
+    const btn = document.querySelector('#aps-live-simulator-panel button');
+    if (btn) btn.innerText = '🚀 Calcular Inversão, 12 Ternos e 60 MC';
+  }
+}
+window.executeApsSimulation = executeApsSimulation;
+
+async function renderApsScreen(forceRefresh = false) {
+  const container = document.getElementById('view-aps');
+  if (!container) return;
+
+  const refreshBtn = document.getElementById('btn-aps-refresh');
+  if (refreshBtn) refreshBtn.innerHTML = '<span>⏳</span> Carregando...';
+
+  try {
+    const data = await api.getApsMethod(window.currentApsLottery);
+    window.currentApsData = data;
+
+    // 1. Renderiza Alertas de Linha e Saturação
+    renderApsAlerts(data);
+
+    // 2. Renderiza a Grade 5x5 Canônica
+    renderApsGrid5x5(data);
+
+    // 3. Renderiza Pedras de Centena Líderes
+    renderApsPedras(data.pedras_analysis);
+
+    // 4. Renderiza Ciclo D3
+    renderApsD3(data.d3_cycle);
+
+    // 5. Renderiza Bichos de Elite Selecionados
+    renderApsEliteAnimals(data.elite_animals);
+
+    // 6. Renderiza Centenas Cirúrgicas
+    renderApsCentenas(data.centenas_cirurgicas);
+
+    // 7. Renderiza 12 Ternos de Dezena
+    renderApsTernos(data.ternos_de_dezena_12);
+
+    // 8. Renderiza Fechamento 60 MC
+    renderAps60MC(data.fechamento_60_mc);
+
+  } catch (err) {
+    console.error('Erro ao renderizar tela APS:', err);
+    showToast('Erro ao carregar análise do Método APS: ' + err.message, 'error');
+  } finally {
+    if (refreshBtn) refreshBtn.innerHTML = '<span>🔄</span> Atualizar Leitura';
+  }
+}
+window.renderApsScreen = renderApsScreen;
+
+function renderApsAlerts(data) {
+  const container = document.getElementById('aps-alerts-container');
+  if (!container) return;
+
+  const grid = data.grid_analysis || {};
+  const alertRows = grid.alert_rows || [];
+  const saturatedRows = grid.saturated_rows || [];
+  const alertCols = grid.alert_cols || [];
+
+  let html = '';
+
+  if (alertRows.length > 0) {
+    alertRows.forEach(r => {
+      const rData = grid.rows_status[r] || {};
+      const animalsText = (rData.animals || []).join(', ');
+      html += `
+        <div class="rounded-xl p-3 bg-gradient-to-r from-rose-950/70 via-rose-900/30 to-slate-900 border border-rose-500/50 shadow-lg flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">🚨</span>
+            <div>
+              <div class="text-xs font-black text-rose-300 tracking-wide uppercase">
+                ALERTA MÁXIMO • LINHA ${r} ABERTA (${rData.absent_draws} rodadas ausente)
+              </div>
+              <div class="text-[11px] text-slate-300">
+                Brecha de compensação na Linha ${r}: <strong>${animalsText}</strong>
+              </div>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-rose-500 text-white shadow-sm shrink-0">FOCO TOTAL</span>
+        </div>
+      `;
+    });
+  }
+
+  if (saturatedRows.length > 0) {
+    const sList = saturatedRows.map(r => `Linha ${r}`).join(' e ');
+    html += `
+      <div class="rounded-xl p-3 bg-slate-900/90 border border-indigo-500/40 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">⚡</span>
+          <div>
+            <div class="text-xs font-bold text-indigo-300 uppercase">
+              SATURAÇÃO DETECTADA: ${sList}
+            </div>
+            <div class="text-[11px] text-slate-400">
+              Concentração excessiva de saídas recentes. Alta probabilidade estatística de rotação para as linhas restantes.
+            </div>
+          </div>
+        </div>
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 shrink-0">ROTAÇÃO</span>
+      </div>
+    `;
+  }
+
+  if (alertCols.length > 0) {
+    html += `
+      <div class="rounded-xl p-2.5 bg-slate-900/80 border border-amber-500/30 flex items-center gap-2">
+        <span class="text-sm">⚠️</span>
+        <span class="text-[11px] text-amber-200">
+          <strong>Colunas em Observação:</strong> Coluna(s) ${alertCols.join(', ')} sem premiação recente.
+        </span>
+      </div>
+    `;
+  }
+
+  if (!html) {
+    html = `
+      <div class="rounded-xl p-2.5 bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
+        <span>✅</span> Grade em equilíbrio dinâmico. Monitorando movimentações da rodada.
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
+function renderApsGrid5x5(data) {
+  const container = document.getElementById('aps-grid-5x5-table');
+  if (!container) return;
+
+  const def = data.grid_definition || {};
+  const analysis = data.grid_analysis || {};
+  const rows = def.grid_rows || [];
+  const alertRows = analysis.alert_rows || [];
+  const saturatedRows = analysis.saturated_rows || [];
+  const eliteGroups = (data.elite_animals || []).map(a => a.group);
+
+  let html = '';
+
+  rows.forEach(r => {
+    const rIdx = r.row_index;
+    const isAlert = alertRows.includes(rIdx);
+    const isSat = saturatedRows.includes(rIdx);
+    const rStatus = analysis.rows_status ? analysis.rows_status[rIdx] : {};
+    
+    let rowBorder = 'border-slate-800 bg-slate-950/40';
+    let rowBadge = '<span class="text-[10px] text-slate-400 font-medium">Equilíbrio</span>';
+
+    if (isAlert) {
+      rowBorder = 'border-rose-500/50 bg-rose-950/20 shadow-md shadow-rose-950/30';
+      rowBadge = `<span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/40">⚠️ ALERTA (${rStatus.absent_draws || 0} ausências)</span>`;
+    } else if (isSat) {
+      rowBorder = 'border-indigo-500/40 bg-indigo-950/20';
+      rowBadge = `<span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30">🔥 Saturada</span>`;
+    }
+
+    html += `
+      <div class="rounded-xl border ${rowBorder} p-2.5 transition-all">
+        <div class="flex items-center justify-between mb-2 px-1">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-black text-amber-300 uppercase">Linha ${rIdx}</span>
+            <span class="text-[11px] text-slate-400">(Grupos ${r.animals[0].group} a ${r.animals[4].group})</span>
+          </div>
+          <div>${rowBadge}</div>
+        </div>
+
+        <div class="grid grid-cols-5 gap-1.5 sm:gap-2">
+    `;
+
+    r.animals.forEach(anim => {
+      const g = anim.group;
+      const animStatus = analysis.animals_status ? analysis.animals_status[g] : {};
+      const isElite = eliteGroups.includes(g);
+      const isHit = animStatus && animStatus.absent_draws === 0;
+
+      let cardStyle = 'bg-slate-900 border-slate-800 text-slate-300';
+      let eliteTag = '';
+
+      if (isElite) {
+        cardStyle = 'bg-gradient-to-b from-amber-500/20 to-slate-900 border-amber-500/60 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/40';
+        eliteTag = '<span class="absolute -top-1 -right-1 text-[9px] bg-amber-500 text-slate-950 font-black px-1 rounded-full">⭐</span>';
+      } else if (isHit) {
+        cardStyle = 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200';
+      } else if (isAlert) {
+        cardStyle = 'bg-rose-950/20 border-rose-500/30 text-rose-100 hover:border-rose-400';
+      }
+
+      html += `
+        <div class="relative rounded-lg border p-1.5 sm:p-2 text-center transition-all ${cardStyle}">
+          ${eliteTag}
+          <div class="text-base sm:text-lg mb-0.5">${anim.emoji || '🐾'}</div>
+          <div class="text-[11px] sm:text-xs font-bold truncate">${anim.name}</div>
+          <div class="text-[10px] text-amber-400 font-mono font-semibold">G${String(g).padStart(2, '0')}</div>
+          <div class="text-[9px] text-slate-400 font-mono mt-0.5 truncate">${(anim.tens || []).join(' ')}</div>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function renderApsPedras(pedrasData) {
+  const podium = document.getElementById('aps-pedras-podium');
+  const bars = document.getElementById('aps-pedras-bars');
+  if (!podium || !bars || !pedrasData) return;
+
+  const topPedras = pedrasData.top_pedras || [8, 6, 3];
+  const ranking = pedrasData.pedras_ranking || [];
+
+  // Pódio com as 3 pedras líderes
+  let phtml = '';
+  const medals = ['🥇', '🥈', '🥉'];
+  topPedras.forEach((d, idx) => {
+    const item = ranking.find(r => r.digit === d) || { count: 0, percentage: 0 };
+    phtml += `
+      <div class="rounded-xl bg-gradient-to-b from-amber-500/20 to-slate-950 border border-amber-500/50 p-2.5 text-center shadow-lg">
+        <div class="text-xs mb-0.5">${medals[idx] || '⭐'}</div>
+        <div class="text-2xl font-black text-amber-300 font-mono">${d}</div>
+        <div class="text-[10px] font-bold text-white uppercase mt-0.5">Pedra ${d}</div>
+        <div class="text-[9px] text-slate-400 font-mono">${item.percentage}% saídas</div>
+      </div>
+    `;
+  });
+  podium.innerHTML = phtml;
+
+  // Barras de frequência dos 10 dígitos (0 a 9)
+  let bhtml = '';
+  const sortedDigits = [...ranking].sort((a, b) => a.digit - b.digit);
+  sortedDigits.forEach(item => {
+    const isTop = topPedras.includes(item.digit);
+    const barWidth = Math.min(100, Math.max(5, item.percentage * 3));
+    const barColor = isTop ? 'bg-amber-400' : 'bg-slate-600';
+    const textColor = isTop ? 'text-amber-300 font-bold' : 'text-slate-400';
+
+    bhtml += `
+      <div class="flex items-center gap-2 text-[10px]">
+        <span class="w-4 font-mono font-bold ${textColor}">${item.digit}</span>
+        <div class="flex-1 bg-slate-950 rounded-full h-1.5 overflow-hidden">
+          <div class="${barColor} h-full rounded-full transition-all" style="width: ${barWidth}%;"></div>
+        </div>
+        <span class="w-8 text-right font-mono text-[9px] text-slate-500">${item.count}x</span>
+      </div>
+    `;
+  });
+  bars.innerHTML = bhtml;
+}
+
+function renderApsD3(d3Data) {
+  const container = document.getElementById('aps-d3-candidates-list');
+  if (!container || !d3Data) return;
+
+  const candidates = d3Data.d3_candidates || [];
+  if (candidates.length === 0) {
+    container.innerHTML = '<span class="text-xs text-slate-500">Nenhum bicho acumulado no ciclo D3.</span>';
+    return;
+  }
+
+  let html = '';
+  candidates.forEach(c => {
+    html += `
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-950/60 text-indigo-200 border border-indigo-500/30">
+        <span>${c.emoji || '🐾'}</span>
+        <span>${c.name}</span>
+        <span class="text-[10px] text-indigo-400 font-mono">(G${String(c.group).padStart(2, '0')})</span>
+      </span>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function renderApsEliteAnimals(eliteAnimals) {
+  const container = document.getElementById('aps-elite-animals-container');
+  if (!container || !eliteAnimals) return;
+
+  let html = '';
+  eliteAnimals.forEach((anim, idx) => {
+    const reasonsHtml = (anim.reasons || []).map(r => `
+      <div class="text-[10px] text-slate-300 flex items-start gap-1">
+        <span class="text-amber-400 shrink-0">•</span>
+        <span>${r}</span>
+      </div>
+    `).join('');
+
+    html += `
+      <div class="rounded-xl bg-gradient-to-b from-slate-800/90 to-slate-950 border border-amber-500/40 p-3.5 shadow-xl relative overflow-hidden flex flex-col justify-between">
+        <div class="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 uppercase">
+              #${idx + 1} DE ELITE
+            </span>
+            <span class="text-xs font-mono font-bold text-amber-300">
+              Score: ${anim.aps_score}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-2xl">${anim.emoji || '🐾'}</span>
+            <div>
+              <div class="text-sm font-black text-white">${anim.name}</div>
+              <div class="text-[11px] text-amber-400 font-mono font-bold">Grupo ${String(anim.group).padStart(2, '0')} • Linha ${anim.row}</div>
+            </div>
+          </div>
+
+          <div class="text-[11px] text-slate-400 font-mono bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800 mb-2.5">
+            Dezenas: <strong class="text-slate-200">${(anim.tens || []).join(', ')}</strong>
+          </div>
+
+          <div class="space-y-1 mb-2">
+            ${reasonsHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function renderApsCentenas(centenasData) {
+  const container = document.getElementById('aps-centenas-cirurgicas-container');
+  if (!container || !centenasData) return;
+
+  let html = '';
+  centenasData.forEach(item => {
+    const centenasBadges = (item.centenas || []).map(c => `
+      <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800 select-all hover:border-amber-400/50 transition-all">${c}</span>
+    `).join('');
+
+    html += `
+      <div class="rounded-xl bg-slate-950/60 border border-slate-800 p-3.5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-lg">${item.emoji || '🐾'}</span>
+              <span class="text-xs font-black text-white">${item.name} (G${String(item.group).padStart(2, '0')})</span>
+            </div>
+            <span class="text-[10px] text-slate-400">Pedras: <strong class="text-amber-300">${(item.pedras || []).join(', ')}</strong></span>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            ${centenasBadges}
+          </div>
+        </div>
+
+        <button type="button" onclick="copyTextToClipboard('${(item.centenas || []).join(', ')}', 'Centenas do ${item.name} copiadas!')" class="mt-2 w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[11px] font-bold transition-all cursor-pointer">
+          📋 Copiar Centenas do ${item.name}
+        </button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function renderApsTernos(ternos) {
+  const container = document.getElementById('aps-ternos-list');
+  if (!container || !ternos) return;
+
+  let html = '';
+  ternos.forEach((t, idx) => {
+    html += `
+      <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-amber-500/40 transition-all">
+        <span class="text-[10px] font-mono text-slate-500 font-bold">#${String(idx + 1).padStart(2, '0')}</span>
+        <span class="font-mono text-xs font-bold text-amber-300 tracking-wider">${t}</span>
+        <button type="button" onclick="copyTextToClipboard('${t}', 'Terno copiado!')" class="text-[10px] text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-slate-800 cursor-pointer">📋</button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function renderAps60MC(mcList) {
+  const container = document.getElementById('aps-60mc-container');
+  const countEl = document.getElementById('aps-60mc-count');
+  if (!container || !mcList) return;
+
+  if (countEl) countEl.innerText = mcList.length;
+
+  container.innerHTML = mcList.map(m => `
+    <span class="inline-block px-1.5 py-0.5 m-0.5 rounded bg-slate-900 border border-slate-800 font-mono font-bold text-amber-300 hover:border-amber-400/60 select-all cursor-pointer" onclick="copyTextToClipboard('${m}', 'MC copiada!')">${m}</span>
+  `).join('');
+}
+
+function copyApsCentenas() {
+  if (!window.currentApsData || !window.currentApsData.centenas_cirurgicas) return;
+  const allCentenas = [];
+  window.currentApsData.centenas_cirurgicas.forEach(item => {
+    (item.centenas || []).forEach(c => allCentenas.push(c));
+  });
+  copyTextToClipboard(allCentenas.join(', '), `${allCentenas.length} centenas copiadas!`);
+}
+window.copyApsCentenas = copyApsCentenas;
+
+function copyApsTernos() {
+  if (!window.currentApsData || !window.currentApsData.ternos_de_dezena_12) return;
+  copyTextToClipboard(window.currentApsData.ternos_de_dezena_12.join('\n'), '12 Ternos de Dezena copiados!');
+}
+window.copyApsTernos = copyApsTernos;
+
+function copyAps60MC() {
+  if (!window.currentApsData || !window.currentApsData.fechamento_60_mc) return;
+  copyTextToClipboard(window.currentApsData.fechamento_60_mc.join(', '), '60 MC copiadas!');
+}
+window.copyAps60MC = copyAps60MC;
+
+function copyTextToClipboard(text, successMsg) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(successMsg || 'Copiado para a área de transferência!', 'success');
+    }).catch(() => {
+      fallbackCopy(text, successMsg);
+    });
+  } else {
+    fallbackCopy(text, successMsg);
+  }
+}
+window.copyTextToClipboard = copyTextToClipboard;
+
+function fallbackCopy(text, successMsg) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast(successMsg || 'Copiado para a área de transferência!', 'success');
+  } catch(e) {
+    showToast('Falha ao copiar.', 'error');
+  }
+  document.body.removeChild(ta);
+}
