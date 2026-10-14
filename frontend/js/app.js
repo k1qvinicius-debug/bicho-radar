@@ -6706,27 +6706,125 @@ window.switchPuxadasLottery = async function (lotteryCode) {
 let _milharesDataCache = null;
 let currentMilharesTab = 'rj_atrasadas';
 
+// Estado do Radar de Milhares Multi-Bancas
+let currentMilharesLottery = localStorage.getItem('bicho_active_lottery') || 'LOOK';
+let currentMilharesType = 'atrasadas';
+let _milharesLotteryCache = {};
+
+window.switchMilharesLottery = async function(lotKey) {
+  currentMilharesLottery = (lotKey || 'LOOK').toUpperCase();
+  updateMilharesLotteryButtons();
+  await window.loadMilharesAtrasadas();
+};
+
+window.switchMilharesType = function(typeKey) {
+  currentMilharesType = (typeKey === 'frequentes') ? 'frequentes' : 'atrasadas';
+  updateMilharesTypeButtons();
+  updateMilharesTabDesc();
+  renderMilharesTable();
+};
+
+function updateMilharesLotteryButtons() {
+  const lotteries = ['LOOK', 'NACIONAL', 'RJ', 'FEDERAL', 'MINAS', 'BAHIA', 'SP'];
+  lotteries.forEach(lot => {
+    const btn = document.getElementById(`btn-milhares-lot-${lot}`);
+    if (btn) {
+      if (lot === currentMilharesLottery) {
+        btn.className = 'milhares-lot-btn px-2.5 py-1.5 rounded-lg text-xs font-black transition-all whitespace-nowrap bg-amber-500 text-slate-950 shadow-sm cursor-pointer';
+      } else {
+        btn.className = 'milhares-lot-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer';
+      }
+    }
+  });
+}
+
+function updateMilharesTypeButtons() {
+  const btnAtrasadas = document.getElementById('btn-milhares-type-atrasadas');
+  const btnFrequentes = document.getElementById('btn-milhares-type-frequentes');
+
+  if (btnAtrasadas) {
+    if (currentMilharesType === 'atrasadas') {
+      btnAtrasadas.className = 'milhares-type-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap bg-indigo-600 text-white shadow-sm cursor-pointer';
+    } else {
+      btnAtrasadas.className = 'milhares-type-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer';
+    }
+  }
+
+  if (btnFrequentes) {
+    if (currentMilharesType === 'frequentes') {
+      btnFrequentes.className = 'milhares-type-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap bg-amber-500 text-slate-950 shadow-sm cursor-pointer';
+    } else {
+      btnFrequentes.className = 'milhares-type-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer';
+    }
+  }
+}
+
+function updateMilharesTabDesc() {
+  const descEl = document.getElementById('milhares-tab-desc');
+  const badgeEl = document.getElementById('milhares-lottery-badge');
+  const lotNames = {
+    LOOK: 'Look Goiás',
+    NACIONAL: 'Loto Nacional',
+    RJ: 'Rio de Janeiro',
+    FEDERAL: 'Loteria Federal',
+    MINAS: 'Minas Gerais',
+    BAHIA: 'Bahia',
+    SP: 'São Paulo',
+  };
+  const activeName = lotNames[currentMilharesLottery] || currentMilharesLottery;
+  if (badgeEl) badgeEl.textContent = activeName;
+
+  if (descEl) {
+    if (currentMilharesType === 'atrasadas') {
+      descEl.textContent = `As milhares com maior seca (dias decorridos sem aparição do 1º ao 5º prêmio) na apuração de ${activeName}.`;
+    } else {
+      descEl.textContent = `As milhares com maior número de saídas registradas do 1º ao 5º prêmio na apuração de ${activeName}.`;
+    }
+  }
+}
+
+// Retrocompatibilidade
+window.switchMilharesTab = function(tabKey) {
+  if (tabKey.startsWith('federal_')) {
+    currentMilharesLottery = 'FEDERAL';
+    currentMilharesType = tabKey.includes('atrasadas') ? 'atrasadas' : 'frequentes';
+  } else if (tabKey.startsWith('rj_')) {
+    currentMilharesLottery = 'RJ';
+    currentMilharesType = tabKey.includes('atrasadas') ? 'atrasadas' : 'frequentes';
+  }
+  updateMilharesLotteryButtons();
+  updateMilharesTypeButtons();
+  updateMilharesTabDesc();
+  window.loadMilharesAtrasadas();
+};
+
 window.loadMilharesAtrasadas = async function(forceRefresh = false) {
   const refreshBtn = document.getElementById('btn-refresh-milhares');
   const refreshIcon = document.getElementById('milhares-refresh-icon');
   const lastUpdatedEl = document.getElementById('milhares-last-updated');
+  const badgeEl = document.getElementById('milhares-lottery-badge');
 
   if (forceRefresh) {
-    _milharesDataCache = null;
+    delete _milharesLotteryCache[currentMilharesLottery];
   }
 
   if (refreshBtn) refreshBtn.disabled = true;
   if (refreshIcon) refreshIcon.classList.add('animate-spin');
 
   try {
-    if (!_milharesDataCache) {
-      const res = await api.getMilharesRankings();
-      _milharesDataCache = res.data || {};
+    if (!_milharesLotteryCache[currentMilharesLottery]) {
+      const res = await api.getMilharesRankings(currentMilharesLottery);
+      _milharesLotteryCache[currentMilharesLottery] = res.data || {};
     }
 
-    if (lastUpdatedEl && _milharesDataCache.updated_at) {
+    const data = _milharesLotteryCache[currentMilharesLottery] || {};
+    if (badgeEl && data.lottery_name) {
+      badgeEl.textContent = data.lottery_name;
+    }
+
+    if (lastUpdatedEl && data.updated_at) {
       try {
-        const dt = new Date(_milharesDataCache.updated_at);
+        const dt = new Date(data.updated_at);
         lastUpdatedEl.textContent = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       } catch {
         lastUpdatedEl.textContent = 'Hoje';
@@ -6735,7 +6833,10 @@ window.loadMilharesAtrasadas = async function(forceRefresh = false) {
       lastUpdatedEl.textContent = 'Hoje';
     }
 
-    renderMilharesTable(currentMilharesTab);
+    updateMilharesLotteryButtons();
+    updateMilharesTypeButtons();
+    updateMilharesTabDesc();
+    renderMilharesTable();
   } catch (err) {
     console.error('Erro ao carregar rankings de milhares:', err);
     const tbody = document.getElementById('milhares-table-body');
@@ -6745,7 +6846,7 @@ window.loadMilharesAtrasadas = async function(forceRefresh = false) {
           <td colspan="7" class="py-8 text-center text-rose-400">
             <div class="flex flex-col items-center justify-center gap-2">
               <span class="text-xl">⚠️</span>
-              <p class="font-bold">Não foi possível sincronizar o ranking de milhares no momento.</p>
+              <p class="font-bold">Não foi possível sincronizar o ranking de milhares para ${currentMilharesLottery}.</p>
               <button onclick="loadMilharesAtrasadas(true)" class="px-3 py-1.5 rounded-lg bg-slate-800 text-amber-300 border border-slate-700 text-xs font-bold hover:bg-slate-700 transition-all cursor-pointer">
                 Tentar novamente
               </button>
@@ -6761,35 +6862,80 @@ window.loadMilharesAtrasadas = async function(forceRefresh = false) {
   }
 };
 
-window.switchMilharesTab = function(tabKey) {
-  const validTabs = ['rj_atrasadas', 'rj_frequentes', 'federal_atrasadas', 'federal_frequentes'];
-  if (!validTabs.includes(tabKey)) tabKey = 'rj_atrasadas';
-  currentMilharesTab = tabKey;
+function renderMilharesTable() {
+  const tbody = document.getElementById('milhares-table-body');
+  const countBadge = document.getElementById('milhares-count-badge');
+  if (!tbody) return;
 
-  validTabs.forEach(t => {
-    const btn = document.getElementById(`tab-milhares-${t}`);
-    if (btn) {
-      if (t === tabKey) {
-        btn.className = 'milhares-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap bg-amber-500 text-slate-950 shadow-sm cursor-pointer';
-      } else {
-        btn.className = 'milhares-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer';
-      }
-    }
-  });
-
-  const descEl = document.getElementById('milhares-tab-desc');
-  if (descEl) {
-    const descriptions = {
-      rj_atrasadas: 'As milhares com maior quantidade de dias corridos sem aparição do 1º ao 5º prêmio na apuração do Rio de Janeiro.',
-      rj_frequentes: 'As milhares que mais vezes foram sorteadas do 1º ao 5º prêmio na apuração do Rio de Janeiro.',
-      federal_atrasadas: 'As milhares mais atrasadas na Loteria Federal (maior seca de extrações sem sair).',
-      federal_frequentes: 'As milhares com maior histórico de saídas registradas na Loteria Federal.',
-    };
-    descEl.textContent = descriptions[tabKey] || '';
+  const data = _milharesLotteryCache[currentMilharesLottery] || {};
+  let items = data[currentMilharesType] || [];
+  
+  // Fallback caso seja formato legado
+  if ((!items || items.length === 0) && data[`${currentMilharesLottery.toLowerCase()}_${currentMilharesType}`]) {
+    items = data[`${currentMilharesLottery.toLowerCase()}_${currentMilharesType}`];
   }
 
-  renderMilharesTable(tabKey);
-};
+  if (countBadge) countBadge.textContent = items.length;
+
+  if (!items || items.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="py-8 text-center text-slate-400">
+          Nenhuma milhar registrada nesta categoria para ${currentMilharesLottery} no momento.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const isAtrasadas = currentMilharesType === 'atrasadas';
+
+  tbody.innerHTML = items.map((item, idx) => {
+    const rankNum = idx + 1;
+    let rankBadge = `<span class="font-bold text-slate-400">${rankNum}º</span>`;
+    if (rankNum === 1) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 font-black text-xs">🥇</span>`;
+    else if (rankNum === 2) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-400/20 text-slate-200 border border-slate-400/50 font-black text-xs">🥈</span>`;
+    else if (rankNum === 3) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700/20 text-amber-500 border border-amber-700/50 font-black text-xs">🥉</span>`;
+
+    const atrasoHtml = isAtrasadas
+      ? `<span class="text-amber-400 font-black font-mono text-sm">${item.dias_atraso !== null && item.dias_atraso !== undefined ? item.dias_atraso + ' dias' : '--'}</span>`
+      : `<span class="text-emerald-400 font-bold font-mono text-sm">${item.vezes_sorteada ? item.vezes_sorteada + ' vezes' : (item.dias_atraso ? item.dias_atraso + ' dias atrás' : 'Alta')}</span>`;
+
+    return `
+      <tr class="hover:bg-slate-900/60 transition-colors">
+        <td class="py-2.5 px-3 text-center">${rankBadge}</td>
+        <td class="py-2.5 px-3">
+          <span class="font-mono font-black text-amber-300 text-sm tracking-wider">${item.milhar}</span>
+        </td>
+        <td class="py-2.5 px-3">
+          <div class="flex items-center gap-2">
+            <span class="text-base">${item.icone || '🎯'}</span>
+            <div>
+              <div class="font-bold text-white">${item.bicho || 'Bicho'}</div>
+              <div class="text-[10px] text-slate-400">Grupo ${String(item.grupo).padStart(2, '0')}</div>
+            </div>
+          </div>
+        </td>
+        <td class="py-2.5 px-3 text-slate-300 font-mono text-xs">
+          ${item.ultima_data || '--'}
+        </td>
+        <td class="py-2.5 px-3 text-slate-400 text-xs">
+          ${item.extracao || currentMilharesLottery} <span class="text-slate-500">(${item.premio || '1º ao 5º'})</span>
+        </td>
+        <td class="py-2.5 px-3 text-right">
+          ${atrasoHtml}
+        </td>
+        <td class="py-2.5 px-3 text-center">
+          <button type="button" onclick="quickTrackMilhar('${item.milhar}')"
+            class="px-2 py-1 rounded bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 text-[11px] font-bold border border-slate-700 transition-all cursor-pointer"
+            title="Rastrear esta milhar detalhadamente">
+            🔍 Rastrear
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
 
 function renderMilharesTable(tabKey) {
   const tbody = document.getElementById('milhares-table-body');
