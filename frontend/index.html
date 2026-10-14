@@ -2248,28 +2248,59 @@
       <!-- Seção de Rankings das Milhares -->
       <div class="card-glass p-3.5 sm:p-4 rounded-xl border border-slate-800 space-y-3">
         <!-- Navegação de Abas do Ranking -->
-        <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-800">
-          <div class="flex items-center gap-1.5 p-1 bg-slate-950/80 rounded-xl border border-slate-800/80 overflow-x-auto max-w-full">
-            <button type="button" onclick="switchMilharesTab('rj_atrasadas')" id="tab-milhares-rj_atrasadas"
-              class="milhares-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap bg-amber-500 text-slate-950 shadow-sm cursor-pointer">
-              🎰 RJ - Mais Atrasadas
-            </button>
-            <button type="button" onclick="switchMilharesTab('rj_frequentes')" id="tab-milhares-rj_frequentes"
-              class="milhares-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
-              🔥 RJ - Mais Frequentes
-            </button>
-            <button type="button" onclick="switchMilharesTab('federal_atrasadas')" id="tab-milhares-federal_atrasadas"
-              class="milhares-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
-              🏛️ Federal - Mais Atrasadas
-            </button>
-            <button type="button" onclick="switchMilharesTab('federal_frequentes')" id="tab-milhares-federal_frequentes"
-              class="milhares-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
-              ⭐ Federal - Mais Frequentes
-            </button>
+        <!-- Seletor de Banca / Loteria e Tipo de Ranking -->
+        <div class="space-y-2.5 pb-2 border-b border-slate-800">
+          <!-- 1. Linha de Seleção da Banca (Todas as 7 Bancas do Sistema) -->
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-1.5 p-1 bg-slate-950/90 rounded-xl border border-slate-800/90 overflow-x-auto max-w-full">
+              <button type="button" onclick="switchMilharesLottery('LOOK')" id="btn-milhares-lot-LOOK"
+                class="milhares-lot-btn px-2.5 py-1.5 rounded-lg text-xs font-black transition-all whitespace-nowrap bg-amber-500 text-slate-950 shadow-sm cursor-pointer">
+                🎯 Look Goiás
+              </button>
+              <button type="button" onclick="switchMilharesLottery('NACIONAL')" id="btn-milhares-lot-NACIONAL"
+                class="milhares-lot-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+                🇧🇷 Nacional
+              </button>
+              <button type="button" onclick="switchMilharesLottery('RJ')" id="btn-milhares-lot-RJ"
+                class="milhares-lot-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+                🏖️ Rio (RJ)
+              </button>
+              <button type="button" onclick="switchMilharesLottery('FEDERAL')" id="btn-milhares-lot-FEDERAL"
+                class="milhares-lot-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+                🏛️ Federal
+              </button>
+              <button type="button" onclick="switchMilharesLottery('MINAS')" id="btn-milhares-lot-MINAS"
+                class="milhares-lot-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+                🔺 Minas
+              </button>
+              <button type="button" onclick="switchMilharesLottery('BAHIA')" id="btn-milhares-lot-BAHIA"
+                class="milhares-lot-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+                🌴 Bahia
+              </button>
+              <button type="button" onclick="switchMilharesLottery('SP')" id="btn-milhares-lot-SP"
+                class="milhares-lot-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+                🏙️ São Paulo
+              </button>
+            </div>
           </div>
 
-          <div class="text-[11px] text-slate-400">
-            Exibindo <span id="milhares-count-badge" class="font-bold text-white">10</span> milhares no ranking
+          <!-- 2. Linha de Tipo: Mais Atrasadas vs Mais Frequentes -->
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-1.5 p-1 bg-slate-900/90 rounded-xl border border-slate-800">
+              <button type="button" onclick="switchMilharesType('atrasadas')" id="btn-milhares-type-atrasadas"
+                class="milhares-type-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap bg-indigo-600 text-white shadow-sm cursor-pointer">
+                ⏳ Mais Atrasadas (Maior Seca)
+              </button>
+              <button type="button" onclick="switchMilharesType('frequentes')" id="btn-milhares-type-frequentes"
+                class="milhares-type-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+                🔥 Mais Frequentes (Mais Sorteadas)
+              </button>
+            </div>
+
+            <div class="text-[11px] text-slate-400">
+              Banca: <span id="milhares-lottery-badge" class="font-bold text-amber-400">Look Goiás</span> · 
+              Exibindo <span id="milhares-count-badge" class="font-bold text-white">0</span> milhares no ranking
+            </div>
           </div>
         </div>
 
