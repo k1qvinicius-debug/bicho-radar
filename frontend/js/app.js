@@ -9058,6 +9058,7 @@ async function renderApsScreen(forceRefresh = false) {
     window.currentApsData = data;
 
     // 1. Renderiza Alertas de Linha e Saturação
+    renderApsQuickTarget(data);
     renderApsAlerts(data);
 
     // 2. Renderiza a Grade 5x5 Canônica
@@ -9479,3 +9480,118 @@ function fallbackCopy(text, successMsg) {
   }
   document.body.removeChild(ta);
 }
+
+// =============================================================================
+// SUB-ABAS E CARD RÁPIDO DO RADAR 5x5
+// =============================================================================
+
+function switchApsSubTab(tab) {
+  const tabs = ['apostas', 'grade', 'pedras'];
+  tabs.forEach(t => {
+    const el = document.getElementById(`aps-subtab-${t}`);
+    const btn = document.getElementById(`subtab-btn-${t}`);
+    if (el) {
+      if (t === tab) {
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+    if (btn) {
+      if (t === tab) {
+        btn.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-amber-500 text-slate-950 shadow-md';
+      } else {
+        btn.className = 'flex-1 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all';
+      }
+    }
+  });
+}
+window.switchApsSubTab = switchApsSubTab;
+
+function renderApsQuickTarget(data) {
+  const container = document.getElementById('aps-quick-target-content');
+  if (!container || !data) return;
+
+  const top3 = (data.elite_animals || []).slice(0, 3);
+  const topPedras = data.pedras_analysis?.top_pedras || [8, 6, 3];
+  const p1 = topPedras[0] !== undefined ? topPedras[0] : 8;
+  const ternos = data.ternos_de_dezena_12 || [];
+  const topTerno = ternos[0] || '02 - 34 - 52';
+
+  // Centenas de Ouro dos top 3 bichos com a pedra 1
+  const goldCentenas = [];
+  top3.forEach(a => {
+    (a.tens || []).slice(0, 2).forEach(d => goldCentenas.push(`${p1}${d}`));
+  });
+
+  let bichosHtml = top3.map((a, idx) => `
+    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/40 text-xs font-bold">
+      <span>${a.emoji || '🐾'}</span>
+      <span>${a.name}</span>
+      <span class="text-[10px] text-amber-400 font-mono font-normal">G${String(a.group).padStart(2, '0')}</span>
+    </span>
+  `).join('');
+
+  container.innerHTML = `
+    <!-- COLUNA 1: 3 BICHOS DE OURO -->
+    <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+        <span>🥇</span> Bichos de Ouro da Rodada
+      </div>
+      <div class="flex flex-wrap gap-1.5">
+        ${bichosHtml}
+      </div>
+    </div>
+
+    <!-- COLUNA 2: CENTENAS DE OURO -->
+    <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+        <span>💎</span> Centenas Cirúrgicas (Pedra ${p1})
+      </div>
+      <div class="flex flex-wrap gap-1 font-mono text-xs font-black text-amber-300">
+        ${goldCentenas.map(c => `<span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">${c}</span>`).join('')}
+      </div>
+    </div>
+
+    <!-- COLUNA 3: TERNO PRINCIPAL -->
+    <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+        <span>🎲</span> Terno de Ouro
+      </div>
+      <div class="font-mono text-xs font-black text-emerald-300 tracking-wider pt-0.5">
+        ${topTerno}
+      </div>
+      <div class="text-[10px] text-slate-500 mt-1">Extraído das pontas e meio do último resultado</div>
+    </div>
+  `;
+}
+window.renderApsQuickTarget = renderApsQuickTarget;
+
+function copyApsQuickTarget() {
+  if (!window.currentApsData) {
+    showToast('Aguarde o carregamento do Radar 5x5', 'error');
+    return;
+  }
+
+  const d = window.currentApsData;
+  const top3 = (d.elite_animals || []).slice(0, 3);
+  const topPedras = d.pedras_analysis?.top_pedras || [8, 6, 3];
+  const p1 = topPedras[0];
+  const terno = (d.ternos_de_dezena_12 || [])[0] || '';
+
+  const goldCentenas = [];
+  top3.forEach(a => {
+    (a.tens || []).slice(0, 2).forEach(dez => goldCentenas.push(`${p1}${dez}`));
+  });
+
+  const msg = [
+    `🎯 RADAR 5x5 • PALPITE DE OURO (${d.lottery || 'NACIONAL'})`,
+    `🐾 Bichos: ${top3.map(a => `${a.name} (G${String(a.group).padStart(2,'0')})`).join(', ')}`,
+    `💎 Centenas Fortes: ${goldCentenas.join(' - ')}`,
+    `🎲 Terno de Dezena: ${terno}`,
+    `⚡ Apostando com Sabedoria`
+  ].join('\n');
+
+  copyTextToClipboard(msg, 'Palpite de Ouro copiado pronto para envio!');
+}
+window.copyApsQuickTarget = copyApsQuickTarget;
