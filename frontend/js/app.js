@@ -34,7 +34,7 @@ window.formatPhoneInput = function(input) {
 window.openWhatsAppSupport = function(msg) {
   let num = (window._publicSettings?.support_whatsapp || '11941083720').replace(/\D/g, '');
   if (!num.startsWith('55') && num.length >= 10) num = '55' + num;
-  const text = encodeURIComponent(msg || 'Olá! Gostaria de ajuda com meu acesso no Bicho Master Pro.');
+  const text = encodeURIComponent(msg || 'Olá! Gostaria de ajuda com meu acesso no Radar 5×5 Pro.');
   window.open(`https://wa.me/${num}?text=${text}`, '_blank');
 };
 
@@ -6302,7 +6302,7 @@ window.handleMainLogin = async function(event) {
 
     if (typeof showToast === 'function') {
       const isMaster = res && (res.role === 'admin' || (res.name && res.name.includes('Vinicius')));
-      const msg = isMaster ? '👑 Bem-vindo, Administrador Master!' : 'Bem-vindo de volta ao Bicho Master Pro!';
+      const msg = isMaster ? '👑 Bem-vindo, Administrador Master!' : 'Bem-vindo de volta ao Radar 5×5 Pro!';
       showToast(msg, 'success');
     }
     updateAuthUI();
@@ -6316,7 +6316,7 @@ window.handleMainLogin = async function(event) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<span>🔓</span> <span>Entrar no Bicho Master Pro</span>';
+      btn.innerHTML = '<span>🔓</span> <span>Entrar no Radar 5×5 Pro</span>';
     }
   }
 };
@@ -7571,7 +7571,7 @@ window.subscribePlan = async function(planKey, method = 'pix') {
     'whatsapp': 'Assinatura VIP'
   };
 
-  const planTitle = planNames[planKey] || 'Assinatura Bicho Master Pro';
+  const planTitle = planNames[planKey] || 'Assinatura Radar 5×5 Pro';
 
   // Se o usuario clicou no botao de suporte direto do WhatsApp
   if (planKey === 'whatsapp') {
@@ -7587,7 +7587,7 @@ window.subscribePlan = async function(planKey, method = 'pix') {
     const currentUser = api.getCurrentTenant();
     const userName = currentUser?.name ? ` Me chamo ${currentUser.name}.` : '';
     const userEmail = currentUser?.email ? ` Meu e-mail: ${currentUser.email}.` : '';
-    const msg = `Olá! Tenho dúvidas sobre a assinatura do Bicho Master Pro.${userName}${userEmail} Pode me ajudar?`;
+    const msg = `Olá! Tenho dúvidas sobre a assinatura do Radar 5×5 Pro.${userName}${userEmail} Pode me ajudar?`;
     window.open(`https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`, '_blank');
     return;
   }
@@ -7665,7 +7665,7 @@ window.subscribePlan = async function(planKey, method = 'pix') {
   const userName = currentUser?.name ? ` Me chamo ${currentUser.name}.` : '';
   const userEmail = currentUser?.email ? ` Meu e-mail: ${currentUser.email}.` : '';
 
-  const msg = `Olá! Quero assinar o *${planTitle}* do Bicho Master Pro.${userName}${userEmail} Pode me enviar a chave Pix para liberação imediata?`;
+  const msg = `Olá! Quero assinar o *${planTitle}* do Radar 5×5 Pro.${userName}${userEmail} Pode me enviar a chave Pix para liberação imediata?`;
   const waUrl = `https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`;
 
   window.open(waUrl, '_blank');
