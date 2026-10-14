@@ -940,3 +940,38 @@ def get_recent_bingos():
         "latest": latest,
         "recent_bingos": bingos
     }
+
+
+# ==============================================================================
+# ENDPOINTS DO MÉTODO APS (APOSTANDO COM SABEDORIA)
+# ==============================================================================
+
+@router.get("/aps-method", response_model=Dict[str, Any])
+def get_aps_analysis_endpoint(
+    lottery: str = Query("NACIONAL", description="Código da loteria (ex: NACIONAL, LOOK, RJ, FEDERAL, SP)"),
+    date: Optional[str] = Query(None, description="Data base (YYYY-MM-DD)")
+):
+    """
+    Retorna a análise completa do Método APS (Apostando com Sabedoria):
+    Grade 5x5, Ausências de Linhas e Colunas, Ciclo D3, Pedras de Centena Líderes,
+    Bichos de Elite, Centenas Cirúrgicas, 12 Ternos de Dezena e Fechamento 60 MC.
+    """
+    from ..engine.aps_engine import calculate_full_aps_analysis
+    try:
+        return calculate_full_aps_analysis(lottery=lottery, target_date=date)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao processar Método APS: {str(e)}")
+
+
+@router.post("/aps-simulate", response_model=Dict[str, Any])
+def simulate_aps_endpoint(
+    data: Dict[str, Any]
+):
+    """
+    Simulador ao vivo do Método APS: recebe prêmios manuais e gera inversão,
+    12 ternos e 60 MC instantaneamente.
+    """
+    from ..engine.aps_engine import generate_aps_inversion_and_ternos
+    prizes = data.get("prizes", [])
+    top_pedras = data.get("top_pedras", [8, 6, 3])
+    return generate_aps_inversion_and_ternos(prizes, top_pedras)
