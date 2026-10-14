@@ -882,6 +882,38 @@ const api = {
     }
     return await res.json();
   },
+
+  // =========================================================================
+  // MÉTODO APS (APOSTANDO COM SABEDORIA)
+  // =========================================================================
+  async getApsMethod(lottery = 'NACIONAL', date = null) {
+    let url = `${API_BASE}/analysis/aps-method?lottery=${encodeURIComponent(lottery)}`;
+    if (date) url += `&date=${encodeURIComponent(date)}`;
+    const res = await fetch(url, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Erro ao carregar análise do Método APS.');
+    }
+    return await res.json();
+  },
+
+  async simulateAps(prizes = [], topPedras = [8, 6, 3]) {
+    const res = await fetch(`${API_BASE}/analysis/aps-simulate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ prizes, top_pedras: topPedras }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Erro ao simular Método APS.');
+    }
+    return await res.json();
+  },
 };
 
 window.api = api;
