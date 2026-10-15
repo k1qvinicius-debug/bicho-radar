@@ -118,7 +118,7 @@ def get_prediction(
     target_slot: Optional[str] = Query(None, description="Horário alvo (PPT, PTM, PT, LK-11, LN-10, etc.)"),
     strategy: Optional[str] = Query("hybrid", description="Estratégia: hybrid, frequency, delay, puxada"),
     lottery: Optional[str] = Query("RJ", description="Código da loteria (RJ, LOOK, NACIONAL, SP, FEDERAL, BAHIA, MINAS)"),
-    tenant: Dict[str, Any] = Depends(require_tenant),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
     """
     Gera análise estatística multi-fatorial detalhada para o próximo horário da loteria selecionada.
@@ -154,7 +154,7 @@ def get_fixed_animal_closure(
     target_date: Optional[str] = Query(None, description="Data alvo (YYYY-MM-DD)"),
     target_slot: Optional[str] = Query(None, description="Horário alvo"),
     lottery: Optional[str] = Query("RJ", description="Código da loteria"),
-    tenant: Dict[str, Any] = Depends(require_tenant),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
     """
     Gera fechamento inteligente de Duque de Dezena com 1 animal fixado
