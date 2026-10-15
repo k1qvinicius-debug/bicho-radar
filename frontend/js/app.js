@@ -7562,7 +7562,7 @@ window.closePlansModal = function() {
   }
 };
 
-window.subscribePlan = async function(planKey, method = 'pix') {
+window.subscribePlan = async function(planKey, method = 'mercadopago') {
   const planNames = {
     'monthly': 'Plano Mensal (R$ 14,90)',
     'quarterly': 'Plano Trimestral (R$ 37,00)',
@@ -7665,7 +7665,7 @@ window.subscribePlan = async function(planKey, method = 'pix') {
   const userName = currentUser?.name ? ` Me chamo ${currentUser.name}.` : '';
   const userEmail = currentUser?.email ? ` Meu e-mail: ${currentUser.email}.` : '';
 
-  const msg = `Olá! Quero assinar o *${planTitle}* do Radar 5×5 Pro.${userName}${userEmail} Pode me enviar a chave Pix para liberação imediata?`;
+  const msg = `Olá! Quero assinar o *${planTitle}* do Radar 5×5 Pro.${userName}${userEmail} Pode me ajudar a concluir o pagamento pelo Mercado Pago?`;
   const waUrl = `https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`;
 
   window.open(waUrl, '_blank');
