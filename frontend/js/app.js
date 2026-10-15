@@ -968,6 +968,30 @@ window.renderColunaDataScreen = async function(dateOverride) {
     </div>
   `;
 
+  const isVip = window.isUserVip();
+  if (!isVip) {
+    html += `
+      <div onclick="openPlansModal()" class="card-glass p-6 sm:p-8 rounded-3xl border-2 border-amber-500/60 bg-gradient-to-br from-amber-950/40 via-slate-900/95 to-slate-950 text-center shadow-2xl space-y-4 cursor-pointer group hover:border-amber-400 transition-all my-3">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/60 flex items-center justify-center text-3xl text-amber-300 shadow-lg shadow-amber-500/20">
+          ⚡ 🔒
+        </div>
+        <div>
+          <h3 class="text-base sm:text-lg font-black text-white">Fechamento da Coluna da Data Bloqueado</h3>
+          <p class="text-xs text-slate-300 mt-1 max-w-md mx-auto leading-relaxed">
+            A lista dos 5 animais da coluna, centenas e milhares do fechamento diário são 100% exclusivos para membros VIP.
+          </p>
+        </div>
+        <div class="pt-1">
+          <button type="button" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-md group-hover:scale-105 transition-transform">
+            Desbloquear Coluna VIP (R$ 14,90/mês) ⭐
+          </button>
+        </div>
+      </div>
+    `;
+    container.innerHTML = html;
+    return;
+  }
+
   // 2. CARD DESTAQUE: O BICHO DA VEZ (PENDENTE COM MAIOR PRESSÃO)
   if (hotPending) {
     html += `
@@ -1396,6 +1420,11 @@ window.updateColunaDataHomeCard = async function() {
 };
 
 window.copyColunaDataGames = async function() {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Fechamento da Coluna exclusivo para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   const d = _currentColunaDataCache || await window.getColunaDataInfo();
   if (!d) return;
 
@@ -1446,6 +1475,11 @@ window.copyColunaDataGames = async function() {
 };
 
 window.copySingleAnimalColunaGames = async function(groupNum) {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Jogos da Coluna exclusivos para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   const d = _currentColunaDataCache || await window.getColunaDataInfo();
   if (!d) return;
   const a = d.animals.find(an => an.group === groupNum);
@@ -3466,6 +3500,11 @@ window.setCruzDateTomorrow = function() {
 };
 
 window.copyAllCruzThousands = async function (btn) {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Milhares da Cruz exclusivas para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!window._currentCruzThousands || window._currentCruzThousands.length === 0) {
     showToast('Nenhuma milhar carregada na Cruz.', 'warning');
     return;
@@ -3744,6 +3783,11 @@ function renderReadyBetsCard(groups, targetSlot, targetDate) {
 }
 
 window.copyReadyBetsToClipboard = function () {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Jogos Prontos exclusivos para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!currentReadyBetsData) {
     showToast('Nenhum palpite de grupo disponível para cópia.', 'warning');
     return;
@@ -3786,6 +3830,65 @@ function renderDashboard(data) {
 
   // Atualiza também os dados na Tela HOME
   updateHomeScreenData();
+
+  const isVip = window.isUserVip();
+  if (!isVip) {
+    const firstGroup = (data.top_groups || [])[0];
+    const readyBetsEl = document.getElementById('ready-bets-card');
+    if (readyBetsEl && firstGroup) {
+      readyBetsEl.innerHTML = `
+        <div class="card-glass p-4 rounded-2xl border border-amber-500/40 bg-slate-900/90 shadow-xl space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-black uppercase text-amber-400">Palpite do Próximo Horário (Amostra Grátis)</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">1 Bicho Liberado</span>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <span class="text-3xl">${firstGroup.emoji || '🐾'}</span>
+            <div>
+              <div class="text-sm font-black text-white">${firstGroup.name} (Grupo ${String(firstGroup.group).padStart(2,'0')})</div>
+              <div class="text-[11px] text-slate-400 font-mono">Dezenas: ${(firstGroup.tens || []).join(', ')}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const animalCardsEl = document.getElementById('animal-cards-container');
+    if (animalCardsEl) {
+      animalCardsEl.innerHTML = `
+        <div onclick="openPlansModal()" class="col-span-full p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-950 border-2 border-amber-500/60 text-center shadow-2xl space-y-4 cursor-pointer group hover:border-amber-400 transition-all my-2">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/60 flex items-center justify-center text-2xl text-amber-300 shadow-lg shadow-amber-500/20">
+            🎯 🔒
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-black text-white">Jogos Prontos e Fechamentos Bloqueados</h3>
+            <p class="text-xs text-slate-300 mt-1 max-w-md mx-auto leading-relaxed">
+              As Centenas Fortes, Milhares Cirúrgicas, Duplas de Grupo e Ternos de Dezena são 100% exclusivos para membros VIP.
+            </p>
+          </div>
+          <div class="pt-1">
+            <button type="button" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs shadow-lg group-hover:scale-105 transition-transform">
+              Desbloquear Jogos Prontos (R$ 14,90/mês) ➔
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    const ddzEl = document.getElementById('ddz-combos-container');
+    if (ddzEl) ddzEl.innerHTML = '';
+    const tensEl = document.getElementById('top-tens-container');
+    if (tensEl) tensEl.innerHTML = '';
+    const hundredsEl = document.getElementById('top-hundreds-container');
+    if (hundredsEl) hundredsEl.innerHTML = '';
+    const thousandsEl = document.getElementById('top-thousands-container');
+    if (thousandsEl) thousandsEl.innerHTML = '';
+    const hybridEl = document.getElementById('hybrid-combo-container');
+    if (hybridEl) hybridEl.innerHTML = '';
+    const patternEl = document.getElementById('pattern-break-container');
+    if (patternEl) patternEl.innerHTML = '';
+    return;
+  }
 
   // 0. Fechamento Híbrido Anti-Aleatoriedade
   renderHybridSection(data.hybrid_combo);
@@ -5444,6 +5547,11 @@ window.copyCategoryList = async function (btn, numbersStr, label) {
 
 window.copySingleNumber = async function (event, num, type) {
   if (event) event.stopPropagation();
+  if (!window.isUserVip() && (type === 'Centena' || type === 'Milhar' || type === 'Duque' || type === 'Terno')) {
+    openPlansModal();
+    showToast(`${type} exclusivo para membros VIP! Assine por apenas R$ 14,90/mês.`, 'warning');
+    return;
+  }
   const ok = await window.copyToClipboard(num);
   if (ok) {
     showToast(`${type} ${num} copiado!`, 'success');
@@ -5451,6 +5559,11 @@ window.copySingleNumber = async function (event, num, type) {
 };
 
 window.copyCompleteAnimalCard = async function (btn, emoji, name, group, tens, hundreds, thousands) {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Ficha Completa exclusiva para assinantes VIP! Assine por apenas R$ 14,90/mês.', 'warning');
+    return;
+  }
   const lines = [
     `🐾 ${emoji} ${name.toUpperCase()} - GRUPO ${group}`,
     `🔢 Dezenas: ${tens || '-'}`,
@@ -8190,6 +8303,8 @@ function renderMatrizView(data, mode) {
   if (!data) return;
   mode = mode || window._currentMatrizMode || 'dia';
 
+  const isVip = window.isUserVip();
+
   // 1. Pílulas de Dígitos Ativos
   const pillsContainer = document.getElementById('matriz-active-digits-pills');
   if (pillsContainer) {
@@ -8249,6 +8364,32 @@ function renderMatrizView(data, mode) {
 
   // 3. Centenas Diretas da Grade
   const linesContainer = document.getElementById('matriz-direct-lines-container');
+  if (!isVip) {
+    if (linesContainer) {
+      linesContainer.innerHTML = `
+        <div onclick="openPlansModal()" class="p-4 rounded-xl bg-slate-900/90 border border-amber-500/40 text-center cursor-pointer group hover:border-amber-400 transition-all select-none">
+          <div class="text-xs font-bold text-amber-300">🔒 Centenas do Grid 3x3 Bloqueadas</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Exclusivo para membros VIP (R$ 14,90/mês)</div>
+        </div>
+      `;
+    }
+    const confluenceContainer = document.getElementById('matriz-subtab-confluence');
+    if (confluenceContainer) {
+      confluenceContainer.innerHTML = `
+        <div onclick="openPlansModal()" class="p-6 rounded-2xl bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-950 border-2 border-amber-500/60 text-center shadow-2xl space-y-3 cursor-pointer group hover:border-amber-400 transition-all my-3">
+          <div class="text-3xl">🔑 🔒</div>
+          <div class="text-sm sm:text-base font-black text-white">Bichos de Máxima Confluência e Milhares Bloqueados</div>
+          <p class="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+            Os 6 animais com dezenas 100% no Grid, centenas cirúrgicas e milhares são exclusivos para assinantes VIP.
+          </p>
+          <button type="button" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-md group-hover:scale-105 transition-transform">
+            Liberar Chave Mestra VIP (R$ 14,90/mês) ⭐
+          </button>
+        </div>
+      `;
+    }
+    return;
+  }
   const directCountEl = document.getElementById('matriz-direct-count');
   const linesData = (mode === 'mes') ? data.lines_mes : data.lines_dia;
 
@@ -8864,6 +9005,11 @@ window.selectMatrizAnimal = async function(groupNum) {
 };
 
 window.copyAnimalMatrizHundreds = async function(btn, animalName, numbersStr) {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Centenas exclusivas para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!numbersStr) {
     showToast(`Nenhuma centena disponível para ${animalName}.`, 'warning');
     return;
@@ -8877,6 +9023,11 @@ window.copyAnimalMatrizHundreds = async function(btn, animalName, numbersStr) {
 };
 
 window.copyAnimalMatrizThousands = async function(btn, animalName, numbersStr) {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Milhares exclusivas para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!numbersStr) {
     showToast(`Nenhuma milhar disponível para ${animalName}.`, 'warning');
     return;
@@ -8890,6 +9041,11 @@ window.copyAnimalMatrizThousands = async function(btn, animalName, numbersStr) {
 };
 
 window.copyAllMatrizThousands = async function(btn) {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Milhares da Chave Mestra exclusivas para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!window._currentMatrizData) {
     showToast('Carregando dados da Chave Mestra...', 'info');
     return;
@@ -8929,6 +9085,11 @@ window.copyAllMatrizMilhares = window.copyAllMatrizThousands;
 window.copyAllMatrizConfluenceThousands = window.copyAllMatrizThousands;
 
 window.copyAllMatrizHundreds = async function(btn) {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Centenas da Chave Mestra exclusivas para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!window._currentMatrizData) {
     showToast('Carregando dados da Chave Mestra...', 'info');
     return;
@@ -8968,6 +9129,11 @@ window.copyAllMatrizCentenas = window.copyAllMatrizHundreds;
 window.copyAllMatrizConfluenceHundreds = window.copyAllMatrizHundreds;
 
 window.copyAllMatrizDirectCentenas = async function(btn) {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Centenas Diretas exclusivas para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!window._currentMatrizData) {
     showToast('Carregando dados da Chave Mestra...', 'info');
     return;
@@ -9687,6 +9853,11 @@ function renderAps60MC(mcList) {
 }
 
 function copyApsCentenas() {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Centenas Cirúrgicas exclusivas para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!window.currentApsData || !window.currentApsData.centenas_cirurgicas) return;
   const allCentenas = [];
   window.currentApsData.centenas_cirurgicas.forEach(item => {
@@ -9697,12 +9868,22 @@ function copyApsCentenas() {
 window.copyApsCentenas = copyApsCentenas;
 
 function copyApsTernos() {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Ternos de Dezena exclusivos para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!window.currentApsData || !window.currentApsData.ternos_de_dezena_12) return;
   copyTextToClipboard(window.currentApsData.ternos_de_dezena_12.join('\n'), '12 Ternos de Dezena copiados!');
 }
 window.copyApsTernos = copyApsTernos;
 
 function copyAps60MC() {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Fechamento 60 MC exclusivo para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!window.currentApsData || !window.currentApsData.fechamento_60_mc) return;
   copyTextToClipboard(window.currentApsData.fechamento_60_mc.join(', '), '60 MC copiadas!');
 }
@@ -9772,22 +9953,73 @@ function renderApsQuickTarget(data) {
   const ternos = data.ternos_de_dezena_12 || [];
   const topTerno = ternos[0] || '02 - 34 - 52';
 
-  // Centenas de Ouro dos top 3 bichos com a pedra 1
-  const goldCentenas = [];
-  top3.forEach(a => {
-    (a.tens || []).slice(0, 2).forEach(d => goldCentenas.push(`${p1}${d}`));
-  });
+  const isVip = window.isUserVip();
 
-  let bichosHtml = top3.map((a, idx) => `
-    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/40 text-xs font-bold">
-      <span>${a.emoji || '🐾'}</span>
-      <span>${a.name}</span>
-      <span class="text-[10px] text-amber-400 font-mono font-normal">G${String(a.group).padStart(2, '0')}</span>
-    </span>
-  `).join('');
+  let bichosHtml = '';
+  if (!isVip) {
+    const a1 = top3[0];
+    bichosHtml = `
+      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/40 text-xs font-bold">
+        <span>${a1?.emoji || '🐾'}</span>
+        <span>${a1?.name || 'Bicho #1'}</span>
+        <span class="text-[10px] text-amber-400 font-mono font-normal">G${String(a1?.group || 1).padStart(2, '0')}</span>
+      </span>
+      <span onclick="openPlansModal()" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-900 border border-amber-500/40 text-amber-400 text-xs font-bold cursor-pointer hover:border-amber-400 select-none">
+        <span>🔒</span> <span>Bicho #2 (VIP)</span>
+      </span>
+      <span onclick="openPlansModal()" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-900 border border-amber-500/40 text-amber-400 text-xs font-bold cursor-pointer hover:border-amber-400 select-none">
+        <span>🔒</span> <span>Bicho #3 (VIP)</span>
+      </span>
+    `;
+  } else {
+    bichosHtml = top3.map((a, idx) => `
+      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/40 text-xs font-bold">
+        <span>${a.emoji || '🐾'}</span>
+        <span>${a.name}</span>
+        <span class="text-[10px] text-amber-400 font-mono font-normal">G${String(a.group).padStart(2, '0')}</span>
+      </span>
+    `).join('');
+  }
+
+  // Centenas de Ouro
+  let centenasHtml = '';
+  if (!isVip) {
+    centenasHtml = `
+      <div onclick="openPlansModal()" class="cursor-pointer text-amber-400 text-xs font-bold py-1 select-none flex items-center gap-1">
+        <span>🔒</span> <span>Centenas Cirúrgicas (Exclusivo VIP)</span>
+      </div>
+    `;
+  } else {
+    const goldCentenas = [];
+    top3.forEach(a => {
+      (a.tens || []).slice(0, 2).forEach(d => goldCentenas.push(`${p1}${d}`));
+    });
+    centenasHtml = `
+      <div class="flex flex-wrap gap-1 font-mono text-xs font-black text-amber-300">
+        ${goldCentenas.map(c => `<span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">${c}</span>`).join('')}
+      </div>
+    `;
+  }
+
+  // Terno de Ouro
+  let ternoHtml = '';
+  if (!isVip) {
+    ternoHtml = `
+      <div onclick="openPlansModal()" class="cursor-pointer text-amber-400 text-xs font-bold py-1 select-none flex items-center gap-1">
+        <span>🔒</span> <span>Terno de Ouro (Exclusivo VIP)</span>
+      </div>
+    `;
+  } else {
+    ternoHtml = `
+      <div class="font-mono text-xs font-black text-emerald-300 tracking-wider pt-0.5">
+        ${topTerno}
+      </div>
+      <div class="text-[10px] text-slate-500 mt-1">Extraído das pontas e meio do último resultado</div>
+    `;
+  }
 
   container.innerHTML = `
-    <!-- COLUNA 1: 3 BICHOS DE OURO -->
+    <!-- COLUNA 1: BICHOS DE OURO -->
     <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
       <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
         <span>🥇</span> Bichos de Ouro da Rodada
@@ -9802,9 +10034,7 @@ function renderApsQuickTarget(data) {
       <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
         <span>💎</span> Centenas Cirúrgicas (Pedra ${p1})
       </div>
-      <div class="flex flex-wrap gap-1 font-mono text-xs font-black text-amber-300">
-        ${goldCentenas.map(c => `<span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">${c}</span>`).join('')}
-      </div>
+      ${centenasHtml}
     </div>
 
     <!-- COLUNA 3: TERNO PRINCIPAL -->
@@ -9812,16 +10042,18 @@ function renderApsQuickTarget(data) {
       <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
         <span>🎲</span> Terno de Ouro
       </div>
-      <div class="font-mono text-xs font-black text-emerald-300 tracking-wider pt-0.5">
-        ${topTerno}
-      </div>
-      <div class="text-[10px] text-slate-500 mt-1">Extraído das pontas e meio do último resultado</div>
+      ${ternoHtml}
     </div>
   `;
 }
 window.renderApsQuickTarget = renderApsQuickTarget;
 
 function copyApsQuickTarget() {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Palpite de Ouro exclusivo para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
   if (!window.currentApsData) {
     showToast('Aguarde o carregamento do Radar 5x5', 'error');
     return;
