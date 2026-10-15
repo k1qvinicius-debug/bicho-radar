@@ -1424,12 +1424,51 @@
       <!-- SUB-ABA 3: PEDRAS & CICLO D3 (SEPARADA) -->
       <div id="aps-subtab-pedras" class="space-y-4 hidden">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- PEDRAS DE CENTENA -->
+          <!-- PEDRAS DE CENTENA: FRIAS (VÁCUO) VS QUENTES (SATURADAS) -->
           <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 shadow-xl backdrop-blur-md">
-            <h3 class="text-sm font-bold text-white mb-1">💎 Pedras de Centena Líderes (0 a 9)</h3>
-            <p class="text-xs text-slate-400 mb-3">Dígitos de maior frequência na 3ª casa da milhar.</p>
-            <div id="aps-pedras-podium" class="grid grid-cols-3 gap-2 mb-3"></div>
-            <div id="aps-pedras-bars" class="space-y-1.5 pt-2 border-t border-slate-800"></div>
+            <div class="flex items-center justify-between mb-1.5">
+              <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                <span>🧊</span>
+                <span>Pedras Frias (Vácuo) vs </span>
+                <span>🔥</span>
+                <span>Quentes (Saturadas)</span>
+              </h3>
+              <span class="text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 px-2.5 py-0.5 rounded-full font-mono font-semibold">Rodízio APS</span>
+            </div>
+            <p class="text-xs text-slate-400 mb-3">O banqueiro precisa rodar as pedras frias (em vácuo hoje) e evitar as quentes (já pagaram cota).</p>
+
+            <!-- PÓDIO TOP 3 FRIAS -->
+            <div class="mb-3.5">
+              <div class="text-[11px] font-bold text-cyan-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                <span>🎯</span> <span>Top 3 Pedras Frias de Ouro (Alvos para Centenas)</span>
+              </div>
+              <div id="aps-pedras-podium" class="grid grid-cols-3 gap-2"></div>
+            </div>
+
+            <!-- CARDS COMPACTOS: FRIAS VS QUENTES -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3.5">
+              <div class="rounded-xl bg-cyan-950/20 border border-cyan-500/30 p-2.5">
+                <div class="text-[11px] font-bold text-cyan-300 flex items-center gap-1 mb-1.5">
+                  <span>🧊</span> <span>Pedras Frias (Jogar)</span>
+                </div>
+                <div id="aps-pedras-frias-list" class="space-y-1"></div>
+              </div>
+              <div class="rounded-xl bg-rose-950/20 border border-rose-500/30 p-2.5">
+                <div class="text-[11px] font-bold text-rose-300 flex items-center gap-1 mb-1.5">
+                  <span>🔥</span> <span>Pedras Quentes (Evitar)</span>
+                </div>
+                <div id="aps-pedras-quentes-list" class="space-y-1"></div>
+              </div>
+            </div>
+
+            <!-- TERMÔMETRO GERAL 0 A 9 -->
+            <div class="pt-2 border-t border-slate-800">
+              <div class="text-[10px] text-slate-400 font-bold mb-1.5 flex items-center justify-between">
+                <span>Termômetro Completo dos Dígitos (0 a 9)</span>
+                <span class="text-[9px] text-slate-500">Azul = Fria | Vermelho = Quente</span>
+              </div>
+              <div id="aps-pedras-bars" class="space-y-1.5"></div>
+            </div>
           </div>
 
           <!-- CICLO D3 -->
