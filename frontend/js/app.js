@@ -3643,6 +3643,144 @@ window.toggleReadyBetsDetails = function(targetKey) {
 
 function buildReadyBetsHtml(g0, g1, g2, key, defaultOpen) {
   const isOpen = defaultOpen || false;
+  const isVip = window.isUserVip ? window.isUserVip() : false;
+
+  const ternoChipHtml = isVip
+    ? `
+      <span class="font-bold text-amber-200">${g0.animal_emoji || '🐾'} ${g0.value}</span>
+      <span class="text-slate-600">+</span>
+      <span class="font-bold text-amber-200">${g1.animal_emoji || '🐾'} ${g1.value}</span>
+      <span class="text-slate-600">+</span>
+      <span class="font-bold text-amber-200">${g2.animal_emoji || '🐾'} ${g2.value}</span>
+    `
+    : `
+      <span class="font-bold text-amber-200">${g0.animal_emoji || '🐾'} ${g0.value}</span>
+      <span class="text-slate-600">+</span>
+      <span onclick="openPlansModal()" class="cursor-pointer font-bold text-amber-400 hover:text-amber-300 inline-flex items-center gap-0.5"><span>🔒</span> VIP</span>
+      <span class="text-slate-600">+</span>
+      <span onclick="openPlansModal()" class="cursor-pointer font-bold text-amber-400 hover:text-amber-300 inline-flex items-center gap-0.5"><span>🔒</span> VIP</span>
+    `;
+
+  const passesChipHtml = isVip
+    ? `
+      <span class="font-mono text-indigo-200 font-bold">${g0.value}+${g1.value}</span>
+      <span class="text-slate-600">•</span>
+      <span class="font-mono text-indigo-200 font-bold">${g0.value}+${g2.value}</span>
+      <span class="text-slate-600">•</span>
+      <span class="font-mono text-indigo-200 font-bold">${g1.value}+${g2.value}</span>
+    `
+    : `
+      <span class="font-mono text-indigo-200 font-bold">${g0.value}+🔒</span>
+      <span class="text-slate-600">•</span>
+      <span class="font-mono text-indigo-200 font-bold">${g0.value}+🔒</span>
+      <span class="text-slate-600">•</span>
+      <span class="font-mono text-slate-500 font-bold">🔒+🔒</span>
+    `;
+
+  const ternoGridHtml = isVip
+    ? `
+      <div class="grid grid-cols-3 gap-1.5 text-center my-1">
+        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30 flex flex-col items-center justify-center">
+          <span class="text-xl mb-0.5">${g0.animal_emoji || '🐾'}</span>
+          <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Gr. ${g0.value}</span>
+          <span class="text-xs font-black text-amber-200 truncate w-full">${g0.animal_name}</span>
+        </div>
+        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30 flex flex-col items-center justify-center">
+          <span class="text-xl mb-0.5">${g1.animal_emoji || '🐾'}</span>
+          <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Gr. ${g1.value}</span>
+          <span class="text-xs font-black text-amber-200 truncate w-full">${g1.animal_name}</span>
+        </div>
+        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30 flex flex-col items-center justify-center">
+          <span class="text-xl mb-0.5">${g2.animal_emoji || '🐾'}</span>
+          <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Gr. ${g2.value}</span>
+          <span class="text-xs font-black text-amber-200 truncate w-full">${g2.animal_name}</span>
+        </div>
+      </div>
+    `
+    : `
+      <div class="grid grid-cols-3 gap-1.5 text-center my-1">
+        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-emerald-500/40 flex flex-col items-center justify-center">
+          <span class="text-xl mb-0.5">${g0.animal_emoji || '🐾'}</span>
+          <span class="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Gr. ${g0.value}</span>
+          <span class="text-xs font-black text-white truncate w-full">${g0.animal_name}</span>
+        </div>
+        <div onclick="openPlansModal()" class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/40 flex flex-col items-center justify-center cursor-pointer group hover:border-amber-400 transition-all">
+          <span class="text-xl mb-0.5 group-hover:scale-110 transition-transform">🔒</span>
+          <span class="text-[9px] text-amber-400 font-bold uppercase tracking-wider">Gr. ??</span>
+          <span class="text-[10px] font-black text-amber-300 truncate w-full group-hover:underline">Bicho VIP</span>
+        </div>
+        <div onclick="openPlansModal()" class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/40 flex flex-col items-center justify-center cursor-pointer group hover:border-amber-400 transition-all">
+          <span class="text-xl mb-0.5 group-hover:scale-110 transition-transform">🔒</span>
+          <span class="text-[9px] text-amber-400 font-bold uppercase tracking-wider">Gr. ??</span>
+          <span class="text-[10px] font-black text-amber-300 truncate w-full group-hover:underline">Bicho VIP</span>
+        </div>
+      </div>
+      <button type="button" onclick="openPlansModal()" class="w-full mt-1.5 py-1 px-2 rounded-lg bg-gradient-to-r from-amber-500/25 to-amber-600/35 hover:from-amber-500/40 hover:to-amber-600/50 border border-amber-500/50 text-amber-200 text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all">
+        <span>👑</span> <span>Liberar Terno Completo (R$ 14,90/mês)</span>
+      </button>
+    `;
+
+  const passesGridHtml = isVip
+    ? `
+      <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm">${g0.animal_emoji || '🐾'} ${g1.animal_emoji || '🐾'}</span>
+          <span class="font-bold text-slate-200">${g0.animal_name} + ${g1.animal_name}</span>
+          <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g0.value}+${g1.value})</span>
+        </div>
+        <span class="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">Top 1</span>
+      </div>
+
+      <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm">${g0.animal_emoji || '🐾'} ${g2.animal_emoji || '🐾'}</span>
+          <span class="font-bold text-slate-200">${g0.animal_name} + ${g2.animal_name}</span>
+          <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g0.value}+${g2.value})</span>
+        </div>
+        <span class="text-[9px] font-bold text-slate-400 bg-slate-800 px-1.5 py-0.2 rounded">Top 2</span>
+      </div>
+
+      <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm">${g1.animal_emoji || '🐾'} ${g2.animal_emoji || '🐾'}</span>
+          <span class="font-bold text-slate-200">${g1.animal_name} + ${g2.animal_name}</span>
+          <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g1.value}+${g2.value})</span>
+        </div>
+        <span class="text-[9px] font-bold text-slate-400 bg-slate-800 px-1.5 py-0.2 rounded">Top 3</span>
+      </div>
+    `
+    : `
+      <div onclick="openPlansModal()" class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800/80 hover:border-indigo-500/50 flex items-center justify-between text-xs cursor-pointer group transition-all">
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm">${g0.animal_emoji || '🐾'} 🔒</span>
+          <span class="font-bold text-slate-200">${g0.animal_name} + <span class="text-amber-300 group-hover:underline">Bicho VIP</span></span>
+          <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g0.value}+🔒)</span>
+        </div>
+        <span class="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">Top 1</span>
+      </div>
+
+      <div onclick="openPlansModal()" class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800/80 hover:border-indigo-500/50 flex items-center justify-between text-xs cursor-pointer group transition-all">
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm">${g0.animal_emoji || '🐾'} 🔒</span>
+          <span class="font-bold text-slate-200">${g0.animal_name} + <span class="text-amber-300 group-hover:underline">Bicho VIP</span></span>
+          <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g0.value}+🔒)</span>
+        </div>
+        <span class="text-[9px] font-bold text-slate-400 bg-slate-800 px-1.5 py-0.2 rounded">Top 2</span>
+      </div>
+
+      <div onclick="openPlansModal()" class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800/80 hover:border-indigo-500/50 flex items-center justify-between text-xs cursor-pointer group transition-all">
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm">🔒 🔒</span>
+          <span class="font-bold text-slate-400"><span class="text-amber-300 group-hover:underline">Bicho VIP</span> + <span class="text-amber-300 group-hover:underline">Bicho VIP</span></span>
+          <span class="text-[10px] font-mono text-slate-500">(Gr. 🔒+🔒)</span>
+        </div>
+        <span class="text-[9px] font-bold text-slate-400 bg-slate-800 px-1.5 py-0.2 rounded">Top 3</span>
+      </div>
+      <button type="button" onclick="openPlansModal()" class="w-full mt-1.5 py-1 px-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/35 border border-indigo-500/40 text-indigo-200 text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all">
+        <span>👑</span> <span>Liberar Todos os Passes (R$ 14,90/mês)</span>
+      </button>
+    `;
+
   return `
     <div class="card-glass p-2 sm:p-2.5 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-900/90 to-indigo-950/40 shadow-sm animate-fade-in mb-2">
       <!-- Linha 1: Resumo Inline Compacto & Acoes -->
@@ -3656,21 +3794,13 @@ function buildReadyBetsHtml(g0, g1, g2, key, defaultOpen) {
             <!-- Resumo Terno em Chips Compactos -->
             <div class="inline-flex items-center gap-1 bg-slate-950/90 px-2 py-0.5 rounded-lg border border-amber-500/25 text-xs">
               <span class="text-slate-400 font-bold text-[10px]">Terno:</span>
-              <span class="font-bold text-amber-200">${g0.animal_emoji || '🐾'} ${g0.value}</span>
-              <span class="text-slate-600">+</span>
-              <span class="font-bold text-amber-200">${g1.animal_emoji || '🐾'} ${g1.value}</span>
-              <span class="text-slate-600">+</span>
-              <span class="font-bold text-amber-200">${g2.animal_emoji || '🐾'} ${g2.value}</span>
+              ${ternoChipHtml}
             </div>
 
             <!-- Resumo Passes em Chips Compactos -->
             <div class="hidden sm:inline-flex items-center gap-1 bg-slate-950/90 px-2 py-0.5 rounded-lg border border-indigo-500/25 text-[11px]">
               <span class="text-slate-400 font-bold text-[10px]">Passes:</span>
-              <span class="font-mono text-indigo-200 font-bold">${g0.value}+${g1.value}</span>
-              <span class="text-slate-600">•</span>
-              <span class="font-mono text-indigo-200 font-bold">${g0.value}+${g2.value}</span>
-              <span class="text-slate-600">•</span>
-              <span class="font-mono text-indigo-200 font-bold">${g1.value}+${g2.value}</span>
+              ${passesChipHtml}
             </div>
           </div>
         </div>
@@ -3703,23 +3833,7 @@ function buildReadyBetsHtml(g0, g1, g2, key, defaultOpen) {
               </span>
             </div>
             
-            <div class="grid grid-cols-3 gap-1.5 text-center my-1">
-              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30 flex flex-col items-center justify-center">
-                <span class="text-xl mb-0.5">${g0.animal_emoji || '🐾'}</span>
-                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Gr. ${g0.value}</span>
-                <span class="text-xs font-black text-amber-200 truncate w-full">${g0.animal_name}</span>
-              </div>
-              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30 flex flex-col items-center justify-center">
-                <span class="text-xl mb-0.5">${g1.animal_emoji || '🐾'}</span>
-                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Gr. ${g1.value}</span>
-                <span class="text-xs font-black text-amber-200 truncate w-full">${g1.animal_name}</span>
-              </div>
-              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30 flex flex-col items-center justify-center">
-                <span class="text-xl mb-0.5">${g2.animal_emoji || '🐾'}</span>
-                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Gr. ${g2.value}</span>
-                <span class="text-xs font-black text-amber-200 truncate w-full">${g2.animal_name}</span>
-              </div>
-            </div>
+            ${ternoGridHtml}
 
             <p class="text-[10px] text-slate-400 text-center pt-0.5">💡 Cercado 1º ao 5º: Bancas pagam ate <strong class="text-amber-300">1.500x</strong> se os 3 sairem!</p>
           </div>
@@ -3734,32 +3848,7 @@ function buildReadyBetsHtml(g0, g1, g2, key, defaultOpen) {
             </div>
 
             <div class="space-y-1.5">
-              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-sm">${g0.animal_emoji || '🐾'} ${g1.animal_emoji || '🐾'}</span>
-                  <span class="font-bold text-slate-200">${g0.animal_name} + ${g1.animal_name}</span>
-                  <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g0.value}+${g1.value})</span>
-                </div>
-                <span class="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">Top 1</span>
-              </div>
-
-              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-sm">${g0.animal_emoji || '🐾'} ${g2.animal_emoji || '🐾'}</span>
-                  <span class="font-bold text-slate-200">${g0.animal_name} + ${g2.animal_name}</span>
-                  <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g0.value}+${g2.value})</span>
-                </div>
-                <span class="text-[9px] font-bold text-slate-400 bg-slate-800 px-1.5 py-0.2 rounded">Top 2</span>
-              </div>
-
-              <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-sm">${g1.animal_emoji || '🐾'} ${g2.animal_emoji || '🐾'}</span>
-                  <span class="font-bold text-slate-200">${g1.animal_name} + ${g2.animal_name}</span>
-                  <span class="text-[10px] font-mono text-indigo-300">(Gr. ${g1.value}+${g2.value})</span>
-                </div>
-                <span class="text-[9px] font-bold text-slate-400 bg-slate-800 px-1.5 py-0.2 rounded">Top 3</span>
-              </div>
+              ${passesGridHtml}
             </div>
           </div>
         </div>
@@ -3849,65 +3938,6 @@ function renderDashboard(data) {
 
   // Atualiza também os dados na Tela HOME
   updateHomeScreenData();
-
-  const isVip = window.isUserVip();
-  if (!isVip) {
-    const firstGroup = (data.top_groups || [])[0];
-    const readyBetsEl = document.getElementById('ready-bets-card');
-    if (readyBetsEl && firstGroup) {
-      readyBetsEl.innerHTML = `
-        <div class="card-glass p-4 rounded-2xl border border-amber-500/40 bg-slate-900/90 shadow-xl space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-black uppercase text-amber-400">Palpite do Próximo Horário (Amostra Grátis)</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">1 Bicho Liberado</span>
-          </div>
-          <div class="flex items-center gap-2.5">
-            <span class="text-3xl">${firstGroup.emoji || '🐾'}</span>
-            <div>
-              <div class="text-sm font-black text-white">${firstGroup.name} (Grupo ${String(firstGroup.group).padStart(2,'0')})</div>
-              <div class="text-[11px] text-slate-400 font-mono">Dezenas: ${(firstGroup.tens || []).join(', ')}</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    const animalCardsEl = document.getElementById('animal-cards-container');
-    if (animalCardsEl) {
-      animalCardsEl.innerHTML = `
-        <div onclick="openPlansModal()" class="col-span-full p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-950 border-2 border-amber-500/60 text-center shadow-2xl space-y-4 cursor-pointer group hover:border-amber-400 transition-all my-2">
-          <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/60 flex items-center justify-center text-2xl text-amber-300 shadow-lg shadow-amber-500/20">
-            🎯 🔒
-          </div>
-          <div>
-            <h3 class="text-base sm:text-lg font-black text-white">Jogos Prontos e Fechamentos Bloqueados</h3>
-            <p class="text-xs text-slate-300 mt-1 max-w-md mx-auto leading-relaxed">
-              As Centenas Fortes, Milhares Cirúrgicas, Duplas de Grupo e Ternos de Dezena são 100% exclusivos para membros VIP.
-            </p>
-          </div>
-          <div class="pt-1">
-            <button type="button" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs shadow-lg group-hover:scale-105 transition-transform">
-              Desbloquear Jogos Prontos (R$ 14,90/mês) ➔
-            </button>
-          </div>
-        </div>
-      `;
-    }
-
-    const ddzEl = document.getElementById('ddz-combos-container');
-    if (ddzEl) ddzEl.innerHTML = '';
-    const tensEl = document.getElementById('top-tens-container');
-    if (tensEl) tensEl.innerHTML = '';
-    const hundredsEl = document.getElementById('top-hundreds-container');
-    if (hundredsEl) hundredsEl.innerHTML = '';
-    const thousandsEl = document.getElementById('top-thousands-container');
-    if (thousandsEl) thousandsEl.innerHTML = '';
-    const hybridEl = document.getElementById('hybrid-combo-container');
-    if (hybridEl) hybridEl.innerHTML = '';
-    const patternEl = document.getElementById('pattern-break-container');
-    if (patternEl) patternEl.innerHTML = '';
-    return;
-  }
 
   // 0. Fechamento Híbrido Anti-Aleatoriedade
   renderHybridSection(data.hybrid_combo);
@@ -4041,11 +4071,40 @@ function renderAnimalCards(data) {
     return;
   }
 
+  const isVip = window.isUserVip ? window.isUserVip() : false;
   const allTens = data.top_tens || [];
   const allHundreds = data.top_hundreds || [];
   const allThousands = data.top_thousands || [];
 
   container.innerHTML = topGroups.map((g, idx) => {
+    // Para nao-assinantes: Mostra o Bicho #1 liberado (degustacao) e os demais com CADEADO!
+    if (!isVip && idx > 0) {
+      return `
+        <div onclick="openPlansModal()" class="card-glass p-3 sm:p-4 rounded-xl border border-amber-500/40 bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950/20 hover:border-amber-400 text-left space-y-2 cursor-pointer group transition-all relative overflow-hidden shadow-lg animate-fade-in">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center text-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 group-hover:scale-110 group-hover:rotate-6 transition-transform shadow-inner shrink-0">
+                🔒
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">#${idx + 1}</span>
+                  <h3 class="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5">
+                    <span>Palpite VIP #${idx + 1}</span>
+                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">Cadeado Ativo</span>
+                  </h3>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-0.5">Bicho complementar com Dezenas, Centenas e Milhares filtradas pela inteligência.</p>
+              </div>
+            </div>
+            <button type="button" class="shrink-0 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs shadow-md group-hover:brightness-110 transition-all flex items-center gap-1 cursor-pointer">
+              <span>👑</span> <span>Liberar (R$ 14,90)</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
     const grpNum = parseInt(g.value);
     const grpStr = String(grpNum).padStart(2, '0');
     const animName = g.animal_name;
@@ -4795,6 +4854,29 @@ function renderDDZUI() {
   const container = document.getElementById('ddz-container');
   if (!container || cachedDDZCombos.length === 0) return;
 
+  const isVip = window.isUserVip ? window.isUserVip() : false;
+  if (!isVip) {
+    container.innerHTML = `
+      <div onclick="openPlansModal()" class="card-glass p-5 rounded-2xl border border-indigo-500/40 bg-gradient-to-b from-slate-900 to-indigo-950/30 text-center space-y-3 cursor-pointer group hover:border-indigo-400 transition-all shadow-xl animate-fade-in">
+        <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center text-2xl text-indigo-300 shadow-inner group-hover:scale-110 transition-transform">
+          🔒 🎯
+        </div>
+        <div>
+          <h3 class="text-sm sm:text-base font-black text-white">Duque de Dezena Combinado (DDZ - 1º ao 5º)</h3>
+          <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+            Fechamentos matemáticos com as melhores combinações de dezenas para cercar do 1º ao 5º prêmio. Exclusivo para assinantes VIP.
+          </p>
+        </div>
+        <div>
+          <button type="button" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs shadow-md group-hover:brightness-110 transition-all cursor-pointer">
+            👑 Liberar Fechamento DDZ (R$ 14,90/mês)
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   const activeCombo = cachedDDZCombos[currentDDZIndex] || cachedDDZCombos[0];
 
   const tabsHtml = cachedDDZCombos.map((combo, idx) => {
@@ -5161,8 +5243,23 @@ function renderGroups(groups) {
     return;
   }
 
+  const isVip = window.isUserVip ? window.isUserVip() : false;
   container.innerHTML = groups
     .map((g, idx) => {
+      if (!isVip && idx > 0) {
+        return `
+          <div onclick="openPlansModal()" class="card-glass p-3 rounded-xl border border-amber-500/30 bg-slate-900/70 flex items-center justify-between gap-2 cursor-pointer group hover:border-amber-400 transition-all animate-fade-in">
+            <div class="flex items-center gap-2.5">
+              <span class="text-lg">🔒</span>
+              <div>
+                <span class="text-xs font-bold text-white group-hover:text-amber-300">Grupo #${idx + 1} (Exclusivo VIP)</span>
+                <p class="text-[10px] text-slate-400">Score, dezenas e fatores bloqueados.</p>
+              </div>
+            </div>
+            <button type="button" class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold group-hover:bg-amber-500/30">Liberar ➔</button>
+          </div>
+        `;
+      }
       const tensHtml = (g.tens || [])
         .map((t) => `<span class="px-2 py-0.5 text-xs font-mono rounded bg-slate-800 text-indigo-300 font-semibold border border-indigo-900/50">${t}</span>`)
         .join(' ');
@@ -5276,9 +5373,21 @@ function renderTens(tens) {
     return;
   }
 
+  const isVip = window.isUserVip ? window.isUserVip() : false;
   container.innerHTML = tens
     .map(
       (t, idx) => {
+        if (!isVip && idx >= 4) {
+          return `
+            <div onclick="openPlansModal()" class="card-glass p-3 flex items-center justify-between border border-amber-500/25 bg-slate-900/60 cursor-pointer group hover:border-amber-400 transition-all animate-fade-in">
+              <div class="flex items-center gap-2.5">
+                <span class="text-sm">🔒</span>
+                <span class="text-xs font-bold text-slate-400 group-hover:text-amber-300">Dezena VIP #${idx + 1}</span>
+              </div>
+              <span class="text-[10px] text-amber-400 font-bold">Liberar ➔</span>
+            </div>
+          `;
+        }
         const presencePct = t.metadata?.presence_pct;
         const presenceBadge = (presencePct !== undefined && presencePct !== null)
           ? `<span class="inline-block text-[10px] text-emerald-400 font-semibold ml-1.5 px-1.5 py-0.2 rounded bg-emerald-950/40 border border-emerald-800/40" title="Presente em ${presencePct}% dos últimos 30 sorteios (1º ao 5º)">📈 ${presencePct}%</span>`
