@@ -67,14 +67,17 @@
     })();
   </script>
   <style>
-    /* Se o usuário já está logado, nunca pisca a tela de login durante carregamento */
-    html.is-authenticated #app-auth-gate {
-      display: none !important;
+    /* Modo Degustação / Navegação Livre para Visitantes */
+    #app-auth-gate {
+      display: none;
     }
-    html.is-authenticated #app-main-header {
+    #app-auth-gate.is-open {
+      display: flex !important;
+    }
+    #app-main-header {
       display: block !important;
     }
-    html.is-authenticated #main-content-container {
+    #main-content-container {
       display: block !important;
     }
     /* Opção 1: Barra inferior removida para liberar 100% da tela do celular e unificar no menu do topo */
@@ -196,7 +199,7 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-10 md:pb-12 antialiased selection:bg-indigo-500 selection:text-white overflow-x-hidden w-full max-w-full relative">
 
   <!-- Header Superior Fixo -->
-  <header id="app-main-header" class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 hidden w-full max-w-full overflow-x-hidden">
+  <header id="app-main-header" class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 w-full max-w-full overflow-x-hidden">
     <div class="max-w-6xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-3">
       <!-- Lado Esquerdo: Botao Gaveta + Logo -->
       <div class="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -264,7 +267,15 @@
               <span class="text-sm font-black tracking-wider text-slate-100 flex items-center gap-1.5">RADAR <span class="text-amber-400">5×5</span></span>
               <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider">PRO</span>
             </div>
-            <div id="drawer-user-status" class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+            <div class="mt-2 flex items-center gap-2">
+            <button type="button" onclick="closeDrawer(); showAuthGateModal();" id="drawer-login-btn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold border border-slate-700 cursor-pointer transition-colors">
+              🔐 Entrar / Criar Conta
+            </button>
+            <button type="button" onclick="closeDrawer(); openPlansModal();" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-[11px] font-black cursor-pointer shadow-sm">
+              ⭐ Planos VIP
+            </button>
+          </div>
+          <div id="drawer-user-status" class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               <span id="drawer-user-label" class="font-medium text-slate-300">Conectado</span>
             </div>
@@ -438,7 +449,8 @@
     <!-- =========================================================================
        GATE DE AUTENTICAÇÃO VIP (WHATSAPP + SENHA - 3 DIAS GRÁTIS)
        ========================================================================= -->
-  <div id="app-auth-gate" class="min-h-screen flex items-center justify-center p-3 sm:p-6 py-8 relative overflow-hidden w-full max-w-full box-border">
+  <div id="app-auth-gate" class="fixed inset-0 z-50 min-h-screen flex items-center justify-center p-3 sm:p-6 py-8 relative overflow-y-auto w-full max-w-full box-border bg-slate-950/90 backdrop-blur-md hidden">
+    <button type="button" onclick="closeAuthGateModal()" class="absolute top-4 right-4 px-3 py-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-800/90 hover:bg-slate-700 transition-colors z-20 cursor-pointer font-bold text-xs flex items-center gap-1 shadow-lg" title="Fechar e Continuar Navegando">✕ Fechar</button>
     <!-- Glow de fundo futurista confinado -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none w-full h-full">
       <div class="absolute w-72 h-72 sm:w-96 sm:h-96 bg-amber-500/10 rounded-full blur-3xl -top-12 -left-12"></div>
