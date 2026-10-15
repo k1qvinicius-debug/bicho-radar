@@ -1,16 +1,18 @@
-﻿"""
+"""
 Integracao com Mercado Pago - Geracao de links de pagamento e recebimento de webhooks.
-Quando o cliente paga, o acesso e liberado automaticamente no sistema.
+Permite pagamento 100% automatico e direto via Pix (QR Code e Copia e Cola) e Cartao de Credito.
+Sem intervencao manual e sem redirecionamento para WhatsApp.
 """
 
 import os
 import time
+import secrets
 import httpx
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Request, Depends, Query
 from ..database import get_db_connection, get_system_setting, set_system_setting
-from ..auth import require_tenant
+from ..auth import get_current_tenant_optional, create_token_for_tenant
 
 router = APIRouter(prefix="/payments", tags=["Pagamentos"])
 
@@ -19,11 +21,11 @@ APP_URL = "https://bichomasterpro.tech"
 DEFAULT_MP_TOKEN = "APP_USR-2313405427574357-093013-34a63e8babcacc1388ca84cd2ab7a623-109701431"
 
 PLANS = {
-    "monthly":    {"name": "Bicho Pro - Mensal",     "price": 14.90, "days": 30},
-    "quarterly":  {"name": "Bicho Pro - Trimestral", "price": 37.00, "days": 90},
-    "semiannual": {"name": "Bicho Pro - Semestral",  "price": 67.00, "days": 180},
-    "yearly":     {"name": "Bicho Pro - Anual",      "price": 97.00, "days": 365},
-    "lifetime":   {"name": "Bicho Pro - Vitalicio",  "price": 147.00, "days": 3650},
+    "monthly":    {"name": "Radar 5x5 Pro - Mensal",     "price": 14.90, "days": 30},
+    "quarterly":  {"name": "Radar 5x5 Pro - Trimestral", "price": 37.00, "days": 90},
+    "semiannual": {"name": "Radar 5x5 Pro - Semestral",  "price": 67.00, "days": 180},
+    "yearly":     {"name": "Radar 5x5 Pro - Anual",      "price": 97.00, "days": 365},
+    "lifetime":   {"name": "Radar 5x5 Pro - Vitalicio",  "price": 147.00, "days": 3650},
 }
 
 
@@ -46,7 +48,15 @@ def get_plans():
 
 
 @router.post("/create-preference")
-async def create_preference(request: Request, plan: Optional[str] = Query(None), tenant=Depends(require_tenant)):
+async def create_preference(
+    request: Request,
+    plan: Optional[str] = Query(None),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional)
+):
+    """
+    Cria uma preferencia de pagamento no Mercado Pago.
+    Permite checkout direto tanto para usuarios logados (ativos ou expirados) quanto para novos visitantes.
+    """
     selected_plan = plan
     if not selected_plan:
         try:
@@ -62,29 +72,32 @@ async def create_preference(request: Request, plan: Optional[str] = Query(None),
         raise HTTPException(status_code=400, detail=f"Plano invalido: '{selected_plan}'.")
 
     token = get_mp_token()
-    tenant_id = tenant["id"]
-    tenant_key = tenant.get("tenant_key", "")
-    payer_email = tenant.get("email") or f"cliente{tenant_id}@bicho.app"
-    if "@bichomaster.app" in payer_email:
-        payer_email = f"cliente{tenant_id}@bicho.app"
+    
+    tenant_id = tenant.get("id") if tenant else None
+    tenant_key = tenant.get("tenant_key", "") if tenant else ""
+    payer_email = None
+    if tenant and tenant.get("email"):
+        em = str(tenant["email"]).strip()
+        if "@" in em and not em.endswith("@bichomaster.app") and not em.endswith("@bicho.app"):
+            payer_email = em
 
-    external_ref = f"tenant_{tenant_id}_{selected_plan}_{int(time.time())}"
+    ref_prefix = f"tenant_{tenant_id}" if tenant_id else "guest"
+    external_ref = f"{ref_prefix}_{selected_plan}_{int(time.time())}_{secrets.token_hex(3)}"
 
     payload = {
         "items": [{
             "id": selected_plan,
             "title": plan_info["name"],
-            "description": f"Assinatura {plan_info['name']} - Bicho Master Pro",
+            "description": f"Acesso VIP {plan_info['name']} - Radar 5x5 Pro",
             "picture_url": f"{APP_URL}/img/logo_bichopro.jpg",
             "quantity": 1,
             "unit_price": plan_info["price"],
             "currency_id": "BRL"
         }],
-        "payer": {"email": payer_email},
         "back_urls": {
-            "success": f"{APP_URL}/?payment=success&plan={selected_plan}",
+            "success": f"{APP_URL}/?payment=success&plan={selected_plan}&ref={external_ref}",
             "failure": f"{APP_URL}/?payment=failed",
-            "pending": f"{APP_URL}/?payment=pending",
+            "pending": f"{APP_URL}/?payment=pending&plan={selected_plan}&ref={external_ref}",
         },
         "auto_return": "approved",
         "notification_url": f"{APP_URL}/api/payments/webhook",
@@ -93,10 +106,14 @@ async def create_preference(request: Request, plan: Optional[str] = Query(None),
             "tenant_id": tenant_id,
             "tenant_key": tenant_key,
             "plan": selected_plan,
-            "plan_days": plan_info["days"]
+            "plan_days": plan_info["days"],
+            "external_reference": external_ref
         },
-        "statement_descriptor": "BICHOPRO",
+        "statement_descriptor": "RADAR5X5",
     }
+
+    if payer_email:
+        payload["payer"] = {"email": payer_email}
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -117,16 +134,26 @@ async def create_preference(request: Request, plan: Optional[str] = Query(None),
         "preference_id": data["id"],
         "plan": selected_plan,
         "price": plan_info["price"],
-        "days": plan_info["days"]
+        "days": plan_info["days"],
+        "external_reference": external_ref
     }
 
 
 @router.post("/create-subscription")
-async def create_subscription(request: Request, tenant=Depends(require_tenant)):
+async def create_subscription(
+    request: Request,
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional)
+):
     """
     Cria uma assinatura recorrente com debito automatico mensal no cartao via Mercado Pago Preapproval.
     """
     token = get_mp_token()
+    if not tenant:
+        raise HTTPException(
+            status_code=400,
+            detail="Para assinatura recorrente, faça login com seu e-mail ou utilize o pagamento avulso via Pix/Cartão."
+        )
+
     tenant_id = tenant["id"]
     payer_email = tenant.get("email") or f"cliente{tenant_id}@bicho.app"
     if "@bichomaster.app" in payer_email:
@@ -135,7 +162,7 @@ async def create_subscription(request: Request, tenant=Depends(require_tenant)):
     external_ref = f"tenant_{tenant_id}_monthly_sub_{int(time.time())}"
 
     payload = {
-        "reason": "Bicho Master Pro - Assinatura Mensal VIP",
+        "reason": "Radar 5x5 Pro - Assinatura Mensal VIP",
         "auto_recurring": {
             "frequency": 1,
             "frequency_type": "months",
@@ -169,6 +196,62 @@ async def create_subscription(request: Request, tenant=Depends(require_tenant)):
         "price": 14.90,
         "mode": "recurring"
     }
+
+
+@router.get("/verify-status")
+def verify_status(ref: Optional[str] = Query(None)):
+    """
+    Verifica se o pagamento referenciado ja foi aprovado e retorna dados de autenticacao para login automatico imediato do comprador.
+    """
+    if not ref:
+        return {"status": "no_ref"}
+
+    tenant_id = None
+    if ref.startswith("tenant_"):
+        parts = ref.split("_")
+        try:
+            tenant_id = int(parts[1])
+        except (ValueError, IndexError):
+            pass
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        tenant = None
+        if tenant_id:
+            cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,))
+            row = cursor.fetchone()
+            if row:
+                tenant = dict(row)
+        else:
+            # Busca pelo external reference em subscription_payments ou em tenants
+            cursor.execute("""
+                SELECT t.* FROM tenants t
+                JOIN subscription_payments p ON p.tenant_id = t.id
+                WHERE p.notes LIKE ? OR t.tenant_key = ? OR t.notes LIKE ?
+                ORDER BY t.id DESC LIMIT 1
+            """, (f"%{ref}%", ref, f"%{ref}%"))
+            row = cursor.fetchone()
+            if row:
+                tenant = dict(row)
+
+        if tenant and tenant.get("subscription_status") == "active":
+            token = create_token_for_tenant(tenant)
+            return {
+                "status": "approved",
+                "subscription_status": "active",
+                "plan": tenant.get("plan_type"),
+                "token": token,
+                "tenant": {
+                    "id": tenant["id"],
+                    "name": tenant.get("name"),
+                    "email": tenant.get("email"),
+                    "role": tenant.get("role"),
+                    "subscription_status": tenant.get("subscription_status"),
+                    "plan_type": tenant.get("plan_type")
+                }
+            }
+
+    return {"status": "pending_or_not_found"}
 
 
 @router.api_route("/webhook", methods=["GET", "POST"])
@@ -267,18 +350,16 @@ async def mp_webhook(request: Request):
         except (ValueError, IndexError):
             pass
 
-    if not tenant_id:
-        payer_email = (payment.get("payer") or {}).get("email")
-        if payer_email:
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT id FROM tenants WHERE email = ?", (payer_email.lower(),))
-                row = cursor.fetchone()
-                if row:
-                    tenant_id = row[0]
+    payer = payment.get("payer") or {}
+    payer_email = (payer.get("email") or "").strip().lower()
 
-    if not tenant_id:
-        return {"status": "tenant_not_found"}
+    if not tenant_id and payer_email:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM tenants WHERE email = ?", (payer_email,))
+            row = cursor.fetchone()
+            if row:
+                tenant_id = row[0]
 
     now = datetime.now()
     expiry_str = (now + timedelta(days=plan_days)).strftime("%Y-%m-%d %H:%M:%S")
@@ -287,20 +368,55 @@ async def mp_webhook(request: Request):
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM tenants WHERE id = ?", (tenant_id,))
-        if not cursor.fetchone():
-            return {"status": "tenant_not_in_db"}
+        
+        # Se for um pagamento direto de visitante que ainda nao existia na base de dados:
+        if not tenant_id:
+            payer_name = f"{payer.get('first_name', '')} {payer.get('last_name', '')}".strip() or "Assinante VIP"
+            phone_data = payer.get("phone")
+            payer_phone = ""
+            if isinstance(phone_data, dict):
+                payer_phone = f"{phone_data.get('area_code', '')}{phone_data.get('number', '')}".strip()
+            
+            clean_email = payer_email or f"cliente_{int(time.time())}@bicho.app"
+            unique_key = f"vip-{secrets.token_hex(4)}"
+
+            cursor.execute("""
+                INSERT INTO tenants (
+                    name, email, phone, password, tenant_key, role, status,
+                    auth_provider, trial_started_at, trial_expires_at,
+                    subscription_status, plan_type, notes, created_at, last_active_at
+                ) VALUES (?, ?, ?, ?, ?, 'subscriber', 'active', 'mercadopago', ?, ?, 'active', ?, ?, ?, ?)
+            """, (payer_name, clean_email, payer_phone, unique_key, unique_key, now_str, expiry_str, plan, f"Pagamento MP Ref: {ext_ref}", now_str, now_str))
+
+            tenant_id = cursor.lastrowid
+            if not tenant_id:
+                cursor.execute("SELECT id FROM tenants WHERE tenant_key = ?", (unique_key,))
+                r = cursor.fetchone()
+                if r:
+                    tenant_id = r[0]
+
+        if not tenant_id:
+            return {"status": "tenant_creation_failed"}
+
         cursor.execute("""
-            UPDATE tenants SET subscription_status='active', plan_type=?, trial_expires_at=?, status='active', last_active_at=?
+            UPDATE tenants 
+            SET subscription_status='active', plan_type=?, trial_expires_at=?, status='active', last_active_at=?
             WHERE id=?
         """, (plan, expiry_str, now_str, tenant_id))
+
         try:
             cursor.execute("""
-                INSERT INTO subscription_payments (tenant_id, amount, plan_type, mp_payment_id, status, created_at)
-                VALUES (?, ?, ?, ?, 'approved', ?)
-            """, (tenant_id, amount, plan, str(resource_id), now_str))
+                INSERT INTO subscription_payments (tenant_id, amount, plan_type, mp_payment_id, status, created_at, notes)
+                VALUES (?, ?, ?, ?, 'approved', ?, ?)
+            """, (tenant_id, amount, plan, str(resource_id), now_str, ext_ref))
         except Exception:
-            pass
+            try:
+                cursor.execute("""
+                    INSERT INTO subscription_payments (tenant_id, amount, plan_type, mp_payment_id, status, created_at)
+                    VALUES (?, ?, ?, ?, 'approved', ?)
+                """, (tenant_id, amount, plan, str(resource_id), now_str))
+            except Exception:
+                pass
 
-    print(f"[MP WEBHOOK] Pagamento aprovado! Tenant #{tenant_id} | Plano: {plan} | R${amount:.2f} | Expira: {expiry_str}")
+    print(f"[MP WEBHOOK] Pagamento 100% aprovado! Tenant #{tenant_id} | Plano: {plan} | R${amount:.2f} | Expira: {expiry_str}")
     return {"status": "activated", "tenant_id": tenant_id, "plan": plan, "expires_at": expiry_str}
