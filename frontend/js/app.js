@@ -2839,9 +2839,7 @@ async function loadPrediction(forceRefresh = false) {
     if (reqSeq === _activePredictionReqSeq && api.isLoggedIn()) {
       const msg = err && err.message ? err.message : '';
       if (msg.includes('TRIAL_EXPIRED') || msg.includes('período de teste') || msg.includes('encerrou') || msg.includes('expirou')) {
-        if (typeof window.showTrialExpiredModal === 'function') {
-          window.showTrialExpiredModal();
-        }
+        // Modo degustação: não interrompe a tela com modal invasivo
       } else if (msg.includes('não autorizado') || msg.includes('login') || msg.includes('Chave')) {
         showToast('Sua sessão expirou. Faça login para continuar.', 'warning');
       } else {
@@ -6262,8 +6260,8 @@ async function initTenantAuth() {
     if (typeof window.renderExpiredBasicBanner === 'function') {
       window.renderExpiredBasicBanner();
     }
-    // Exibe o modal de planos informativo (que agora pode ser fechado livremente com 1 clique)
-    showTrialExpiredModal();
+    // Não abre o modal de planos automaticamente no reload da página.
+    // O usuário navega livremente e acessa o modal apenas quando clicar no Modo VIP ou em recursos bloqueados.
   }
 }
 
