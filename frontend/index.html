@@ -2561,7 +2561,7 @@
       <!-- Grid dos 4 Planos Estratégicos -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-left">
         
-        <!-- 1. Mensal (Com escolha clara: PIX Direto ou Débito Recorrente no Cartão) -->
+        <!-- 1. Mensal (Pagamento Exclusivo e Automático via Mercado Pago) -->
         <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 hover:border-emerald-500/50 flex flex-col justify-between space-y-3 transition-all relative shadow-lg shadow-black/40">
           <div>
             <div class="flex items-center justify-between">
@@ -2577,17 +2577,10 @@
             </p>
           </div>
           
-          <div class="space-y-1.5 pt-1">
-            <!-- Opção 1: PIX Direto (Sem Cartão) -->
-            <button type="button" onclick="subscribePlan('monthly', 'pix')"
+          <div class="pt-1">
+            <button type="button" onclick="subscribePlan('monthly')"
               class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-emerald-950/40">
-              <span>⚡</span> <span>Pagar no PIX (R$ 14,90)</span>
-            </button>
-            
-            <!-- Opção 2: Débito Automático Mensal no Cartão -->
-            <button type="button" onclick="subscribePlan('monthly', 'subscription')"
-              class="w-full py-1.5 px-2 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 hover:border-slate-600 text-slate-300 hover:text-white font-bold text-[11px] transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1">
-              <span>💳</span> <span>Débito Automático no Cartão</span>
+              <span>💳</span> <span>Pagar pelo Mercado Pago</span>
             </button>
           </div>
         </div>
