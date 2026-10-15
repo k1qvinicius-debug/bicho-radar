@@ -1,3 +1,34 @@
+
+window.isUserVip = function() {
+  const tenant = (typeof api !== 'undefined' && api.getCurrentTenant) ? api.getCurrentTenant() : null;
+  if (!tenant) return false;
+  if (tenant.role === 'admin') return true;
+  const userEmail = (tenant.email || '').toLowerCase();
+  if (userEmail === 'k1qvinicius.cs@gmail.com' || userEmail === 'k1qvinicius@gmail.com') return true;
+  const isExpired = tenant.is_expired || tenant.subscription_status === 'expired' || 
+    (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0);
+  if (isExpired) return false;
+  return tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free';
+};
+
+window.showAuthGateModal = function() {
+  const gate = document.getElementById('app-auth-gate');
+  if (gate) {
+    gate.classList.add('is-open');
+    gate.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  }
+};
+
+window.closeAuthGateModal = function() {
+  const gate = document.getElementById('app-auth-gate');
+  if (gate) {
+    gate.classList.remove('is-open');
+    gate.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+};
+
 ﻿// Remove stale cached elements if present
 (function() {
   var b = document.getElementById('nav-btn-milhares-atrasadas');
@@ -257,10 +288,11 @@ function switchScreen(screenName, updateHash = true) {
     currentTenant.subscription_status === 'expired' || 
     (currentTenant.trial_days_remaining !== undefined && currentTenant.trial_days_remaining !== null && currentTenant.trial_days_remaining <= 0)
   );
-  if (isExpired && screenName !== 'home' && screenName !== 'resultados') {
+  // Modo Degustação: permite navegar nas telas para conhecer as funcionalidades e ver o valor do app
+  /* if (isExpired && screenName !== 'home' && screenName !== 'resultados') {
     showTrialExpiredModal();
     return;
-  }
+  } */
 
   currentScreen = screenName;
   window.currentScreen = screenName;
@@ -3281,21 +3313,39 @@ window.loadCruzModalContent = async function(forceDate = null) {
       const b = data.bicho_do_dia;
       window._currentBichoDoDiaThousands = b.thousands || [];
 
-      const milharesBichoHtml = (b.thousands || []).map(m => `
-        <button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')"
-          title="Clique para copiar a milhar ${m}"
-          class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/40 hover:border-amber-400 text-amber-200 hover:text-amber-100 font-mono text-xs font-black transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95">
-          ${m}
-        </button>
-      `).join(' ');
+      const isVip = window.isUserVip();
+      let milharesBichoHtml = '';
+      let centenasBichoHtml = '';
 
-      const centenasBichoHtml = (b.hundreds || []).map(c => `
-        <button type="button" onclick="copySingleNumber(event, '${c}', 'Centena')"
-          title="Clique para copiar a centena ${c}"
-          class="px-2 py-0.5 rounded-lg bg-slate-800/90 hover:bg-amber-950/60 border border-slate-700/80 hover:border-amber-500/50 text-slate-200 hover:text-amber-200 font-mono text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95">
-          ${c}
-        </button>
-      `).join(' ');
+      if (!isVip) {
+        milharesBichoHtml = `
+          <div onclick="openPlansModal()" class="w-full p-2.5 rounded-xl bg-slate-950/80 border border-amber-500/40 text-center cursor-pointer group hover:border-amber-400 transition-all select-none">
+            <span class="text-xs font-bold text-amber-300">🔒 Milhares da Cruz do Dia (Exclusivo VIP)</span>
+            <span class="block text-[10px] text-slate-400 mt-0.5">Toque para desbloquear no Plano Mensal (R$ 14,90)</span>
+          </div>
+        `;
+        centenasBichoHtml = `
+          <div onclick="openPlansModal()" class="w-full p-2 rounded-xl bg-slate-950/80 border border-amber-500/40 text-center cursor-pointer group hover:border-amber-400 transition-all select-none">
+            <span class="text-xs font-bold text-amber-300">🔒 Centenas da Cruz do Dia (Exclusivo VIP)</span>
+          </div>
+        `;
+      } else {
+        milharesBichoHtml = (b.thousands || []).map(m => `
+          <button type="button" onclick="copySingleNumber(event, '${m}', 'Milhar')"
+            title="Clique para copiar a milhar ${m}"
+            class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/40 hover:border-amber-400 text-amber-200 hover:text-amber-100 font-mono text-xs font-black transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95">
+            ${m}
+          </button>
+        `).join(' ');
+
+        centenasBichoHtml = (b.hundreds || []).map(c => `
+          <button type="button" onclick="copySingleNumber(event, '${c}', 'Centena')"
+            title="Clique para copiar a centena ${c}"
+            class="px-2 py-0.5 rounded-lg bg-slate-800/90 hover:bg-amber-950/60 border border-slate-700/80 hover:border-amber-500/50 text-slate-200 hover:text-amber-200 font-mono text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95">
+            ${c}
+          </button>
+        `).join(' ');
+      }
 
       bichoContent.innerHTML = `
         <div class="flex items-center gap-2.5">
@@ -6229,17 +6279,26 @@ function updateAuthUI() {
       }
     }
   } else {
-    // Não autenticado: exibe tela de login/cadastro limpa
+    // Modo Degustação / Visitante: visualização livre da plataforma
     document.documentElement.classList.remove('is-authenticated');
-    if (mainHeader) mainHeader.classList.add('hidden');
-    if (appGate) appGate.classList.remove('hidden');
-    if (mainContainer) mainContainer.classList.add('hidden');
+    if (mainHeader) mainHeader.classList.remove('hidden');
+    if (appGate) appGate.classList.add('hidden');
+    if (mainContainer) mainContainer.classList.remove('hidden');
     if (mobBottomNav) mobBottomNav.classList.add('hidden');
     
-    
-    
-    if (drawerUserLabel) drawerUserLabel.textContent = 'Não Conectado';
-    if (badgeContainer) badgeContainer.innerHTML = '';
+    if (drawerUserLabel) drawerUserLabel.textContent = 'Visitante (Degustação)';
+    if (badgeContainer) {
+      badgeContainer.innerHTML = `
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="openPlansModal()" class="px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] sm:text-xs shadow-md shadow-amber-500/20 hover:scale-105 transition-transform flex items-center gap-1 cursor-pointer">
+            <span>⭐</span> <span>Ativar VIP (R$ 14,90)</span>
+          </button>
+          <button type="button" onclick="showAuthGateModal()" class="px-2 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] sm:text-xs font-bold transition-colors cursor-pointer border border-slate-700" title="Já é assinante? Entrar">
+            Entrar
+          </button>
+        </div>
+      `;
+    }
   }
 
   updateHomeScreenData();
@@ -6889,8 +6948,10 @@ function renderMilharesTable() {
   }
 
   const isAtrasadas = currentMilharesType === 'atrasadas';
+  const isVip = window.isUserVip();
+  const visibleItems = isVip ? items : items.slice(0, 2);
 
-  tbody.innerHTML = items.map((item, idx) => {
+  let rowsHtml = visibleItems.map((item, idx) => {
     const rankNum = idx + 1;
     let rankBadge = `<span class="font-bold text-slate-400">${rankNum}º</span>`;
     if (rankNum === 1) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 font-black text-xs">🥇</span>`;
@@ -6935,6 +6996,27 @@ function renderMilharesTable() {
       </tr>
     `;
   }).join('');
+
+  if (!isVip) {
+    rowsHtml += `
+      <tr>
+        <td colspan="7" class="py-6 px-3 text-center">
+          <div onclick="openPlansModal()" class="max-w-md mx-auto p-5 rounded-2xl bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-950 border border-amber-500/50 shadow-2xl space-y-2.5 cursor-pointer group hover:border-amber-400 transition-all">
+            <div class="text-2xl">👑 🔒</div>
+            <div class="text-xs sm:text-sm font-black text-white">Ranking Completo de Milhares Atrasadas e Viciadas</div>
+            <p class="text-[11px] text-slate-300 leading-relaxed">
+              Milhar paga até <strong>4.000x</strong>. Acesse a lista completa das milhares mais quentes e atrasadas de todas as loterias no plano VIP por <strong>R$ 14,90/mês</strong>.
+            </p>
+            <button type="button" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-md group-hover:scale-105 transition-transform">
+              Desbloquear Milhares VIP ⭐
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  tbody.innerHTML = rowsHtml;
 }
 
 window.handleMilharTrackSubmit = function() {
@@ -9409,8 +9491,28 @@ function renderApsEliteAnimals(eliteAnimals) {
   const container = document.getElementById('aps-elite-animals-container');
   if (!container || !eliteAnimals) return;
 
+  const isVip = window.isUserVip();
   let html = '';
   eliteAnimals.forEach((anim, idx) => {
+    // Se não for VIP, os animais a partir do 2º aparecem bloqueados com convite para assinar
+    if (!isVip && idx > 0) {
+      html += `
+        <div onclick="openPlansModal()" class="rounded-xl bg-gradient-to-b from-slate-900/90 to-slate-950 border border-amber-500/40 p-4 shadow-xl relative overflow-hidden flex flex-col justify-between text-center cursor-pointer group hover:border-amber-400 transition-all select-none">
+          <div class="w-9 h-9 mx-auto rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg mb-1.5 text-amber-300">
+            🔒
+          </div>
+          <div class="text-[10px] font-black uppercase text-amber-400 tracking-wider">#${idx + 1} DE ELITE (ALERTA MÁXIMO)</div>
+          <div class="text-xs font-black text-white mt-1 filter blur-[4px]">🐾 Bicho Secreto VIP</div>
+          <p class="text-[10px] text-slate-300 mt-1 leading-snug">
+            Animal com alta pontuação e pressão de ciclo acumulada.
+          </p>
+          <button type="button" class="mt-2.5 w-full py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] shadow-sm group-hover:scale-102 transition-transform">
+            Liberar Acesso VIP ⭐
+          </button>
+        </div>
+      `;
+      return;
+    }
     const reasonsHtml = (anim.reasons || []).map(r => `
       <div class="text-[10px] text-slate-300 flex items-start gap-1">
         <span class="text-amber-400 shrink-0">•</span>
@@ -9458,6 +9560,36 @@ function renderApsCentenas(centenasData) {
   const container = document.getElementById('aps-centenas-cirurgicas-container');
   if (!container || !centenasData) return;
 
+  const isVip = window.isUserVip();
+  if (!isVip) {
+    container.innerHTML = `
+      <div onclick="openPlansModal()" class="rounded-2xl bg-gradient-to-b from-amber-500/10 via-slate-900/95 to-slate-950 border-2 border-amber-500/50 p-5 sm:p-6 text-center shadow-xl space-y-3 cursor-pointer group hover:border-amber-400 transition-all col-span-full">
+        <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/60 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20">
+          🔒
+        </div>
+        <div>
+          <div class="text-sm sm:text-base font-black text-white">Centenas Cirúrgicas Bloqueadas</div>
+          <p class="text-xs text-slate-300 mt-1 max-w-md mx-auto leading-relaxed">
+            As centenas armadas nas <strong>Pedras Frias</strong> dos bichos de elite são exclusivas para membros VIP.
+          </p>
+        </div>
+        <div class="flex items-center justify-center gap-1.5 filter blur-[4px] select-none opacity-40">
+          <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800">057</span>
+          <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800">958</span>
+          <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800">359</span>
+          <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800">029</span>
+          <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800">930</span>
+        </div>
+        <div class="pt-1">
+          <button type="button" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs shadow-lg shadow-emerald-950/50 group-hover:scale-105 transition-transform">
+            Desbloquear Centenas VIP (R$ 14,90/mês) ➔
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   let html = '';
   centenasData.forEach(item => {
     const centenasBadges = (item.centenas || []).map(c => `
@@ -9494,6 +9626,23 @@ function renderApsTernos(ternos) {
   const container = document.getElementById('aps-ternos-list');
   if (!container || !ternos) return;
 
+  const isVip = window.isUserVip();
+  if (!isVip) {
+    const sample = ternos[0] || '12 - 25 - 08';
+    container.innerHTML = `
+      <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800">
+        <span class="text-[10px] font-mono text-slate-500 font-bold">#01 (Amostra Grátis)</span>
+        <span class="font-mono text-xs font-bold text-amber-300 tracking-wider">${sample}</span>
+        <span class="text-[10px] text-emerald-400 font-bold">Livre</span>
+      </div>
+      <div onclick="openPlansModal()" class="p-3 rounded-xl bg-slate-950/80 border border-amber-500/40 text-center cursor-pointer group hover:border-amber-400 transition-all col-span-full">
+        <div class="text-xs font-bold text-amber-300">🔒 +11 Ternos de Dezena Matemáticos Ocultos</div>
+        <div class="text-[10px] text-slate-400 mt-0.5">Toque para desbloquear no Plano VIP (R$ 14,90/mês)</div>
+      </div>
+    `;
+    return;
+  }
+
   let html = '';
   ternos.forEach((t, idx) => {
     html += `
@@ -9514,6 +9663,23 @@ function renderAps60MC(mcList) {
   if (!container || !mcList) return;
 
   if (countEl) countEl.innerText = mcList.length;
+
+  const isVip = window.isUserVip();
+  if (!isVip) {
+    const samples = mcList.slice(0, 4);
+    container.innerHTML = `
+      <div class="w-full">
+        <div class="mb-2">
+          ${samples.map(m => `<span class="inline-block px-1.5 py-0.5 m-0.5 rounded bg-slate-900 border border-slate-800 font-mono font-bold text-amber-300">${m}</span>`).join('')}
+        </div>
+        <div onclick="openPlansModal()" class="w-full p-3 rounded-xl bg-slate-950/80 border border-amber-500/40 text-center cursor-pointer group hover:border-amber-400 transition-all">
+          <div class="text-xs font-bold text-amber-300">🔒 Fechamento Completo 60 MC (Milhares e Centenas)</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Toque para desbloquear no Plano VIP por R$ 14,90</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
 
   container.innerHTML = mcList.map(m => `
     <span class="inline-block px-1.5 py-0.5 m-0.5 rounded bg-slate-900 border border-slate-800 font-mono font-bold text-amber-300 hover:border-amber-400/60 select-all cursor-pointer" onclick="copyTextToClipboard('${m}', 'MC copiada!')">${m}</span>
