@@ -208,12 +208,13 @@ def analyze_aps_grid(recent_draws: List[Dict[str, Any]]) -> Dict[str, Any]:
 def analyze_pedras_centena(recent_draws: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Analisa as Pedras de Centena (dígitos de 0 a 9 na 3ª casa da milhar)
-    seguindo o método APS autêntico (Vácuo Diário, Atraso de Rodízio e Anti-Saturação).
+    seguindo o método APS autêntico (Vácuo Diário, Atraso de Rodízio, Ciclo D3 e Anti-Saturação).
     
     Regras APS:
     1. Vácuo do Dia (Hoje): Pedras que NÃO saíram hoje têm prioridade máxima de rodízio.
-    2. Atraso Consecutivo: Quanto maior o número de sorteios sem sair no 1º ao 5º, maior a pressão estatística de retorno.
-    3. Anti-Saturação: Pedras que já saíram 2+ vezes hoje sofrem penalidade por já terem pago a cota do dia.
+    2. Histórico 3 Dias (D3 anteontem -> D2 ontem -> D1 hoje): Mostra a trajetória completa de cada pedra.
+    3. Atraso Consecutivo: Quanto maior o número de sorteios sem sair no 1º ao 5º, maior a pressão estatística de retorno.
+    4. Anti-Saturação: Pedras que já saíram 2+ vezes hoje sofrem penalidade por já terem pago a cota do dia.
     """
     if not recent_draws:
         return {
@@ -223,18 +224,55 @@ def analyze_pedras_centena(recent_draws: List[Dict[str, Any]]) -> Dict[str, Any]
             "pedras_quentes": [],
             "pedras_neutras": [],
             "total_analyzed": 0,
-            "today_date": None
+            "today_date": None,
+            "d1_date": None,
+            "d2_date": None,
+            "d3_date": None
         }
 
-    today_date = recent_draws[0].get("draw_date")
+    # Separar sorteios por data (D1 hoje, D2 ontem, D3 anteontem)
+    draws_by_date = {}
+    for dr in recent_draws:
+        d_str = dr.get("draw_date")
+        if d_str:
+            draws_by_date.setdefault(d_str, []).append(dr)
     
-    today_counts = Counter()
+    sorted_dates = sorted(draws_by_date.keys(), reverse=True)
+    d1_date = sorted_dates[0] if len(sorted_dates) > 0 else None
+    d2_date = sorted_dates[1] if len(sorted_dates) > 1 else None
+    d3_date = sorted_dates[2] if len(sorted_dates) > 2 else None
+
+    d1_counts = Counter()
+    d2_counts = Counter()
+    d3_counts = Counter()
     today_p1_counts = Counter()
     total_counts = Counter()
     total_p1_counts = Counter()
     absent_draws = {d: 0 for d in range(10)}
     absent_p1_draws = {d: 0 for d in range(10)}
 
+    for dr in draws_by_date.get(d1_date, []):
+        for p in range(1, 6):
+            m_val = str(dr.get(f"prize_{p}") or "")
+            if len(m_val) >= 3:
+                pedra = int(m_val[-3])
+                d1_counts[pedra] += 1
+                if p == 1:
+                    today_p1_counts[pedra] += 1
+
+    for dr in draws_by_date.get(d2_date, []):
+        for p in range(1, 6):
+            m_val = str(dr.get(f"prize_{p}") or "")
+            if len(m_val) >= 3:
+                d2_counts[int(m_val[-3])] += 1
+
+    for dr in draws_by_date.get(d3_date, []):
+        for p in range(1, 6):
+            m_val = str(dr.get(f"prize_{p}") or "")
+            if len(m_val) >= 3:
+                d3_counts[int(m_val[-3])] += 1
+
+    # Atrasos consecutivos em sorteios
     for d in range(10):
         delay = 0
         for dr in recent_draws:
@@ -258,35 +296,38 @@ def analyze_pedras_centena(recent_draws: List[Dict[str, Any]]) -> Dict[str, Any]
         absent_p1_draws[d] = delay_p1
 
     for dr in recent_draws:
-        is_today = (dr.get("draw_date") == today_date)
         for p in range(1, 6):
             m_val = str(dr.get(f"prize_{p}") or "")
             if len(m_val) >= 3:
                 pedra = int(m_val[-3])
                 total_counts[pedra] += 1
-                if is_today:
-                    today_counts[pedra] += 1
                 if p == 1:
                     total_p1_counts[pedra] += 1
-                    if is_today:
-                        today_p1_counts[pedra] += 1
 
     total_pedras = sum(total_counts.values()) or 1
 
     pedras_data = []
     for d in range(10):
-        tc = today_counts[d]
+        c1 = d1_counts[d]
+        c2 = d2_counts[d]
+        c3 = d3_counts[d]
         ad = absent_draws[d]
         ad_p1 = absent_p1_draws[d]
         pct = round((total_counts[d] / total_pedras) * 100, 1)
 
-        if tc == 0:
+        # Regra de classificação D3 / D2 / D1
+        if c1 == 0:
             category = "fria"
-            score = 100 + (ad * 10) + ad_p1
-            status = f"Vácuo Hoje ({ad} atrasos)"
+            # Se também esteve quieta no D2 ou D3, ganha bônus de vácuo acumulado
+            accum_bonus = 20 if c2 <= 3 else 0
+            score = 100 + (ad * 10) + ad_p1 + accum_bonus
+            if c2 <= 2 and c3 <= 2:
+                status = f"Super Fria ({ad} atrasos)"
+            else:
+                status = f"Vácuo Hoje ({ad} atrasos)"
             badge = "🧊 VÁCUO HOJE"
             recommendation = "Alvo de Rodízio / Jogar"
-        elif tc == 1:
+        elif c1 == 1:
             category = "neutra"
             score = 40 + (ad * 5)
             status = "Equilibrada (1x hoje)"
@@ -294,8 +335,8 @@ def analyze_pedras_centena(recent_draws: List[Dict[str, Any]]) -> Dict[str, Any]
             recommendation = "Atenção Moderada"
         else:
             category = "quente"
-            score = max(0, 20 - (tc * 8))
-            status = f"Saturada ({tc}x hoje)"
+            score = max(0, 20 - (c1 * 8))
+            status = f"Saturada ({c1}x hoje)"
             badge = "🔥 SATURADA"
             recommendation = "Cota Paga / Evitar"
 
@@ -306,8 +347,11 @@ def analyze_pedras_centena(recent_draws: List[Dict[str, Any]]) -> Dict[str, Any]
             "badge": badge,
             "recommendation": recommendation,
             "score": score,
-            "today_count": tc,
+            "today_count": c1,
             "today_p1_count": today_p1_counts[d],
+            "d1_count": c1,
+            "d2_count": c2,
+            "d3_count": c3,
             "absent_draws": ad,
             "absent_p1_draws": ad_p1,
             "count": total_counts[d],
@@ -334,7 +378,10 @@ def analyze_pedras_centena(recent_draws: List[Dict[str, Any]]) -> Dict[str, Any]
         "pedras_neutras": pedras_neutras,
         "pedras_alerta": pedra_alerta,
         "total_analyzed": total_pedras,
-        "today_date": today_date
+        "today_date": d1_date,
+        "d1_date": d1_date,
+        "d2_date": d2_date,
+        "d3_date": d3_date
     }
 
 
