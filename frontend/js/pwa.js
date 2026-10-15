@@ -1,4 +1,4 @@
-// Bicho Master Pro - Gerenciamento de PWA e Limpeza de Service Worker
+// Bicho Master Pro / Radar 5x5 Pro - Gerenciamento de PWA e Limpeza de Service Worker
 (function() {
   // Desregistra qualquer Service Worker ativo imediatamente
   if ('serviceWorker' in navigator) {
@@ -20,10 +20,51 @@
     });
   }
 
-  // Suporte a instalação PWA sem Service Worker interceptor
+  // Verificação e Ocultação Imediata para quem já baixou/instalou
+  function checkAndHideIfInstalled() {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                         window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+                         window.navigator.standalone === true ||
+                         localStorage.getItem('pwa_installed') === 'true';
+
+    if (isStandalone) {
+      try { localStorage.setItem('pwa_installed', 'true'); } catch (e) {}
+      document.documentElement.classList.add('app-is-installed');
+      
+      const elementsToHide = [
+        'home-card-install-app',
+        'auth-gate-install-box',
+        'btn-drawer-install',
+        'pwa-install-banner'
+      ];
+      elementsToHide.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.display = 'none';
+          el.classList.add('hidden');
+        }
+      });
+    }
+  }
+
+  checkAndHideIfInstalled();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndHideIfInstalled);
+  } else {
+    setTimeout(checkAndHideIfInstalled, 100);
+    setTimeout(checkAndHideIfInstalled, 500);
+  }
+
+  // Evento disparado pelo navegador quando a instalação é concluída
+  window.addEventListener('appinstalled', (evt) => {
+    console.log('[PWA] Sucesso: aplicativo foi instalado pelo usuário!');
+    try { localStorage.setItem('pwa_installed', 'true'); } catch (e) {}
+    checkAndHideIfInstalled();
+  });
+
+  // Suporte a instalação PWA
   let deferredPrompt = window._deferredPWAInstallPrompt || null;
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -36,6 +77,11 @@
     if (activePrompt) {
       try {
         activePrompt.prompt();
+        const choice = await activePrompt.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          try { localStorage.setItem('pwa_installed', 'true'); } catch (e) {}
+          checkAndHideIfInstalled();
+        }
       } catch (err) {}
       deferredPrompt = null;
       window._deferredPWAInstallPrompt = null;
