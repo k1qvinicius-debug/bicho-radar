@@ -1346,7 +1346,7 @@
               <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
                 <span>🏆 Top Bichos Selecionados</span>
               </h2>
-              <p class="text-xs text-slate-400">Classificação pelo funil de ausência, ciclo D3 e afinidade das pedras.</p>
+              <p class="text-xs text-slate-400">Classificação matemática pelo funil de ausências e afinidade das pedras.</p>
             </div>
             <span class="text-xs font-bold text-amber-300">Elite do Radar</span>
           </div>
@@ -1442,46 +1442,39 @@
         </div>
       </div>
 
-      <!-- SUB-ABA 3: PEDRAS & CICLO D3 (SEPARADA) -->
+      <!-- SUB-ABA 3: PEDRAS DE CENTENA (RODÍZIO LIMPO E DIRETO) -->
       <div id="aps-subtab-pedras" class="space-y-4 hidden">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- PEDRAS DE CENTENA: RODÍZIO D3 (0 A 9) -->
+        <div class="max-w-2xl mx-auto">
+          <!-- PEDRAS DE CENTENA: RODÍZIO INTELIGENTE (0 A 9) -->
           <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 shadow-xl backdrop-blur-md">
-            <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center justify-between mb-3">
               <div>
                 <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
-                  <span>💎</span> <span>Pedras de Centena & Ciclo D3</span>
+                  <span>💎</span> <span>Pedras de Centena em Foco (0 a 9)</span>
                 </h3>
-                <p class="text-[11px] text-slate-400">Pódio das frias (alvos de rodízio) e trajetória dos 3 dias.</p>
+                <p class="text-[11px] text-slate-400">Pódio das pedras frias (alvos de rodízio) e histórico dos últimos dias.</p>
               </div>
-              <span class="text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 px-2.5 py-0.5 rounded-full font-mono font-semibold">Método APS</span>
+              <span class="text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 px-2.5 py-0.5 rounded-full font-mono font-semibold">Rodízio APS</span>
             </div>
 
             <!-- PÓDIO TOP 3 FRIAS COMPACTO -->
-            <div id="aps-pedras-podium" class="grid grid-cols-3 gap-2 mb-3"></div>
+            <div id="aps-pedras-podium" class="grid grid-cols-3 gap-2 mb-3.5"></div>
 
-            <!-- TABELA COMPACTA D3 / D2 / D1 (SEM POLUIÇÃO) -->
+            <!-- TABELA COMPACTA DOS 10 DÍGITOS (ANTEONTEM / ONTEM / HOJE) -->
             <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/70">
               <table class="w-full text-left border-collapse text-[11px]">
                 <thead>
                   <tr class="border-b border-slate-800 bg-slate-900/60 text-slate-400 text-[10px] uppercase font-mono">
                     <th class="py-1.5 px-3 text-center">Dígito</th>
-                    <th class="py-1.5 px-2 text-center" title="Anteontem">D3</th>
-                    <th class="py-1.5 px-2 text-center" title="Ontem">D2</th>
-                    <th class="py-1.5 px-2 text-center" title="Hoje">D1</th>
-                    <th class="py-1.5 px-3 text-right">Diagnóstico Rodízio</th>
+                    <th class="py-1.5 px-2 text-center">Anteontem</th>
+                    <th class="py-1.5 px-2 text-center">Ontem</th>
+                    <th class="py-1.5 px-2 text-center">Hoje</th>
+                    <th class="py-1.5 px-3 text-right">Diagnóstico</th>
                   </tr>
                 </thead>
                 <tbody id="aps-pedras-table-body" class="divide-y divide-slate-800/60"></tbody>
               </table>
             </div>
-          </div>
-
-          <!-- CICLO D3 -->
-          <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 shadow-xl backdrop-blur-md">
-            <h3 class="text-sm font-bold text-white mb-1">🗓️ Ciclo D3 (Terceiro Dia)</h3>
-            <p class="text-xs text-slate-400 mb-2">Bichos de anteontem que ainda não saíram hoje e estão em ciclo de retorno:</p>
-            <div id="aps-d3-candidates-list" class="flex flex-wrap gap-1.5 pt-1"></div>
           </div>
         </div>
       </div>
