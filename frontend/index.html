@@ -1424,50 +1424,35 @@
       <!-- SUB-ABA 3: PEDRAS & CICLO D3 (SEPARADA) -->
       <div id="aps-subtab-pedras" class="space-y-4 hidden">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- PEDRAS DE CENTENA: FRIAS (VÁCUO) VS QUENTES (SATURADAS) -->
+          <!-- PEDRAS DE CENTENA: RODÍZIO D3 (0 A 9) -->
           <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 shadow-xl backdrop-blur-md">
-            <div class="flex items-center justify-between mb-1.5">
-              <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
-                <span>🧊</span>
-                <span>Pedras Frias (Vácuo) vs </span>
-                <span>🔥</span>
-                <span>Quentes (Saturadas)</span>
-              </h3>
-              <span class="text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 px-2.5 py-0.5 rounded-full font-mono font-semibold">Rodízio APS</span>
-            </div>
-            <p class="text-xs text-slate-400 mb-3">O banqueiro precisa rodar as pedras frias (em vácuo hoje) e evitar as quentes (já pagaram cota).</p>
-
-            <!-- PÓDIO TOP 3 FRIAS -->
-            <div class="mb-3.5">
-              <div class="text-[11px] font-bold text-cyan-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                <span>🎯</span> <span>Top 3 Pedras Frias de Ouro (Alvos para Centenas)</span>
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                  <span>💎</span> <span>Pedras de Centena & Ciclo D3</span>
+                </h3>
+                <p class="text-[11px] text-slate-400">Pódio das frias (alvos de rodízio) e trajetória dos 3 dias.</p>
               </div>
-              <div id="aps-pedras-podium" class="grid grid-cols-3 gap-2"></div>
+              <span class="text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 px-2.5 py-0.5 rounded-full font-mono font-semibold">Método APS</span>
             </div>
 
-            <!-- CARDS COMPACTOS: FRIAS VS QUENTES -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3.5">
-              <div class="rounded-xl bg-cyan-950/20 border border-cyan-500/30 p-2.5">
-                <div class="text-[11px] font-bold text-cyan-300 flex items-center gap-1 mb-1.5">
-                  <span>🧊</span> <span>Pedras Frias (Jogar)</span>
-                </div>
-                <div id="aps-pedras-frias-list" class="space-y-1"></div>
-              </div>
-              <div class="rounded-xl bg-rose-950/20 border border-rose-500/30 p-2.5">
-                <div class="text-[11px] font-bold text-rose-300 flex items-center gap-1 mb-1.5">
-                  <span>🔥</span> <span>Pedras Quentes (Evitar)</span>
-                </div>
-                <div id="aps-pedras-quentes-list" class="space-y-1"></div>
-              </div>
-            </div>
+            <!-- PÓDIO TOP 3 FRIAS COMPACTO -->
+            <div id="aps-pedras-podium" class="grid grid-cols-3 gap-2 mb-3"></div>
 
-            <!-- TERMÔMETRO GERAL 0 A 9 -->
-            <div class="pt-2 border-t border-slate-800">
-              <div class="text-[10px] text-slate-400 font-bold mb-1.5 flex items-center justify-between">
-                <span>Termômetro Completo dos Dígitos (0 a 9)</span>
-                <span class="text-[9px] text-slate-500">Azul = Fria | Vermelho = Quente</span>
-              </div>
-              <div id="aps-pedras-bars" class="space-y-1.5"></div>
+            <!-- TABELA COMPACTA D3 / D2 / D1 (SEM POLUIÇÃO) -->
+            <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/70">
+              <table class="w-full text-left border-collapse text-[11px]">
+                <thead>
+                  <tr class="border-b border-slate-800 bg-slate-900/60 text-slate-400 text-[10px] uppercase font-mono">
+                    <th class="py-1.5 px-3 text-center">Dígito</th>
+                    <th class="py-1.5 px-2 text-center" title="Anteontem">D3</th>
+                    <th class="py-1.5 px-2 text-center" title="Ontem">D2</th>
+                    <th class="py-1.5 px-2 text-center" title="Hoje">D1</th>
+                    <th class="py-1.5 px-3 text-right">Diagnóstico Rodízio</th>
+                  </tr>
+                </thead>
+                <tbody id="aps-pedras-table-body" class="divide-y divide-slate-800/60"></tbody>
+              </table>
             </div>
           </div>
 
