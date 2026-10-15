@@ -9319,47 +9319,90 @@ function renderApsGrid5x5(data) {
 function renderApsPedras(pedrasData) {
   const podium = document.getElementById('aps-pedras-podium');
   const bars = document.getElementById('aps-pedras-bars');
-  if (!podium || !bars || !pedrasData) return;
+  const friasList = document.getElementById('aps-pedras-frias-list');
+  const quentesList = document.getElementById('aps-pedras-quentes-list');
+  if (!podium || !pedrasData) return;
 
-  const topPedras = pedrasData.top_pedras || [8, 6, 3];
+  const topPedras = pedrasData.top_pedras || [6, 8, 3];
   const ranking = pedrasData.pedras_ranking || [];
+  const frias = pedrasData.pedras_frias || [];
+  const quentes = pedrasData.pedras_quentes || [];
 
-  // Pódio com as 3 pedras líderes
+  // 1. Pódio com as 3 pedras frias líderes
   let phtml = '';
   const medals = ['🥇', '🥈', '🥉'];
   topPedras.forEach((d, idx) => {
-    const item = ranking.find(r => r.digit === d) || { count: 0, percentage: 0 };
+    const item = ranking.find(r => r.digit === d) || { digit: d, count: 0, absent_draws: 0, status: 'Vácuo' };
     phtml += `
-      <div class="rounded-xl bg-gradient-to-b from-amber-500/20 to-slate-950 border border-amber-500/50 p-2.5 text-center shadow-lg">
+      <div class="rounded-xl bg-gradient-to-b from-cyan-950/50 via-slate-900 to-slate-950 border border-cyan-500/50 p-2.5 text-center shadow-lg hover:border-cyan-400 transition-all">
         <div class="text-xs mb-0.5">${medals[idx] || '⭐'}</div>
-        <div class="text-2xl font-black text-amber-300 font-mono">${d}</div>
+        <div class="text-2xl font-black text-cyan-300 font-mono tracking-tight">${d}</div>
         <div class="text-[10px] font-bold text-white uppercase mt-0.5">Pedra ${d}</div>
-        <div class="text-[9px] text-slate-400 font-mono">${item.percentage}% saídas</div>
+        <div class="text-[9px] text-cyan-400/90 font-mono font-semibold">${item.status || `${item.absent_draws} atrasos`}</div>
       </div>
     `;
   });
   podium.innerHTML = phtml;
 
-  // Barras de frequência dos 10 dígitos (0 a 9)
-  let bhtml = '';
-  const sortedDigits = [...ranking].sort((a, b) => a.digit - b.digit);
-  sortedDigits.forEach(item => {
-    const isTop = topPedras.includes(item.digit);
-    const barWidth = Math.min(100, Math.max(5, item.percentage * 3));
-    const barColor = isTop ? 'bg-amber-400' : 'bg-slate-600';
-    const textColor = isTop ? 'text-amber-300 font-bold' : 'text-slate-400';
-
-    bhtml += `
-      <div class="flex items-center gap-2 text-[10px]">
-        <span class="w-4 font-mono font-bold ${textColor}">${item.digit}</span>
-        <div class="flex-1 bg-slate-950 rounded-full h-1.5 overflow-hidden">
-          <div class="${barColor} h-full rounded-full transition-all" style="width: ${barWidth}%;"></div>
+  // 2. Lista de Pedras Frias (Alvos de Rodízio)
+  if (friasList) {
+    if (frias.length === 0) {
+      friasList.innerHTML = '<div class="text-[10px] text-slate-500 italic">Nenhum vácuo crítico no momento.</div>';
+    } else {
+      friasList.innerHTML = frias.map(f => `
+        <div class="flex items-center justify-between px-2 py-1 rounded bg-slate-950/80 border border-cyan-900/40 text-[10px]">
+          <div class="flex items-center gap-1.5">
+            <span class="font-mono font-bold text-cyan-300 text-xs">${f.digit}</span>
+            <span class="text-slate-300 font-medium">${f.status}</span>
+          </div>
+          <span class="text-[9px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded font-mono border border-cyan-800/50">Jogar</span>
         </div>
-        <span class="w-8 text-right font-mono text-[9px] text-slate-500">${item.count}x</span>
-      </div>
-    `;
-  });
-  bars.innerHTML = bhtml;
+      `).join('');
+    }
+  }
+
+  // 3. Lista de Pedras Quentes (Saturadas / Evitar)
+  if (quentesList) {
+    if (quentes.length === 0) {
+      quentesList.innerHTML = '<div class="text-[10px] text-emerald-400/80 italic font-medium">Nenhuma pedra saturada (todas equilibradas).</div>';
+    } else {
+      quentesList.innerHTML = quentes.map(q => `
+        <div class="flex items-center justify-between px-2 py-1 rounded bg-slate-950/80 border border-rose-900/40 text-[10px]">
+          <div class="flex items-center gap-1.5">
+            <span class="font-mono font-bold text-rose-400 text-xs">${q.digit}</span>
+            <span class="text-slate-300 font-medium">${q.status}</span>
+          </div>
+          <span class="text-[9px] bg-rose-950 text-rose-300 px-1.5 py-0.5 rounded font-mono border border-rose-800/50">Evitar</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  // 4. Termômetro Geral (0 a 9)
+  if (bars) {
+    let bhtml = '';
+    const sortedDigits = [...ranking].sort((a, b) => a.digit - b.digit);
+    sortedDigits.forEach(item => {
+      const isFria = item.category === 'fria';
+      const isQuente = item.category === 'quente';
+      const barColor = isFria ? 'bg-cyan-400' : isQuente ? 'bg-rose-500' : 'bg-slate-600';
+      const textColor = isFria ? 'text-cyan-300 font-bold' : isQuente ? 'text-rose-400 font-bold' : 'text-slate-400';
+      const tagText = isFria ? '🧊 Vácuo' : isQuente ? `🔥 ${item.today_count}x hoje` : '⚪ Equilibrada';
+
+      const barWidth = Math.min(100, Math.max(8, (item.percentage || 10) * 3));
+
+      bhtml += `
+        <div class="flex items-center gap-2 text-[10px]">
+          <span class="w-4 font-mono font-bold ${textColor}">${item.digit}</span>
+          <div class="flex-1 bg-slate-950 rounded-full h-1.5 overflow-hidden">
+            <div class="${barColor} h-full rounded-full transition-all" style="width: ${barWidth}%;"></div>
+          </div>
+          <span class="w-24 text-right font-mono text-[9px] ${textColor}">${tagText}</span>
+        </div>
+      `;
+    });
+    bars.innerHTML = bhtml;
+  }
 }
 
 function renderApsD3(d3Data) {
