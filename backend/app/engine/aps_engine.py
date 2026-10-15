@@ -207,47 +207,134 @@ def analyze_aps_grid(recent_draws: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 def analyze_pedras_centena(recent_draws: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Analisa a frequência das Pedras de Centena (dígitos de 0 a 9 na 3ª casa da milhar).
-    Exemplo: em 4834, a pedra de centena é 8 (centena 834).
-    Retorna o ranking de pedras líderes e ausentes.
+    Analisa as Pedras de Centena (dígitos de 0 a 9 na 3ª casa da milhar)
+    seguindo o método APS autêntico (Vácuo Diário, Atraso de Rodízio e Anti-Saturação).
+    
+    Regras APS:
+    1. Vácuo do Dia (Hoje): Pedras que NÃO saíram hoje têm prioridade máxima de rodízio.
+    2. Atraso Consecutivo: Quanto maior o número de sorteios sem sair no 1º ao 5º, maior a pressão estatística de retorno.
+    3. Anti-Saturação: Pedras que já saíram 2+ vezes hoje sofrem penalidade por já terem pago a cota do dia.
     """
-    pedra_counts = Counter()
-    pedra_p1_counts = Counter()
-    pedra_last_seen = {d: 999 for d in range(10)}
+    if not recent_draws:
+        return {
+            "pedras_ranking": [],
+            "top_pedras": [6, 8, 3],
+            "pedras_frias": [],
+            "pedras_quentes": [],
+            "pedras_neutras": [],
+            "total_analyzed": 0,
+            "today_date": None
+        }
 
-    for draw_idx, draw in enumerate(recent_draws):
+    today_date = recent_draws[0].get("draw_date")
+    
+    today_counts = Counter()
+    today_p1_counts = Counter()
+    total_counts = Counter()
+    total_p1_counts = Counter()
+    absent_draws = {d: 0 for d in range(10)}
+    absent_p1_draws = {d: 0 for d in range(10)}
+
+    for d in range(10):
+        delay = 0
+        for dr in recent_draws:
+            found = False
+            for p in range(1, 6):
+                m_val = str(dr.get(f"prize_{p}") or "")
+                if len(m_val) >= 3 and int(m_val[-3]) == d:
+                    found = True
+                    break
+            if found:
+                break
+            delay += 1
+        absent_draws[d] = delay
+
+        delay_p1 = 0
+        for dr in recent_draws:
+            m_val = str(dr.get("prize_1") or "")
+            if len(m_val) >= 3 and int(m_val[-3]) == d:
+                break
+            delay_p1 += 1
+        absent_p1_draws[d] = delay_p1
+
+    for dr in recent_draws:
+        is_today = (dr.get("draw_date") == today_date)
         for p in range(1, 6):
-            m_val = str(draw.get(f"prize_{p}") or "")
+            m_val = str(dr.get(f"prize_{p}") or "")
             if len(m_val) >= 3:
                 pedra = int(m_val[-3])
-                pedra_counts[pedra] += 1
+                total_counts[pedra] += 1
+                if is_today:
+                    today_counts[pedra] += 1
                 if p == 1:
-                    pedra_p1_counts[pedra] += 1
-                if pedra_last_seen[pedra] == 999:
-                    pedra_last_seen[pedra] = draw_idx
+                    total_p1_counts[pedra] += 1
+                    if is_today:
+                        today_p1_counts[pedra] += 1
 
-    total_pedras = sum(pedra_counts.values()) or 1
-    pedras_ranked = []
+    total_pedras = sum(total_counts.values()) or 1
+
+    pedras_data = []
     for d in range(10):
-        c = pedra_counts[d]
-        pct = round((c / total_pedras) * 100, 1)
-        pedras_ranked.append({
+        tc = today_counts[d]
+        ad = absent_draws[d]
+        ad_p1 = absent_p1_draws[d]
+        pct = round((total_counts[d] / total_pedras) * 100, 1)
+
+        if tc == 0:
+            category = "fria"
+            score = 100 + (ad * 10) + ad_p1
+            status = f"Vácuo Hoje ({ad} atrasos)"
+            badge = "🧊 VÁCUO HOJE"
+            recommendation = "Alvo de Rodízio / Jogar"
+        elif tc == 1:
+            category = "neutra"
+            score = 40 + (ad * 5)
+            status = "Equilibrada (1x hoje)"
+            badge = "⚪ EQUILIBRADA"
+            recommendation = "Atenção Moderada"
+        else:
+            category = "quente"
+            score = max(0, 20 - (tc * 8))
+            status = f"Saturada ({tc}x hoje)"
+            badge = "🔥 SATURADA"
+            recommendation = "Cota Paga / Evitar"
+
+        pedras_data.append({
             "digit": d,
-            "count": c,
-            "p1_count": pedra_p1_counts[d],
-            "percentage": pct,
-            "absent_draws": pedra_last_seen[d]
+            "category": category,
+            "status": status,
+            "badge": badge,
+            "recommendation": recommendation,
+            "score": score,
+            "today_count": tc,
+            "today_p1_count": today_p1_counts[d],
+            "absent_draws": ad,
+            "absent_p1_draws": ad_p1,
+            "count": total_counts[d],
+            "p1_count": total_p1_counts[d],
+            "percentage": pct
         })
 
-    pedras_ranked.sort(key=lambda x: (x["count"], x["p1_count"], -x["absent_draws"]), reverse=True)
+    pedras_ranked = sorted(pedras_data, key=lambda x: x["score"], reverse=True)
     top_pedras = [p["digit"] for p in pedras_ranked[:3]]
-    pedra_alerta = [p["digit"] for p in sorted(pedras_ranked, key=lambda x: x["absent_draws"], reverse=True)[:2]]
+    
+    pedras_frias = [p for p in pedras_ranked if p["category"] == "fria"]
+    if not pedras_frias:
+        pedras_frias = sorted(pedras_data, key=lambda x: x["absent_draws"], reverse=True)[:3]
+
+    pedras_quentes = sorted([p for p in pedras_data if p["category"] == "quente"], key=lambda x: x["today_count"], reverse=True)
+    pedras_neutras = [p for p in pedras_data if p["category"] == "neutra"]
+    pedra_alerta = [p["digit"] for p in pedras_quentes[:2]] if pedras_quentes else [p["digit"] for p in pedras_ranked[-2:]]
 
     return {
         "pedras_ranking": pedras_ranked,
         "top_pedras": top_pedras,
+        "pedras_frias": pedras_frias,
+        "pedras_quentes": pedras_quentes,
+        "pedras_neutras": pedras_neutras,
         "pedras_alerta": pedra_alerta,
-        "total_analyzed": total_pedras
+        "total_analyzed": total_pedras,
+        "today_date": today_date
     }
 
 
