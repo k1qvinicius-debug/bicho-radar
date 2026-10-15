@@ -161,9 +161,30 @@
     html[data-initial-screen="milhares-atrasadas"] #view-milhares-atrasadas { display: block !important; }
     html[data-initial-screen="centena-master"] #view-centena-master { display: block !important; }
     html[data-initial-screen="matriz"] #view-matriz { display: block !important; }
+
+    /* Ocultar elementos de instalacao PWA para quem ja baixou/instalou */
+    html.app-is-installed #home-card-install-app,
+    html.app-is-installed #auth-gate-install-box,
+    html.app-is-installed #btn-drawer-install,
+    html.app-is-installed #pwa-install-banner,
+    html.app-is-installed .pwa-install-btn,
+    html.app-is-installed [data-pwa-install] {
+      display: none !important;
+    }
   </style>
-  <!-- Captura antecipada e infalivel do evento de instalacao PWA -->
+  <!-- Captura antecipada e deteccao de PWA instalado -->
   <script>
+    (function() {
+      // Se já está instalado (Standalone / PC app / Mobile app / Marcado no LocalStorage)
+      var isInstalled = window.matchMedia('(display-mode: standalone)').matches ||
+                        window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+                        window.navigator.standalone === true ||
+                        localStorage.getItem('pwa_installed') === 'true';
+      if (isInstalled) {
+        document.documentElement.classList.add('app-is-installed');
+        try { localStorage.setItem('pwa_installed', 'true'); } catch (e) {}
+      }
+    })();
     window._deferredPWAInstallPrompt = null;
     window.addEventListener('beforeinstallprompt', function(e) {
       e.preventDefault();
