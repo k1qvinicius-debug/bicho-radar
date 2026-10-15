@@ -236,9 +236,7 @@ const api = {
           is_admin: data.is_admin
         };
         this.setCurrentTenant(tenantData);
-        if (isExpired && typeof window.showTrialExpiredModal === 'function') {
-          window.showTrialExpiredModal();
-        } else if (!isExpired) {
+        if (!isExpired) {
           const plansModal = document.getElementById('modal-plans');
           if (plansModal && !plansModal.classList.contains('hidden')) {
             plansModal.classList.add('hidden');
