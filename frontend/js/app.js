@@ -9794,16 +9794,22 @@ function renderApsTernos(ternos) {
 
   const isVip = window.isUserVip();
   if (!isVip) {
-    const sample = ternos[0] || '12 - 25 - 08';
     container.innerHTML = `
-      <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800">
-        <span class="text-[10px] font-mono text-slate-500 font-bold">#01 (Amostra Grátis)</span>
-        <span class="font-mono text-xs font-bold text-amber-300 tracking-wider">${sample}</span>
-        <span class="text-[10px] text-emerald-400 font-bold">Livre</span>
-      </div>
-      <div onclick="openPlansModal()" class="p-3 rounded-xl bg-slate-950/80 border border-amber-500/40 text-center cursor-pointer group hover:border-amber-400 transition-all col-span-full">
-        <div class="text-xs font-bold text-amber-300">🔒 +11 Ternos de Dezena Matemáticos Ocultos</div>
-        <div class="text-[10px] text-slate-400 mt-0.5">Toque para desbloquear no Plano VIP (R$ 14,90/mês)</div>
+      <div onclick="openPlansModal()" class="p-6 rounded-2xl bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-950 border-2 border-amber-500/50 text-center shadow-xl space-y-3 cursor-pointer group hover:border-amber-400 transition-all col-span-full select-none">
+        <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/60 flex items-center justify-center text-2xl text-amber-300 shadow-lg shadow-amber-500/20">
+          🔒
+        </div>
+        <div>
+          <div class="text-sm sm:text-base font-black text-white">12 Ternos de Dezena Bloqueados</div>
+          <p class="text-xs text-slate-300 mt-1 max-w-sm mx-auto leading-relaxed">
+            As combinações de dezenas dos animais em alerta são 100% exclusivas para membros VIP.
+          </p>
+        </div>
+        <div class="pt-1">
+          <button type="button" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-md group-hover:scale-105 transition-transform">
+            Desbloquear Ternos VIP (R$ 14,90/mês) ⭐
+          </button>
+        </div>
       </div>
     `;
     return;
@@ -9832,15 +9838,21 @@ function renderAps60MC(mcList) {
 
   const isVip = window.isUserVip();
   if (!isVip) {
-    const samples = mcList.slice(0, 4);
     container.innerHTML = `
-      <div class="w-full">
-        <div class="mb-2">
-          ${samples.map(m => `<span class="inline-block px-1.5 py-0.5 m-0.5 rounded bg-slate-900 border border-slate-800 font-mono font-bold text-amber-300">${m}</span>`).join('')}
+      <div onclick="openPlansModal()" class="w-full p-6 rounded-2xl bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-950 border-2 border-amber-500/50 text-center shadow-xl space-y-3 cursor-pointer group hover:border-amber-400 transition-all select-none">
+        <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/60 flex items-center justify-center text-2xl text-amber-300 shadow-lg shadow-amber-500/20">
+          🔒
         </div>
-        <div onclick="openPlansModal()" class="w-full p-3 rounded-xl bg-slate-950/80 border border-amber-500/40 text-center cursor-pointer group hover:border-amber-400 transition-all">
-          <div class="text-xs font-bold text-amber-300">🔒 Fechamento Completo 60 MC (Milhares e Centenas)</div>
-          <div class="text-[10px] text-slate-400 mt-0.5">Toque para desbloquear no Plano VIP por R$ 14,90</div>
+        <div>
+          <div class="text-sm sm:text-base font-black text-white">Fechamento Completo 60 MC Bloqueado</div>
+          <p class="text-xs text-slate-300 mt-1 max-w-sm mx-auto leading-relaxed">
+            Todas as 60 Milhares e Centenas fechadas são 100% exclusivas para assinantes VIP.
+          </p>
+        </div>
+        <div class="pt-1">
+          <button type="button" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-md group-hover:scale-105 transition-transform">
+            Desbloquear 60 MC no VIP (R$ 14,90/mês) ⭐
+          </button>
         </div>
       </div>
     `;
