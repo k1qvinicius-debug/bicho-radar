@@ -9318,90 +9318,67 @@ function renderApsGrid5x5(data) {
 
 function renderApsPedras(pedrasData) {
   const podium = document.getElementById('aps-pedras-podium');
-  const bars = document.getElementById('aps-pedras-bars');
-  const friasList = document.getElementById('aps-pedras-frias-list');
-  const quentesList = document.getElementById('aps-pedras-quentes-list');
+  const tbody = document.getElementById('aps-pedras-table-body');
   if (!podium || !pedrasData) return;
 
   const topPedras = pedrasData.top_pedras || [6, 8, 3];
   const ranking = pedrasData.pedras_ranking || [];
-  const frias = pedrasData.pedras_frias || [];
-  const quentes = pedrasData.pedras_quentes || [];
 
-  // 1. Pódio com as 3 pedras frias líderes
+  // 1. Pódio compacto com as 3 pedras frias líderes
   let phtml = '';
   const medals = ['🥇', '🥈', '🥉'];
   topPedras.forEach((d, idx) => {
     const item = ranking.find(r => r.digit === d) || { digit: d, count: 0, absent_draws: 0, status: 'Vácuo' };
     phtml += `
-      <div class="rounded-xl bg-gradient-to-b from-cyan-950/50 via-slate-900 to-slate-950 border border-cyan-500/50 p-2.5 text-center shadow-lg hover:border-cyan-400 transition-all">
-        <div class="text-xs mb-0.5">${medals[idx] || '⭐'}</div>
-        <div class="text-2xl font-black text-cyan-300 font-mono tracking-tight">${d}</div>
-        <div class="text-[10px] font-bold text-white uppercase mt-0.5">Pedra ${d}</div>
-        <div class="text-[9px] text-cyan-400/90 font-mono font-semibold">${item.status || `${item.absent_draws} atrasos`}</div>
+      <div class="rounded-xl bg-gradient-to-b from-cyan-950/40 via-slate-900 to-slate-950 border border-cyan-500/40 p-2 text-center shadow-lg hover:border-cyan-400 transition-all">
+        <div class="text-[11px] mb-0.5">${medals[idx] || '⭐'}</div>
+        <div class="text-xl font-black text-cyan-300 font-mono tracking-tight">${d}</div>
+        <div class="text-[9px] font-bold text-white uppercase mt-0.5">Pedra ${d}</div>
+        <div class="text-[8px] text-cyan-400/90 font-mono font-semibold">${item.status || 'Vácuo Hoje'}</div>
       </div>
     `;
   });
   podium.innerHTML = phtml;
 
-  // 2. Lista de Pedras Frias (Alvos de Rodízio)
-  if (friasList) {
-    if (frias.length === 0) {
-      friasList.innerHTML = '<div class="text-[10px] text-slate-500 italic">Nenhum vácuo crítico no momento.</div>';
-    } else {
-      friasList.innerHTML = frias.map(f => `
-        <div class="flex items-center justify-between px-2 py-1 rounded bg-slate-950/80 border border-cyan-900/40 text-[10px]">
-          <div class="flex items-center gap-1.5">
-            <span class="font-mono font-bold text-cyan-300 text-xs">${f.digit}</span>
-            <span class="text-slate-300 font-medium">${f.status}</span>
-          </div>
-          <span class="text-[9px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded font-mono border border-cyan-800/50">Jogar</span>
-        </div>
-      `).join('');
-    }
-  }
-
-  // 3. Lista de Pedras Quentes (Saturadas / Evitar)
-  if (quentesList) {
-    if (quentes.length === 0) {
-      quentesList.innerHTML = '<div class="text-[10px] text-emerald-400/80 italic font-medium">Nenhuma pedra saturada (todas equilibradas).</div>';
-    } else {
-      quentesList.innerHTML = quentes.map(q => `
-        <div class="flex items-center justify-between px-2 py-1 rounded bg-slate-950/80 border border-rose-900/40 text-[10px]">
-          <div class="flex items-center gap-1.5">
-            <span class="font-mono font-bold text-rose-400 text-xs">${q.digit}</span>
-            <span class="text-slate-300 font-medium">${q.status}</span>
-          </div>
-          <span class="text-[9px] bg-rose-950 text-rose-300 px-1.5 py-0.5 rounded font-mono border border-rose-800/50">Evitar</span>
-        </div>
-      `).join('');
-    }
-  }
-
-  // 4. Termômetro Geral (0 a 9)
-  if (bars) {
-    let bhtml = '';
+  // 2. Tabela Compacta dos 10 Dígitos (D3 -> D2 -> D1)
+  if (tbody) {
     const sortedDigits = [...ranking].sort((a, b) => a.digit - b.digit);
+    let rowsHtml = '';
     sortedDigits.forEach(item => {
+      const isTop = topPedras.includes(item.digit);
       const isFria = item.category === 'fria';
       const isQuente = item.category === 'quente';
-      const barColor = isFria ? 'bg-cyan-400' : isQuente ? 'bg-rose-500' : 'bg-slate-600';
-      const textColor = isFria ? 'text-cyan-300 font-bold' : isQuente ? 'text-rose-400 font-bold' : 'text-slate-400';
-      const tagText = isFria ? '🧊 Vácuo' : isQuente ? `🔥 ${item.today_count}x hoje` : '⚪ Equilibrada';
 
-      const barWidth = Math.min(100, Math.max(8, (item.percentage || 10) * 3));
+      const digitBadge = isTop 
+        ? `<span class="inline-block w-5 h-5 rounded-full bg-cyan-500 text-slate-950 font-bold font-mono text-[10px] leading-5 text-center shadow-sm">${item.digit}</span>`
+        : `<span class="font-mono font-bold ${isFria ? 'text-cyan-300' : isQuente ? 'text-rose-400' : 'text-slate-300'} text-[11px]">${item.digit}</span>`;
 
-      bhtml += `
-        <div class="flex items-center gap-2 text-[10px]">
-          <span class="w-4 font-mono font-bold ${textColor}">${item.digit}</span>
-          <div class="flex-1 bg-slate-950 rounded-full h-1.5 overflow-hidden">
-            <div class="${barColor} h-full rounded-full transition-all" style="width: ${barWidth}%;"></div>
-          </div>
-          <span class="w-24 text-right font-mono text-[9px] ${textColor}">${tagText}</span>
-        </div>
+      const d1Badge = item.d1_count === 0 
+        ? `<span class="font-mono text-cyan-300 font-bold">0x</span>`
+        : item.d1_count >= 2
+        ? `<span class="font-mono text-rose-400 font-bold">${item.d1_count}x</span>`
+        : `<span class="font-mono text-slate-400">${item.d1_count}x</span>`;
+
+      let diagBadge = '';
+      if (isFria) {
+        diagBadge = `<span class="inline-flex items-center gap-1 text-[9px] bg-cyan-950 text-cyan-300 border border-cyan-800/60 px-2 py-0.5 rounded-full font-mono font-semibold">🧊 ${item.status}</span>`;
+      } else if (isQuente) {
+        diagBadge = `<span class="inline-flex items-center gap-1 text-[9px] bg-rose-950 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded-full font-mono font-semibold">🔥 ${item.status}</span>`;
+      } else {
+        diagBadge = `<span class="inline-flex items-center gap-1 text-[9px] text-slate-400 font-mono">⚪ Equilibrada (1x)</span>`;
+      }
+
+      rowsHtml += `
+        <tr class="hover:bg-slate-900/40 transition-colors">
+          <td class="py-1 px-3 text-center">${digitBadge}</td>
+          <td class="py-1 px-2 text-center font-mono text-slate-400">${item.d3_count !== undefined ? item.d3_count : '-'}x</td>
+          <td class="py-1 px-2 text-center font-mono text-slate-400">${item.d2_count !== undefined ? item.d2_count : '-'}x</td>
+          <td class="py-1 px-2 text-center">${d1Badge}</td>
+          <td class="py-1 px-3 text-right">${diagBadge}</td>
+        </tr>
       `;
     });
-    bars.innerHTML = bhtml;
+    tbody.innerHTML = rowsHtml;
   }
 }
 
