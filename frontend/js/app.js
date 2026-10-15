@@ -158,19 +158,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (paramGroup) {
     window._targetHitGroup = paramGroup;
-    const paramPayment = urlParams.get('payment');
-    if (paramPayment === 'success') {
-      setTimeout(() => {
-        showToast('🎉 Pagamento confirmado! Seu plano VIP foi ativado com sucesso.', 'success');
-        if (typeof api.checkSession === 'function') {
-          api.checkSession().then(() => updateHomeScreenData());
+  }
+
+  // Ativação e confirmação pós-pagamento Mercado Pago
+  const paramPayment = urlParams.get('payment');
+  const paramRef = urlParams.get('ref');
+  if (paramPayment === 'success') {
+    setTimeout(async () => {
+      showToast('🎉 Pagamento confirmado pelo Mercado Pago! Verificando seu acesso VIP...', 'success');
+      try {
+        if (paramRef) {
+          const vRes = await fetch(`${API_BASE}/payments/verify-status?ref=${encodeURIComponent(paramRef)}`);
+          if (vRes.ok) {
+            const vData = await vRes.json();
+            if (vData.token) {
+              api.setToken(vData.token);
+              if (vData.tenant) api.setCurrentTenant(vData.tenant);
+            }
+          }
         }
-      }, 1500);
-    } else if (paramPayment === 'pending') {
-      setTimeout(() => {
-        showToast('⏳ Pagamento em processamento no Mercado Pago. Assim que compensar, seu plano será liberado!', 'info');
-      }, 1500);
-    }
+        if (typeof api.checkSession === 'function') {
+          await api.checkSession();
+        }
+        if (typeof closePlansModal === 'function') closePlansModal();
+        updateAuthUI();
+        updateHomeScreenData();
+        showToast('👑 Seu Acesso VIP está 100% liberado! Boas apostas.', 'success');
+      } catch (e) {
+        console.warn('Erro ao atualizar sessão pós-pagamento:', e);
+      }
+    }, 1200);
+  } else if (paramPayment === 'pending') {
+    setTimeout(() => {
+      showToast('⏳ Pagamento Pix em processamento. Assim que o Mercado Pago compensar, seu VIP será liberado automaticamente!', 'info');
+    }, 1500);
   }
 
   const validLots = ['RJ', 'LOOK', 'NACIONAL', 'SP', 'FEDERAL', 'BAHIA', 'MINAS'];
@@ -7768,7 +7789,7 @@ window.subscribePlan = async function(planKey, method = 'mercadopago') {
 
   const planTitle = planNames[planKey] || 'Assinatura Radar 5×5 Pro';
 
-  // Se o usuario clicou no botao de suporte direto do WhatsApp
+  // Se o usuario clicou especificamente no botao de suporte do WhatsApp
   if (planKey === 'whatsapp') {
     let settings = window._publicSettings;
     if (!settings) {
@@ -7787,7 +7808,7 @@ window.subscribePlan = async function(planKey, method = 'mercadopago') {
     return;
   }
 
-  // Busca configurações públicas para links manuais personalizados
+  // Busca configurações públicas para links manuais personalizados (Kiwify, Hotmart, etc.)
   let settings = window._publicSettings;
   if (!settings) {
     try {
@@ -7797,35 +7818,26 @@ window.subscribePlan = async function(planKey, method = 'mercadopago') {
     } catch (e) {}
   }
 
-  // 1. Se houver link externo manual configurado pelo admin (Kiwify, Hotmart, etc.)
+  // 1. Se houver link externo manual configurado pelo admin
   const planConfig = settings?.plans?.[planKey];
   if (planConfig && planConfig.link && planConfig.link.startsWith('http')) {
     window.open(planConfig.link, '_blank');
     return;
   }
 
-  // 2. Checkout Automático Mercado Pago (Pix QR Code, Copia e Cola ou Cartão)
-  const token = localStorage.getItem('bicho_auth_token') || sessionStorage.getItem('bicho_auth_token');
-  const tenant = api.getCurrentTenant();
-
-  if (!token && !tenant) {
-    showToast('Entre com sua conta ou crie um acesso primeiro para ativar seu plano!', 'warning');
-    const modalSignup = document.getElementById('modal-google-signup');
-    if (modalSignup) modalSignup.classList.remove('hidden');
-    return;
-  }
-
+  // 2. Checkout 100% Automático e Direto via Mercado Pago (Pix QR Code, Copia e Cola ou Cartão)
   try {
     const isRecurring = method === 'subscription';
     const toastMsg = isRecurring 
       ? 'Gerando assinatura com débito automático no Mercado Pago...' 
-      : 'Gerando pagamento seguro no Mercado Pago (Pix e Cartão)...';
+      : 'Iniciando pagamento seguro no Mercado Pago (Pix e Cartão)...';
     showToast(toastMsg, 'info');
 
-    const authHeaders = api.getAuthHeaders ? api.getAuthHeaders() : {
+    const token = localStorage.getItem('bicho_auth_token') || sessionStorage.getItem('bicho_auth_token');
+    const authHeaders = token ? {
       'Authorization': `Bearer ${token}`,
       'X-Access-Key': token
-    };
+    } : {};
 
     const endpointUrl = isRecurring 
       ? `${API_BASE}/payments/create-subscription` 
@@ -7842,28 +7854,20 @@ window.subscribePlan = async function(planKey, method = 'mercadopago') {
     if (res.ok) {
       const data = await res.json();
       if (data && data.checkout_url) {
+        // Redireciona DIRETAMENTE para a página oficial do Mercado Pago (Pix QR Code e Cartão)
         window.location.href = data.checkout_url;
         return;
       }
     }
+
+    const errData = await res.json().catch(() => ({}));
+    const errMsg = errData.detail || 'Não foi possível iniciar o checkout do Mercado Pago no momento. Tente novamente em instantes.';
+    console.error('Falha ao gerar checkout Mercado Pago:', errData);
+    showToast(errMsg, 'error');
   } catch (err) {
-    console.error('Falha ao gerar checkout Mercado Pago:', err);
+    console.error('Falha de conexão ao gerar checkout Mercado Pago:', err);
+    showToast('Erro de conexão ao abrir o Mercado Pago. Verifique sua internet e tente novamente.', 'error');
   }
-
-  // 3. Fallback WhatsApp com mensagem pré-formatada para Pix direto caso dê erro
-  let whatsappNum = (settings?.support_whatsapp || '11941083720').replace(/\D/g, '');
-  if (!whatsappNum.startsWith('55') && whatsappNum.length >= 10) {
-    whatsappNum = '55' + whatsappNum;
-  }
-
-  const currentUser = api.getCurrentTenant();
-  const userName = currentUser?.name ? ` Me chamo ${currentUser.name}.` : '';
-  const userEmail = currentUser?.email ? ` Meu e-mail: ${currentUser.email}.` : '';
-
-  const msg = `Olá! Quero assinar o *${planTitle}* do Radar 5×5 Pro.${userName}${userEmail} Pode me ajudar a concluir o pagamento pelo Mercado Pago?`;
-  const waUrl = `https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`;
-
-  window.open(waUrl, '_blank');
 };
 
 
