@@ -6388,7 +6388,7 @@ function updateAuthUI() {
     document.documentElement.classList.add('is-authenticated');
     if (appGate) appGate.classList.add('hidden');
     if (mainHeader) mainHeader.classList.remove('hidden');
-    if (mainContainer) mainContainer.classList.remove('hidden');
+    if (mainContainer) { mainContainer.classList.remove('hidden'); mainContainer.style.pointerEvents = 'auto'; }
     if (mobBottomNav) mobBottomNav.classList.remove('hidden');
 
     const userEmail = (tenant.email || '').toLowerCase();
@@ -6475,7 +6475,7 @@ function updateAuthUI() {
     document.documentElement.classList.remove('is-authenticated');
     if (mainHeader) mainHeader.classList.remove('hidden');
     if (appGate) appGate.classList.add('hidden');
-    if (mainContainer) mainContainer.classList.remove('hidden');
+    if (mainContainer) { mainContainer.classList.remove('hidden'); mainContainer.style.pointerEvents = 'auto'; }
     if (mobBottomNav) mobBottomNav.classList.remove('hidden');
     
     if (drawerUserLabel) drawerUserLabel.textContent = 'Visitante (Degustação)';
