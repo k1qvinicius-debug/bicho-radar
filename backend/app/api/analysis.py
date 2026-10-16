@@ -366,7 +366,7 @@ def get_snapshot_details(snapshot_id: str):
         target_snap_id = None
         if snapshot_id.isdigit():
             target_snap_id = int(snapshot_id)
-        elif snapshot_id.startswith("matriz_"):
+        elif snapshot_id.startswith("matriz_") or snapshot_id.startswith("aps_"):
             parts = snapshot_id.split("_")
             if len(parts) >= 3 and parts[-1].isdigit():
                 draw_id = int(parts[-1])
@@ -928,6 +928,119 @@ def get_recent_bingos():
                         "slot": slot,
                         "date": dt,
                         "score": 250.0,
+                        "evaluated_at": str(d.get("created_at") or dt)
+                    })
+
+        # 3. Acertos do RADAR 5x5 PRO (Método APS: Grade 5x5, Ausências, D3, Pedras Chave, Fechamento 60 MC)
+        cache_aps = {}
+        for dr in recent_draws:
+            d = dict(dr)
+            p1 = str(d["prize_1"]).zfill(4)
+            m1 = extract_milhar(p1)
+            c1 = extract_centena(p1)
+            grp = get_group_for_number(p1)
+            dt = d["draw_date"]
+            lot = d["lottery"]
+            slot = d["slot"]
+            anim = get_animal_info(grp)
+
+            key_aps = (lot, dt)
+            if key_aps not in cache_aps:
+                try:
+                    from ..engine.aps_engine import calculate_full_aps_analysis
+                    cache_aps[key_aps] = calculate_full_aps_analysis(lot, dt)
+                except Exception:
+                    cache_aps[key_aps] = {}
+            aps = cache_aps[key_aps]
+
+            aps_elite = [a["group"] for a in aps.get("elite_animals", [])]
+            aps_centenas = []
+            for c_item in aps.get("centenas_cirurgicas", []):
+                aps_centenas.extend(c_item.get("centenas", []))
+            aps_mc = [str(x).zfill(4) for x in aps.get("fechamento_60_mc", [])]
+
+            hit_m1_aps = m1 in aps_mc
+            hit_c1_aps = c1 in aps_centenas or (grp in aps_elite and c1 in [x[-3:] for x in aps_mc])
+            hit_g1_aps = grp in aps_elite
+
+            # Localiza se existe snapshot registrado para esta data, horário e loteria
+            cursor.execute(
+                "SELECT id FROM analysis_snapshots WHERE target_date = ? AND target_slot = ? AND (lottery = ? OR (lottery IS NULL AND ? = 'RJ'))",
+                (dt, slot, lot, lot)
+            )
+            matched_snap = cursor.fetchone()
+            matched_snap_id = matched_snap["id"] if matched_snap else None
+
+            if hit_m1_aps:
+                unique_key = (lot, slot, dt, m1)
+                if unique_key not in seen_keys:
+                    seen_keys.add(unique_key)
+                    bingos.append({
+                        "id": f"aps_m_{d['id']}",
+                        "snapshot_id": matched_snap_id,
+                        "draw_id": d["id"],
+                        "type": "MILHAR_1ST",
+                        "badge": "💥 1º PRÊMIO NA CABEÇA!",
+                        "title": f"🔥 BINGO! Milhar {m1} cravada no 1º Prêmio!",
+                        "hit_number": m1,
+                        "prize_1": p1,
+                        "prize_desc": f"1º Prêmio ({anim['name']} - Radar 5×5 • Fechamento 60 MC)",
+                        "origin": "RADAR_5X5",
+                        "origin_label": f"Radar 5×5 PRO ({anim['name']})",
+                        "origin_badge": "🎯 Radar 5×5 PRO",
+                        "origin_desc": f"Milhar gerada pelo Fechamento 60 MC e cruzamento da Grade 5×5 da banca {lot}.",
+                        "lottery": lot,
+                        "slot": slot,
+                        "date": dt,
+                        "score": 380.0,
+                        "evaluated_at": str(d.get("created_at") or dt)
+                    })
+            elif hit_c1_aps:
+                unique_key = (lot, slot, dt, c1)
+                if unique_key not in seen_keys:
+                    seen_keys.add(unique_key)
+                    bingos.append({
+                        "id": f"aps_c_{d['id']}",
+                        "snapshot_id": matched_snap_id,
+                        "draw_id": d["id"],
+                        "type": "CENTENA_1ST",
+                        "badge": "⭐ CENTENA NO 1º PRÊMIO!",
+                        "title": f"🔥 BINGO! Centena {c1} no 1º Prêmio!",
+                        "hit_number": c1,
+                        "prize_1": p1,
+                        "prize_desc": f"1º Prêmio ({anim['name']} - Radar 5×5 • Centena Cirúrgica)",
+                        "origin": "RADAR_5X5",
+                        "origin_label": f"Radar 5×5 PRO ({anim['name']})",
+                        "origin_badge": "🎯 Radar 5×5 PRO",
+                        "origin_desc": f"Centena formada pelo cruzamento das Pedras Chave líderes e Grupos de Ouro do Radar 5×5 ({lot}).",
+                        "lottery": lot,
+                        "slot": slot,
+                        "date": dt,
+                        "score": 280.0,
+                        "evaluated_at": str(d.get("created_at") or dt)
+                    })
+            elif hit_g1_aps:
+                unique_key = (lot, slot, dt, f"g_{grp}")
+                if unique_key not in seen_keys:
+                    seen_keys.add(unique_key)
+                    bingos.append({
+                        "id": f"aps_g_{d['id']}",
+                        "snapshot_id": matched_snap_id,
+                        "draw_id": d["id"],
+                        "type": "GRUPO_1ST",
+                        "badge": "🎯 GRUPO DE OURO NA CABEÇA!",
+                        "title": f"🔥 BINGO! Grupo {grp:02d} ({anim['name']}) cravado no 1º Prêmio!",
+                        "hit_number": f"Gr {grp:02d}",
+                        "prize_1": p1,
+                        "prize_desc": f"1º Prêmio ({anim['name']} - Eleito Grupo de Ouro na Grade 5×5)",
+                        "origin": "RADAR_5X5",
+                        "origin_label": f"Radar 5×5 PRO ({anim['name']})",
+                        "origin_badge": "🎯 Radar 5×5 PRO",
+                        "origin_desc": f"Grupo detectado por vácuo de linha em alerta e ciclo D3 na Grade 5×5 da banca {lot}.",
+                        "lottery": lot,
+                        "slot": slot,
+                        "date": dt,
+                        "score": 160.0,
                         "evaluated_at": str(d.get("created_at") or dt)
                     })
 
