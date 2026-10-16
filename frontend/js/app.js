@@ -141,6 +141,7 @@ let currentLottery = localStorage.getItem('bicho_active_lottery') || 'RJ';
 window.currentLottery = currentLottery;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  document.body.classList.remove('overflow-hidden');
   await initTenantAuth();
   await setupGoogleIdentity();
 
@@ -422,11 +423,14 @@ function switchScreen(screenName, updateHash = true) {
     }
   };
 
+  const mobBtnAps = document.getElementById('mob-btn-aps');
   setMobBtnActive(mobBtnHome, screenName === 'home');
+  setMobBtnActive(mobBtnAps, screenName === 'aps');
   setMobBtnActive(mobBtnPalpites, screenName === 'palpites');
   setMobBtnActive(mobBtnCruz, screenName === 'cruz');
   setMobBtnActive(mobBtnResultados, screenName === 'resultados');
   setMobBtnActive(mobBtnMenu, false);
+  document.body.classList.remove('overflow-hidden');
 
   // Fecha o menu lateral caso esteja aberto
   if (typeof closeDrawer === 'function') {
@@ -6385,7 +6389,7 @@ function updateAuthUI() {
     if (appGate) appGate.classList.add('hidden');
     if (mainHeader) mainHeader.classList.remove('hidden');
     if (mainContainer) mainContainer.classList.remove('hidden');
-    if (mobBottomNav) mobBottomNav.classList.add('hidden');
+    if (mobBottomNav) mobBottomNav.classList.remove('hidden');
 
     const userEmail = (tenant.email || '').toLowerCase();
     const isMasterAdmin = tenant.role === 'admin' || userEmail === 'k1qvinicius.cs@gmail.com' || userEmail === 'k1qvinicius@gmail.com';
@@ -6472,7 +6476,7 @@ function updateAuthUI() {
     if (mainHeader) mainHeader.classList.remove('hidden');
     if (appGate) appGate.classList.add('hidden');
     if (mainContainer) mainContainer.classList.remove('hidden');
-    if (mobBottomNav) mobBottomNav.classList.add('hidden');
+    if (mobBottomNav) mobBottomNav.classList.remove('hidden');
     
     if (drawerUserLabel) drawerUserLabel.textContent = 'Visitante (Degustação)';
     if (badgeContainer) {
