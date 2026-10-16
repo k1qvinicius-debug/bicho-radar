@@ -78,8 +78,16 @@ body {
 }
 
 #app-auth-gate.is-open {
-  display: flex !important;
+  display: block !important;
   pointer-events: auto !important;
+}
+
+#app-auth-gate .card-glass {
+  flex-shrink: 0 !important;
+  min-height: -webkit-fit-content !important;
+  min-height: fit-content !important;
+  margin-top: 1rem !important;
+  margin-bottom: 7rem !important;
 }
 
 #modal-plans.hidden,
