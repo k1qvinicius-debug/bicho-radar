@@ -24,8 +24,9 @@ logger = logging.getLogger("bicho_analytics.database")
 # Caminho do banco local SQLite (utilizado como fallback ou desenvolvimento offline)
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bicho_analytics.db")
 
-# URL de conexão com PostgreSQL Dedicado (Hospedado na VPS via Coolify)
-DEFAULT_POSTGRES_URL = "postgresql://postgres:9Jx1gwFhtYcJFFF43iF8djZUuy489bxrvSzbb0rjkmho4TOo8VM0HjHZ9LPHuhGo@uwx4ahlymo5ox6ebkxrg4aco:5432/postgres"
+# URL de conexão com PostgreSQL Dedicado (utilizado apenas se DATABASE_URL for fornecida no ambiente)
+DEFAULT_POSTGRES_URL = ""
+_pg_offline = False
 
 
 def get_db_path() -> str:
@@ -33,13 +34,16 @@ def get_db_path() -> str:
 
 
 def get_database_url() -> str:
-    """Retorna a URL do banco configurada em ambiente ou o padrão do PostgreSQL na VPS."""
+    """Retorna a URL do banco configurada explicitamente em ambiente."""
     return os.getenv("DATABASE_URL", DEFAULT_POSTGRES_URL)
 
 
 
 def is_postgres_configured() -> bool:
-    """Verifica se o PostgreSQL/Supabase deve ser utilizado."""
+    """Verifica se o PostgreSQL remoto deve ser utilizado."""
+    global _pg_offline
+    if _pg_offline:
+        return False
     url = get_database_url()
     if not url or url.strip().lower() in ("sqlite", "sqlite3", "local", "none", "false", ""):
         return False
@@ -219,13 +223,15 @@ def get_db_connection() -> Generator[Any, None, None]:
     Conecta ao Supabase PostgreSQL se configurado.
     Em caso de falha de conexão remota, faz fallback gracioso para SQLite local.
     """
+    global _pg_offline
     if PSYCOPG2_AVAILABLE and is_postgres_configured():
         pg_url = get_database_url()
         conn = None
         try:
-            conn = psycopg2.connect(pg_url, connect_timeout=10)
+            conn = psycopg2.connect(pg_url, connect_timeout=2)
         except Exception as pg_err:
-            logger.warning(f"Aviso: Não foi possível conectar ao Supabase ({pg_err}). Usando SQLite local.")
+            _pg_offline = True
+            logger.warning(f"Aviso: Não foi possível conectar ao PostgreSQL ({pg_err}). Usando SQLite local de alta performance permanentemente.")
 
         if conn is not None:
             wrapped = PgConnectionWrapper(conn)
