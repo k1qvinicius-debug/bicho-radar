@@ -2799,7 +2799,6 @@ async function loadPrediction(forceRefresh = false) {
     }
   } finally {
     if (loadingEl) loadingEl.classList.add('hidden');
-    if (contentEl) // contentEl non-blocking
   }
 }
 
