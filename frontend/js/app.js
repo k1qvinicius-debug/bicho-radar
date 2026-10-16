@@ -6500,12 +6500,12 @@ function updateAuthUI() {
     if (drawerUserLabel) drawerUserLabel.textContent = 'Visitante (Degustação)';
     if (badgeContainer) {
       badgeContainer.innerHTML = `
-        <div class="flex items-center gap-1.5">
-          <button type="button" onclick="openPlansModal()" class="px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] sm:text-xs shadow-md shadow-amber-500/20 hover:scale-105 transition-transform flex items-center gap-1 cursor-pointer">
-            <span>⭐</span> <span>Ativar VIP (R$ 14,90)</span>
+        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <button type="button" onclick="openPlansModal()" class="px-2 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] sm:text-xs shadow-md shadow-amber-500/20 hover:scale-105 transition-transform flex items-center gap-1 cursor-pointer shrink-0">
+            <span>⭐</span> <span><span class="hidden sm:inline">Ativar </span>VIP<span class="hidden sm:inline"> (R$ 14,90)</span></span>
           </button>
-          <button type="button" onclick="showAuthGateModal()" class="px-2 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] sm:text-xs font-bold transition-colors cursor-pointer border border-slate-700" title="Já é assinante? Entrar">
-            Entrar
+          <button type="button" onclick="showAuthGateModal()" class="px-2.5 sm:px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] sm:text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-sm flex items-center gap-1" title="Já é cadastrado? Entrar">
+            <span>🔐</span> <span>Entrar</span>
           </button>
         </div>
       `;
