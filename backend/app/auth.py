@@ -12,7 +12,8 @@ import secrets
 from typing import Optional, Dict, Any
 from fastapi import Header, HTTPException, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from .database import get_db_connection
+from datetime import datetime, timedelta
+from .database import get_db_connection, get_system_setting
 
 SECRET_KEY = "bicho-radar-master-auth-secret-2026"
 security = HTTPBearer(auto_error=False)
@@ -366,7 +367,10 @@ def get_or_create_google_tenant(
         row = cursor.fetchone()
 
         # Sem dias gratis: novos usuarios devem assinar um plano VIP
-        trial_days_setting = int(get_system_setting("trial_days", "0"))
+        try:
+            trial_days_setting = int(get_system_setting('trial_days', '0') or '0')
+        except Exception:
+            trial_days_setting = 0
         trial_expire_ts = time.time() + (trial_days_setting * 86400)
         trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
 
@@ -434,7 +438,10 @@ def register_new_tenant(
 
     now = datetime.now()
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
-    trial_days_setting = int(get_system_setting("trial_days", "0"))
+    try:
+        trial_days_setting = int(get_system_setting('trial_days', '0') or '0')
+    except Exception:
+        trial_days_setting = 0
     trial_expire_ts = time.time() + (trial_days_setting * 86400)
     trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
 
