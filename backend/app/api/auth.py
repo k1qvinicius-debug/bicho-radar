@@ -256,8 +256,8 @@ def register(payload: RegisterRequestModel, request: Request):
         if not password:
             raise HTTPException(status_code=400, detail="Defina uma senha de acesso.")
 
-        if len(password) < 4:
-            raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 4 caracteres.")
+        if len(password) < 6:
+            raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 6 caracteres.")
 
         tenant = register_new_tenant(name=name, phone=phone, password=password, email=email, ip=ip, device_id=payload.device_id)
         if not tenant:
