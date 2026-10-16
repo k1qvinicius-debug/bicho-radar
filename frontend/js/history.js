@@ -811,6 +811,14 @@ function renderFilteredSnapshots() {
         `;
       }
 
+      if (s.evaluation_details?.radar_5x5?.active && (s.evaluation_details?.radar_5x5?.hit_grupo_1st || s.evaluation_details?.radar_5x5?.hit_centena_1st || s.evaluation_details?.radar_5x5?.hit_milhar_1st || s.evaluation_details?.radar_5x5?.hit_terno)) {
+        comboBadges += `
+          <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-teal-500/25 to-emerald-500/25 text-teal-300 border border-teal-500/40 flex items-center gap-1 shadow-sm">
+            <span>🎯</span> <span>ACERTO RADAR 5×5</span>
+          </span>
+        `;
+      }
+
       let originSummaryBlock = '';
       if (hitCount > 0) {
         const originItems = Array.from(distinctHitGroups.values()).map(h => {
@@ -846,6 +854,10 @@ function renderFilteredSnapshots() {
             ${s.acertos_dezena_cercado > 0 ? `<span class="bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded text-xs font-semibold" title="Acerto em qualquer posição do 1º ao 5º prêmio">⚡ ${s.acertos_dezena_cercado} Dezena(s) (1º ao 5º)</span>` : ''}
             ${hasC1Hit ? '<span class="hit-tag-success px-2 py-0.5 rounded text-xs font-bold">💎 Centena na Cabeça!</span>' : ''}
             ${hasM1Hit ? '<span class="hit-tag-success px-2 py-0.5 rounded text-xs font-bold">👑 MILHAR NA CABEÇA!</span>' : ''}
+            ${s.evaluation_details?.radar_5x5?.hit_grupo_1st ? '<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-xs font-bold">🎯 Grupo Radar 5×5</span>' : ''}
+            ${s.evaluation_details?.radar_5x5?.hit_centena_1st ? '<span class="bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded text-xs font-bold">💎 Centena Radar 5×5</span>' : ''}
+            ${s.evaluation_details?.radar_5x5?.hit_milhar_1st ? '<span class="bg-amber-500/30 text-amber-200 border border-amber-500/60 px-2 py-0.5 rounded text-xs font-black animate-pulse">👑 Milhar 60 MC (Radar 5×5)</span>' : ''}
+            ${s.evaluation_details?.radar_5x5?.hit_terno ? `<span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-xs font-bold">✨ Terno Radar 5×5 (${s.evaluation_details.radar_5x5.hit_terno_val || ''})</span>` : ''}
             ${!hasG1Hit && (s.acertos_grupo_cercado || 0) === 0 && !hasD1Hit && (s.acertos_dezena_cercado || 0) === 0 ? '<span class="text-slate-500 text-xs py-0.5">Sem acerto nesta extração</span>' : ''}
           </div>
         `;
@@ -1093,6 +1105,42 @@ window.inspectSnapshot = async function (id) {
 
     const winningList = Array.from(distinctWinningGroups.values());
     const winningCount = winningList.length;
+
+    // Seção Dedicada de Desempenho no Radar 5x5 PRO
+    let radar5x5SectionHtml = '';
+    const r5 = evalDetails?.radar_5x5;
+    if (r5 && r5.active) {
+      const rHits = [];
+      if (r5.hit_milhar_1st) rHits.push('👑 Milhar Cravada no 1º Prêmio (Fechamento 60 MC)');
+      if (r5.hit_centena_1st) rHits.push('💎 Centena Cirúrgica Cravada no 1º Prêmio');
+      if (r5.hit_grupo_1st) rHits.push('🎯 Grupo de Elite Cravado no 1º Prêmio');
+      if (r5.hit_terno) rHits.push(`✨ Terno de Dezena Premiado no Cercado (${r5.hit_terno_val})`);
+      if (r5.hits_cercado_count > 0 && !r5.hit_grupo_1st) rHits.push(`✅ ${r5.hits_cercado_count}x Grupo(s) do Radar 5×5 no Cercado`);
+
+      const hasApsHit = rHits.length > 0;
+      const rStatusBadge = hasApsHit
+        ? '<span class="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🔥 BINGO CONFIRMADO</span>'
+        : '<span class="px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 bg-slate-800 border border-slate-700">Sem acerto na cabeça</span>';
+
+      radar5x5SectionHtml = `
+        <div class="p-3.5 rounded-xl bg-gradient-to-r from-teal-500/15 via-emerald-500/10 to-slate-900 border border-teal-500/30 my-2.5">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🎯</span>
+              <h4 class="font-black text-teal-300 text-xs sm:text-sm uppercase tracking-wide">Desempenho no RADAR 5×5 PRO</h4>
+            </div>
+            ${rStatusBadge}
+          </div>
+          <div class="text-xs text-slate-200 space-y-1">
+            <div><strong>Animais de Elite da Grade 5×5:</strong> ${(r5.elite_groups || []).map(g => {
+              const a = getAnimalByGroup(parseInt(g, 10));
+              return `${a.emoji} ${a.name} (${g})`;
+            }).join(' • ')}</div>
+            ${hasApsHit ? `<div class="pt-1.5 border-t border-teal-500/20 text-emerald-300 font-bold">${rHits.join(' • ')}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
 
     // 1. Banner de Premiações Combinadas (Terno e Duque)
     let comboAwardHtml = '';
@@ -1368,6 +1416,7 @@ window.inspectSnapshot = async function (id) {
         </div>
 
         ${comboAwardHtml}
+          ${radar5x5SectionHtml}
 
         <!-- Seção: Conferência dos 5 Prêmios Ocorridos -->
         <div class="space-y-2">
@@ -1620,7 +1669,7 @@ window.checkAndRenderMilharBingoBanner = async function(forceShow = false) {
     const seenModalKey = 'bicho_seen_bingo_modal_' + b.id;
 
     // REGRA RÍGIDA: Apenas para Centena e Milhar!
-    const isAllowedType = (b.type === 'MILHAR_1ST' || b.type === 'CENTENA_1ST' || b.type === 'MILHAR_CERCADO');
+    const isAllowedType = (b.type === 'MILHAR_1ST' || b.type === 'CENTENA_1ST' || b.type === 'MILHAR_CERCADO' || b.type === 'GRUPO_1ST');
     if (!isAllowedType) {
       container.classList.add('hidden');
       return;
