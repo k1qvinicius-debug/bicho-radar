@@ -136,7 +136,7 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
             "status": "expired",
             "is_expired": True,
             "days_remaining": 0,
-            "badge": "🔒 Teste Expirado"
+            "badge": "🔒 Modo Básico"
         }
 
     expires_at_raw = tenant.get("trial_expires_at") or tenant.get("expires_at")
@@ -262,7 +262,7 @@ def check_trial_abuse(ip: Optional[str], device_id: Optional[str], current_email
             """, (phone_digits,))
             row = cursor.fetchone()
             if row:
-                return "Este número de WhatsApp já possui cadastro de teste. Acesse a aba 'Já Sou Membro' para entrar ou chame o suporte."
+                return "Este número de WhatsApp já possui cadastro. Acesse a aba 'Já Sou Membro' para entrar ou chame o suporte."
 
         # 2. Trava Inteligente por Aparelho Celular (Device Lock)
         # Se este aparelho já teve qualquer conta cujo teste já EXPIROU ou foi SUSPENSO,
@@ -432,8 +432,8 @@ def register_new_tenant(
 
     if not password_clean:
         password_clean = generate_clean_key("usr")
-    elif len(password_clean) < 4:
-        raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 4 caracteres.")
+    elif len(password_clean) < 6:
+        raise HTTPException(status_code=400, detail="A senha deve conter no mínimo 6 caracteres.")
 
     email_clean = (email or "").strip().lower()
     if not email_clean or "@" not in email_clean:
@@ -489,8 +489,8 @@ def register_new_tenant(
 
         unique_key = f"vip-{phone_digits[-4:]}-{secrets.token_hex(3)}"
 
-        initial_sub_status = 'active' if trial_days_setting > 0 else 'expired'
-        initial_notes = f'Cadastro VIP WhatsApp ({trial_days_setting} dias)' if trial_days_setting > 0 else 'Cadastro VIP WhatsApp (Plano VIP Pendente)'
+        initial_sub_status = 'expired'
+        initial_notes = 'Cadastro Gratuito - Plano VIP Pendente'
 
         cursor.execute("""
             INSERT INTO tenants (
