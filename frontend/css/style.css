@@ -336,3 +336,16 @@ body {
   background: #334155;
   border-radius: 2px;
 }
+/* Ajustes Mobile para Milhares Atrasadas - Zero Rolagem Horizontal */
+#view-milhares-atrasadas {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+#view-milhares-atrasadas .no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+#view-milhares-atrasadas .no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
