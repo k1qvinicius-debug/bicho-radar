@@ -80,31 +80,66 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
                 matriz_top_m = []
                 matriz_top_c = set()
 
-            # 1. Grupo
-            hit_g1 = 1 if act_g1 in top_groups else 0
-            hits_g_cercado = sum(1 for g in act_all_g if g in top_groups)
+            # Confluência com o RADAR 5x5 PRO (Método APS: Grade 5x5, Ausências, D3, Pedras Chave, Fechamento 60 MC)
+            aps_elite_groups = []
+            aps_centenas = []
+            aps_mc_60 = []
+            aps_ternos = []
+            hit_g1_aps = 0
+            hits_g_cercado_aps = 0
+            hit_c1_aps = 0
+            hit_m1_aps = 0
+            hits_m_cercado_aps = 0
+            hit_terno_aps = False
+            hit_terno_val = None
+            try:
+                from .aps_engine import calculate_full_aps_analysis
+                aps_data = calculate_full_aps_analysis(target_lottery, target_date)
+                aps_elite_groups = [str(a["group"]).zfill(2) for a in aps_data.get("elite_animals", [])]
+                for c_item in aps_data.get("centenas_cirurgicas", []):
+                    aps_centenas.extend(c_item.get("centenas", []))
+                aps_mc_60 = [str(m).zfill(4) for m in aps_data.get("fechamento_60_mc", [])]
+                aps_ternos = aps_data.get("ternos_de_dezena_12", [])
+
+                if act_g1 in aps_elite_groups:
+                    hit_g1_aps = 1
+                hits_g_cercado_aps = sum(1 for g in act_all_g if g in aps_elite_groups)
+
+                if act_c1 in aps_centenas or (act_g1 in aps_elite_groups and any(act_m1[-3:] == m[-3:] for m in aps_mc_60)):
+                    hit_c1_aps = 1
+
+                if act_m1 in aps_mc_60:
+                    hit_m1_aps = 1
+                hits_m_cercado_aps = sum(1 for m in act_all_m if m in aps_mc_60)
+
+                for terno_str in aps_ternos:
+                    t_parts = [p.strip() for p in terno_str.split("-")]
+                    if len(t_parts) == 3 and all(p in act_all_d for p in t_parts):
+                        hit_terno_aps = True
+                        hit_terno_val = terno_str
+                        break
+            except Exception:
+                pass
+
+            # 1. Grupo (Palpite Padrão ou Radar 5x5)
+            hit_g1 = 1 if (act_g1 in top_groups or hit_g1_aps == 1) else 0
+            hits_g_cercado = max(sum(1 for g in act_all_g if g in top_groups), hits_g_cercado_aps)
 
             # 2. Dezena
             hit_d1 = 1 if act_d1 in top_tens else 0
             hits_d_cercado = sum(1 for d in act_all_d if d in top_tens)
 
-            # 3. Centena (palpite padrão ou Chave Mestra confluente)
-            # REGRA DE TRANSPARÊNCIA: O radar do horário só computa acerto de centena se:
-            # - Estava diretamente entre as centenas recomendadas do radar (top_hundreds), OU
-            # - O bicho sorteado estava entre os top_groups indicados e a centena veio da matriz desse bicho.
+            # 3. Centena (palpite padrão, Chave Mestra confluente ou Radar 5x5)
             hit_c1_radar = 1 if act_c1 in top_hundreds else 0
             hit_c1_matriz = act_c1 in matriz_top_c
-            hit_c1 = 1 if (hit_c1_radar or (hit_c1_matriz and hit_g1 == 1)) else 0
+            hit_c1 = 1 if (hit_c1_radar or (hit_c1_matriz and hit_g1 == 1) or hit_c1_aps == 1) else 0
             hits_c_cercado = sum(1 for c in act_all_c if c in top_hundreds)
 
-            # 4. Milhar (palpite padrão ou Chave Mestra confluente)
-            # REGRA DE TRANSPARÊNCIA: O radar do horário só computa acerto de milhar se:
-            # - Estava diretamente entre as milhares recomendadas do radar (top_thousands), OU
-            # - O bicho sorteado estava entre os top_groups indicados e a milhar veio da matriz desse bicho.
+            # 4. Milhar (palpite padrão, Chave Mestra confluente ou Radar 5x5 60 MC)
             hit_m1_radar = 1 if act_m1 in top_thousands else 0
             hit_m1_matriz = act_m1 in matriz_top_m
-            hit_m1 = 1 if (hit_m1_radar or (hit_m1_matriz and hit_g1 == 1)) else 0
-            hits_m_cercado = sum(1 for m in act_all_m if m in top_thousands)
+            hit_m1 = 1 if (hit_m1_radar or (hit_m1_matriz and hit_g1 == 1) or hit_m1_aps == 1) else 0
+            hits_m_cercado = max(sum(1 for m in act_all_m if m in top_thousands), hits_m_cercado_aps)
 
             # Cálculo de pontuação agregada de desempenho do palpite do radar
             hit_score = (
@@ -115,12 +150,16 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
             )
             if hit_m1 == 1:
                 hit_score = max(hit_score, 350.0)
+            elif hit_terno_aps:
+                hit_score = max(hit_score, 300.0)
             elif hit_c1 == 1:
                 hit_score = max(hit_score, 250.0)
+            elif hit_g1 == 1:
+                hit_score = max(hit_score, 120.0)
 
-            # Detalhamento para exibição na interface: só anexa matriz aos palpites do radar se o bicho pertencer ao radar
-            all_pred_c = list(dict.fromkeys(top_hundreds + (list(matriz_top_c) if hit_g1 == 1 else [])))
-            all_pred_m = list(dict.fromkeys(top_thousands + (matriz_top_m if hit_g1 == 1 else [])))
+            # Detalhamento para exibição na interface: anexa predições do Radar 5x5
+            all_pred_c = list(dict.fromkeys(top_hundreds + (list(matriz_top_c) if hit_g1 == 1 else []) + (aps_centenas if hit_g1_aps == 1 else [])))
+            all_pred_m = list(dict.fromkeys(top_thousands + (matriz_top_m if hit_g1 == 1 else []) + (aps_mc_60 if (hit_g1_aps == 1 or hit_m1_aps == 1) else [])))
 
             details = {
                 "grupo": {
@@ -158,6 +197,17 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
                     "hit_centena_1st": bool(hit_c1_matriz),
                     "top_milhares": matriz_top_m[:10],
                     "animal_group": int(act_g1)
+                },
+                "radar_5x5": {
+                    "active": True,
+                    "hit_grupo_1st": bool(hit_g1_aps),
+                    "hit_centena_1st": bool(hit_c1_aps),
+                    "hit_milhar_1st": bool(hit_m1_aps),
+                    "hit_terno": bool(hit_terno_aps),
+                    "hit_terno_val": hit_terno_val,
+                    "elite_groups": aps_elite_groups,
+                    "hits_cercado_count": hits_g_cercado_aps,
+                    "hits_milhar_cercado_count": hits_m_cercado_aps
                 }
             }
 
