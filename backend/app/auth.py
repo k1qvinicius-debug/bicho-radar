@@ -392,14 +392,17 @@ def get_or_create_google_tenant(
 
         # Se não existe e passou na validação, cria um novo tenant com 5 dias de teste
         key = generate_clean_key("usr")
+        initial_sub_status = 'active' if trial_days_setting > 0 else 'expired'
+        initial_notes = f'Cadastro via Google ({trial_days_setting} dias)' if trial_days_setting > 0 else 'Cadastro via Google (Plano VIP Pendente)'
+
         cursor.execute("""
         INSERT INTO tenants (
             name, email, tenant_key, role, status,
             auth_provider, trial_started_at, trial_expires_at,
             subscription_status, plan_type, notes, created_at, last_active_at,
             registration_ip, last_ip, device_id
-        ) VALUES (?, ?, ?, 'tester', 'active', 'google', ?, ?, ('active' if trial_days_setting > 0 else 'expired'), 'free', (f'Cadastro via Google ({trial_days_setting} dias)' if trial_days_setting > 0 else 'Cadastro via Google (Plano VIP Pendente)'), ?, ?, ?, ?, ?)
-        """, (name_clean, email_clean, key, now_str, trial_expire_str, now_str, now_str, ip, ip, device_id))
+        ) VALUES (?, ?, ?, 'tester', 'active', 'google', ?, ?, ?, 'free', ?, ?, ?, ?, ?, ?)
+        """, (name_clean, email_clean, key, now_str, trial_expire_str, initial_sub_status, initial_notes, now_str, now_str, ip, ip, device_id))
 
         cursor.execute("SELECT * FROM tenants WHERE tenant_key = ?", (key,))
         new_row = cursor.fetchone()
@@ -486,14 +489,21 @@ def register_new_tenant(
 
         unique_key = f"vip-{phone_digits[-4:]}-{secrets.token_hex(3)}"
 
+        initial_sub_status = 'active' if trial_days_setting > 0 else 'expired'
+        initial_notes = f'Cadastro VIP WhatsApp ({trial_days_setting} dias)' if trial_days_setting > 0 else 'Cadastro VIP WhatsApp (Plano VIP Pendente)'
+
         cursor.execute("""
             INSERT INTO tenants (
                 name, email, phone, password, tenant_key, role, status,
                 auth_provider, trial_started_at, trial_expires_at,
                 subscription_status, plan_type, notes, created_at, last_active_at,
                 registration_ip, last_ip, device_id
-            ) VALUES (?, ?, ?, ?, ?, 'tester', 'active', 'whatsapp', ?, ?, ('active' if trial_days_setting > 0 else 'expired'), 'free', (f'Cadastro VIP WhatsApp ({trial_days_setting} dias)' if trial_days_setting > 0 else 'Cadastro VIP WhatsApp (Plano VIP Pendente)'), ?, ?, ?, ?, ?)
-        """, (name_clean, email_clean, phone_clean, password_clean, unique_key, now_str, trial_expire_str, now_str, now_str, ip, ip, device_id))
+            ) VALUES (?, ?, ?, ?, ?, 'tester', 'active', 'whatsapp', ?, ?, ?, 'free', ?, ?, ?, ?, ?, ?)
+        """, (
+            name_clean, email_clean, phone_clean, password_clean, unique_key,
+            now_str, trial_expire_str, initial_sub_status, initial_notes,
+            now_str, now_str, ip, ip, device_id
+        ))
 
         new_id = cursor.lastrowid
         if new_id:
