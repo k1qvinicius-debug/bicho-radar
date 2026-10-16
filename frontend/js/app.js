@@ -126,7 +126,7 @@ window.handleCompleteProfile = async function(event) {
     await api.completeProfile({ phone, password });
     closeCompleteProfileModal();
     if (typeof showToast === 'function') {
-      showToast('🎉 Perfil concluído com sucesso! Aproveite seus 3 dias grátis.', 'success');
+      showToast('🎉 Perfil concluído com sucesso!', 'success');
     }
   } catch (err) {
     if (errEl) {
@@ -6461,7 +6461,7 @@ function updateAuthUI() {
         } else if (isExpired) {
           drawerUserLabel.textContent = (tenant.name || 'Visitante') + ' (Básico)';
         } else {
-          drawerUserLabel.textContent = (tenant.name || 'Visitante') + ` (Teste • ${days}d)`;
+          drawerUserLabel.textContent = (tenant.name || 'Visitante') + ' (Básico)';
         }
       }
 
@@ -7785,9 +7785,9 @@ window.handleMainRegister = async function(event) {
     return;
   }
 
-  if (!password || password.length < 4) {
+  if (!password || password.length < 6) {
     if (errEl) {
-      errEl.textContent = 'A senha deve conter no mínimo 4 dígitos ou caracteres.';
+      errEl.textContent = 'A senha deve conter no mínimo 6 caracteres.';
       errEl.classList.remove('hidden');
     }
     return;
@@ -7796,7 +7796,7 @@ window.handleMainRegister = async function(event) {
   if (errEl) errEl.classList.add('hidden');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span>⏳</span> <span>Ativando 3 Dias Grátis...</span>';
+    btn.innerHTML = '<span>⏳</span> <span>Criando sua conta...</span>';
   }
 
   try {
@@ -7808,7 +7808,7 @@ window.handleMainRegister = async function(event) {
     });
 
     if (typeof showToast === 'function') {
-      showToast('🎉 Bem-vindo! Seus 3 dias de Teste VIP foram ativados com sucesso.', 'success');
+      showToast('🎉 Bem-vindo! Conta criada com sucesso.', 'success');
     }
     updateAuthUI();
     updateHomeScreenData();
@@ -7821,7 +7821,7 @@ window.handleMainRegister = async function(event) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<span>🚀</span> <span>Ativar Meus 3 Dias Grátis Agora</span>';
+      btn.innerHTML = '<span>🚀</span> <span>Criar Minha Conta Agora</span>';
     }
   }
 };
