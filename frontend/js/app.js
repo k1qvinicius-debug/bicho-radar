@@ -6468,27 +6468,31 @@ function updateAuthUI() {
       if (badgeContainer) {
         if (isSubscriber) {
           badgeContainer.innerHTML = `
-            <div class="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full font-bold shadow-md shadow-emerald-500/10">
-              <span class="text-xs">⭐</span>
-              <span class="font-black tracking-wide"><span class="hidden sm:inline">Assinante </span>VIP (${days}d)</span>
-              <button type="button" onclick="handleUserLogout()" class="ml-1 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-300 text-[10px] font-bold transition-colors cursor-pointer" title="Sair desta conta">Sair 🚪</button>
-            </div>
-          `;
-        } else if (isExpired) {
-          badgeContainer.innerHTML = `
-            <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-sm">
-              <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
-              <span class="font-bold cursor-pointer hover:underline" onclick="openPlansModal()" title="Toque para ver Planos VIP">Modo Básico</span>
-              <button type="button" onclick="openPlansModal()" class="ml-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] shadow-sm hover:brightness-110 cursor-pointer">Assinar VIP ⭐</button>
-              <button type="button" onclick="handleUserLogout()" class="ml-1 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-300 text-[10px] font-bold transition-colors cursor-pointer" title="Sair desta conta">Sair 🚪</button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <div class="flex items-center gap-1 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] sm:text-xs px-2.5 py-1 rounded-full font-bold shadow-md shadow-emerald-500/10 shrink-0">
+                <span class="text-[10px] sm:text-xs">⭐</span>
+                <span class="font-black tracking-wide"><span class="hidden sm:inline">Assinante </span>VIP (${days}d)</span>
+              </div>
+              <button type="button" onclick="handleUserLogout()" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-300 flex items-center justify-center text-[10px] sm:text-xs transition-colors cursor-pointer shrink-0" title="Sair desta conta">
+                🚪
+              </button>
             </div>
           `;
         } else {
           badgeContainer.innerHTML = `
-            <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 text-slate-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-sm">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse"></span>
-              <span class="font-bold text-amber-300 cursor-pointer hover:underline" onclick="openPlansModal()" title="Toque para ver Planos VIP">Teste VIP (${days}d)</span>
-              <button type="button" onclick="handleUserLogout()" class="ml-1 px-1.5 py-0.5 rounded bg-slate-700/60 hover:bg-red-500/20 text-slate-400 hover:text-red-300 text-[10px] sm:text-[11px] font-bold transition-colors cursor-pointer" title="Sair desta conta">Sair 🚪</button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <div onclick="openPlansModal()" class="flex items-center bg-slate-900/90 hover:bg-slate-800 border border-amber-500/40 hover:border-amber-400 rounded-full p-0.5 pl-2 gap-1.5 shadow-md shadow-amber-500/10 active:scale-95 transition-all cursor-pointer select-none shrink-0" title="Toque para Assinar o Radar VIP">
+                <span class="text-[10px] sm:text-xs font-bold text-amber-300 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                  <span class="hidden sm:inline">Modo </span>Básico
+                </span>
+                <span class="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-[10px] sm:text-xs tracking-wide shadow-sm flex items-center gap-0.5 uppercase">
+                  <span>⭐</span> <span><span class="hidden sm:inline">Assinar </span>VIP</span>
+                </span>
+              </div>
+              <button type="button" onclick="handleUserLogout()" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-300 flex items-center justify-center text-[10px] sm:text-xs transition-colors cursor-pointer shrink-0" title="Sair desta conta">
+                🚪
+              </button>
             </div>
           `;
         }
