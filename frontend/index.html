@@ -54,7 +54,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png?v=2.0" />
   <link rel="apple-touch-icon" sizes="192x192" href="/img/icon-192.png?v=2.0" />
   <link rel="icon" type="image/png" href="/img/favicon.png?v=108.0" />
-  <link rel="stylesheet" href="/css/style.css?v=1792157084" />
+  <link rel="stylesheet" href="/css/style.css?v=1792158220" />
   <!-- Prevenção imediata de flash da tela de login para usuários autenticados -->
   <script>
     (function() {
@@ -484,7 +484,7 @@
       <div class="grid grid-cols-2 p-1 bg-slate-950/80 border border-slate-800 rounded-2xl">
         <button type="button" id="tab-auth-register" onclick="switchAuthGateTab('register')"
           class="py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 cursor-pointer select-none">
-          <span>✨</span> <span>Criar Conta VIP</span>
+          <span>✨</span> <span>Criar Conta</span>
         </button>
         <button type="button" id="tab-auth-login" onclick="switchAuthGateTab('login')"
           class="py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-white cursor-pointer select-none">
@@ -501,7 +501,7 @@
           </div>
           <div class="text-left">
             <div class="text-xs font-black text-amber-300">Acesso VIP aos Palpites e Fechamentos</div>
-            <div class="text-[11px] text-slate-300 leading-snug">Cadastre seu WhatsApp para liberar Jogos Prontos, Milhares Atrasadas e estatísticas em tempo real.</div>
+            <div class="text-[11px] text-slate-300 leading-snug">Cadastre seu WhatsApp para acessar os Jogos Prontos, estatísticas e recursos da plataforma.</div>
           </div>
         </div>
 
@@ -532,10 +532,10 @@
 
           <div>
             <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
-              Crie uma Senha Simples
+              Crie uma Senha
             </label>
             <div class="relative">
-              <input type="password" id="reg-input-password" required minlength="4" placeholder="Mínimo de 4 dígitos ou letras"
+              <input type="password" id="reg-input-password" required minlength="6" placeholder="Mínimo de 6 caracteres"
                 class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-slate-100 font-semibold focus:border-amber-500 focus:outline-none transition-colors" />
               <button type="button" onclick="togglePasswordVisibility('reg-input-password', this)"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-amber-300 transition-colors cursor-pointer" title="Ver/Ocultar senha">
@@ -548,7 +548,7 @@
 
           <button type="submit" id="btn-submit-main-register"
             class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2">
-            <span>🚀</span> <span>Criar Minha Conta VIP Agora</span>
+            <span>🚀</span> <span>Criar Minha Conta Agora</span>
           </button>
         </form>
       </div>
@@ -2782,7 +2782,7 @@
   </div>
 
   <script src="/js/api.js?v=1792153208"></script>
-  <script src="/js/app.js?v=1792157084"></script>
+  <script src="/js/app.js?v=1792158220"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
