@@ -7237,6 +7237,77 @@ function renderMilharesTable() {
   }
 
   tbody.innerHTML = rowsHtml;
+
+  // Renderizar Cards Mobile (100% responsivos, sem barra de rolagem horizontal)
+  const mobileContainer = document.getElementById('milhares-mobile-cards');
+  if (mobileContainer) {
+    if (!items || items.length === 0) {
+      mobileContainer.innerHTML = `
+        <div class="p-6 text-center text-slate-400 bg-slate-950/60 rounded-xl border border-slate-800">
+          Nenhuma milhar registrada nesta categoria para ${currentMilharesLottery} no momento.
+        </div>
+      `;
+    } else {
+      let cardsHtml = visibleItems.map((item, idx) => {
+        const rankNum = idx + 1;
+        let rankBadge = `<span class="font-bold text-slate-400 text-xs">${rankNum}º</span>`;
+        if (rankNum === 1) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 font-black text-xs">🥇</span>`;
+        else if (rankNum === 2) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-400/20 text-slate-200 border border-slate-400/50 font-black text-xs">🥈</span>`;
+        else if (rankNum === 3) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700/20 text-amber-500 border border-amber-700/50 font-black text-xs">🥉</span>`;
+
+        const atrasoBadge = isAtrasadas
+          ? `<span class="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-black font-mono text-xs">${item.dias_atraso !== null && item.dias_atraso !== undefined ? item.dias_atraso + 'd sem sair' : '--'}</span>`
+          : `<span class="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold font-mono text-xs">${item.vezes_sorteada ? item.vezes_sorteada + ' saídas' : 'Alta freq.'}</span>`;
+
+        return `
+          <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800/90 hover:border-amber-500/40 shadow-sm space-y-2.5 transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                ${rankBadge}
+                <span class="font-mono font-black text-amber-300 text-lg tracking-wider">${item.milhar}</span>
+                <span class="text-base">${item.icone || '🎯'}</span>
+                <div>
+                  <div class="font-bold text-white text-xs">${item.bicho || 'Bicho'}</div>
+                  <div class="text-[10px] text-slate-400">Grupo ${String(item.grupo).padStart(2, '0')}</div>
+                </div>
+              </div>
+              <div>
+                ${atrasoBadge}
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px] text-slate-400">
+              <div>
+                <span>Última:</span> <strong class="text-slate-200 font-mono">${item.ultima_data || '--'}</strong>
+                <span class="text-slate-500">· ${item.extracao || currentMilharesLottery}</span>
+              </div>
+              <button type="button" onclick="quickTrackMilhar('${item.milhar}')"
+                class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 text-[11px] font-bold border border-slate-700/80 transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
+                <span>🔍</span> <span>Rastrear</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (!isVip) {
+        cardsHtml += `
+          <div onclick="openPlansModal()" class="w-full p-4 rounded-2xl bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-950 border border-amber-500/50 shadow-2xl space-y-2 text-center cursor-pointer group hover:border-amber-400 transition-all">
+            <div class="text-2xl">👑 🔒</div>
+            <div class="text-xs sm:text-sm font-black text-white">Ranking Completo de Milhares Atrasadas e Viciadas</div>
+            <p class="text-[11px] text-slate-300 leading-relaxed">
+              Milhar paga até <strong>4.000x</strong>. Acesse a lista completa no plano VIP por <strong>R$ 14,90/mês</strong>.
+            </p>
+            <button type="button" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-md group-hover:scale-102 transition-transform">
+              Desbloquear Milhares VIP ⭐
+            </button>
+          </div>
+        `;
+      }
+
+      mobileContainer.innerHTML = cardsHtml;
+    }
+  }
 }
 
 window.handleMilharTrackSubmit = function() {
