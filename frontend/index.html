@@ -54,7 +54,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png?v=2.0" />
   <link rel="apple-touch-icon" sizes="192x192" href="/img/icon-192.png?v=2.0" />
   <link rel="icon" type="image/png" href="/img/favicon.png?v=108.0" />
-  <link rel="stylesheet" href="/css/style.css?v=1792008100.0" />
+  <link rel="stylesheet" href="/css/style.css?v=1792153208" />
   <!-- Prevenção imediata de flash da tela de login para usuários autenticados -->
   <script>
     (function() {
@@ -80,10 +80,16 @@
     #main-content-container {
       display: block !important;
     }
-    /* Opção 1: Barra inferior removida para liberar 100% da tela do celular e unificar no menu do topo */
-    #mob-bottom-nav,
-    html.is-authenticated #mob-bottom-nav {
-      display: none !important;
+    /* Barra de Navegação Mobile Flutuante Ativa */
+    #mob-bottom-nav {
+      display: block !important;
+      pointer-events: auto !important;
+    }
+    @media (min-width: 768px) {
+      #mob-bottom-nav,
+      html.is-authenticated #mob-bottom-nav {
+        display: none !important;
+      }
     }
   </style>
   <script>
@@ -196,7 +202,7 @@
     });
   </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen pb-10 md:pb-12 antialiased selection:bg-indigo-500 selection:text-white overflow-x-hidden w-full max-w-full relative">
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-24 md:pb-12 antialiased selection:bg-indigo-500 selection:text-white overflow-x-hidden w-full max-w-full relative">
 
   <!-- Header Superior Fixo -->
   <header id="app-main-header" class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 w-full max-w-full overflow-x-hidden">
@@ -2416,7 +2422,7 @@
   </div>
 
   <!-- Bottom Navigation Mobile (Dock Flutuante Glassmorphism) -->
-  <nav id="mob-bottom-nav" class="hidden fixed bottom-3 inset-x-3 max-w-md mx-auto z-40 bg-slate-950/90 backdrop-blur-2xl border border-slate-700/60 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.85)] p-1.5 bottom-nav">
+  <nav id="mob-bottom-nav" class="fixed bottom-3 inset-x-3 max-w-md mx-auto z-40 bg-slate-950/90 backdrop-blur-2xl border border-slate-700/60 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.85)] p-1.5 bottom-nav">
     <div class="mob-nav-grid">
       <button type="button" onclick="switchScreen('home')" id="mob-btn-home" class="mob-nav-item mob-nav-active" title="Início">
         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2774,8 +2780,8 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=1792008100"></script>
-  <script src="/js/app.js?v=1792008100"></script>
+  <script src="/js/api.js?v=1792153208"></script>
+  <script src="/js/app.js?v=1792153208"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
@@ -2926,7 +2932,7 @@
     </div>
   </div>
 
-  <script src="/js/pwa.js?v=1791300001"></script>
+  <script src="/js/pwa.js?v=1792153208"></script>
 
 </body>
 </html>
