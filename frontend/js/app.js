@@ -2159,21 +2159,12 @@ window.initSlotSelector = initSlotSelector;
 let _lastKnownDrawId = null;
 let _resultsMonitorInterval = null;
 
-let _lastWebSyncTime = 0;
 function startInstantResultsMonitor() {
   if (_resultsMonitorInterval) return;
 
+  // Monitora novos resultados de forma leve a cada 45 segundos, sem travar o app
   _resultsMonitorInterval = setInterval(async () => {
     try {
-      // Dispara sincronização com web a cada 60s em segundo plano para manter dados frescos
-      const nowTs = Date.now();
-      if (nowTs - _lastWebSyncTime > 60000) {
-        _lastWebSyncTime = nowTs;
-        try {
-          fetch(`${API_BASE}/results/sync-web?lottery=${currentLottery}`, { method: 'POST' }).catch(() => {});
-        } catch (e) {}
-      }
-
       const res = await api.getRecentResults(currentLottery, 1);
       if (!res || res.length === 0) return;
 
@@ -2195,64 +2186,36 @@ function startInstantResultsMonitor() {
         // 2. Recarrega os resultados
         await loadDrawResults();
 
-        // 3. Atualiza o seletor de horários (apenas avança se o usuário não cravou um horário anterior)
+        // 3. Atualiza o seletor de horários
         if (!window._userSelectedSlot) {
           await initSlotSelector(currentLottery);
           if (api.isLoggedIn()) {
             await loadPrediction(true);
           }
         } else {
-          // Atualiza apenas os palpites do horário cravado pelo usuário com a nova apuração
           if (api.isLoggedIn()) {
             await loadPrediction(true);
           }
         }
 
-        // 5. Se o modal/tela de puxadas estiver aberto, atualiza imediatamente
+        // 4. Se puxadas estiver aberto, atualiza
         const viewPuxadas = document.getElementById('view-puxadas');
         if (viewPuxadas && !viewPuxadas.classList.contains('hidden')) {
           await loadPuxadasModalContent(null, true);
         }
 
-        // 6. Atualiza dados na Home
+        // 5. Atualiza dados na Home
         updateHomeScreenData();
 
-        // 7. Notifica o usuário
+        // 6. Notifica o usuário
         const p1 = latest.prize_1 || '----';
         const animalInfo = latest.animal ? `(${latest.animal.toUpperCase()})` : '';
-        showToast(`⚡ Novo resultado apurado: ${latest.slot} - ${p1} ${animalInfo}! Palpites e Puxadas atualizados instantaneamente.`, 'success');
-      } else {
-        // Verifica periodicamente se o horário do slot atualmente selecionado já expirou no relógio de hoje
-        // IMPORTANTE: Se o usuário cravou manualmente um horário anterior para ver palpites passados, NÃO reseta!
-        if (window._userSelectedSlot) {
-          return;
-        }
-        const targetDate = document.getElementById('target-date')?.value || null;
-        const now = new Date();
-        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        if (!targetDate || targetDate === todayStr) {
-          const slotSelect = document.getElementById('target-slot');
-          if (slotSelect && slotSelect.value && Array.isArray(standardSlotsList) && standardSlotsList.length > 0) {
-            const currentSlotCode = slotSelect.value;
-            const currentSlotMeta = standardSlotsList.find(s => s.code === currentSlotCode);
-            if (currentSlotMeta) {
-              const currentSlotMin = getSlotMinutes(currentSlotMeta, todayStr);
-              const nowMinutes = now.getHours() * 60 + now.getMinutes();
-              if (nowMinutes > (currentSlotMin + 5)) {
-                await initSlotSelector(currentLottery);
-                if (api.isLoggedIn()) {
-                  await loadPrediction();
-                }
-                updateHomeScreenData();
-              }
-            }
-          }
-        }
+        showToast(`⚡ Novo resultado apurado: ${latest.slot} - ${p1} ${animalInfo}! Palpites atualizados.`, 'success');
       }
     } catch (e) {
       // Silencioso em caso de oscilação momentânea de rede
     }
-  }, 12000);
+  }, 45000);
 }
 
 window.toggleLotteryFilterCard = function() {
@@ -2770,24 +2733,8 @@ let _activePredictionReqSeq = 0;
 let _prefetchTimeout = null;
 
 function prefetchAdjacentSlots(lottery, activeSlot) {
-  if (_prefetchTimeout) clearTimeout(_prefetchTimeout);
-  if (!standardSlotsList || standardSlotsList.length <= 1) return;
-
-  _prefetchTimeout = setTimeout(async () => {
-    const dateVal = document.getElementById('target-date')?.value || '';
-    for (const s of standardSlotsList) {
-      if (s.code === activeSlot) continue;
-      const key = getPredictionCacheKey(lottery, dateVal, s.code, currentStrategy);
-      if (!_predictionCache.has(key) && api.isLoggedIn()) {
-        try {
-          const pred = await api.getPrediction(dateVal, s.code, currentStrategy, lottery);
-          _predictionCache.set(key, pred);
-        } catch (e) {
-          break;
-        }
-      }
-    }
-  }, 800);
+  // Desativado loop pesado em background para manter o app ultraleve e sem travamento
+  return;
 }
 
 async function loadPrediction(forceRefresh = false) {
@@ -2807,7 +2754,7 @@ async function loadPrediction(forceRefresh = false) {
   if (!forceRefresh && _predictionCache.has(cacheKey)) {
     currentPrediction = _predictionCache.get(cacheKey);
     renderDashboard(currentPrediction);
-    if (contentEl) contentEl.classList.remove('opacity-40', 'pointer-events-none');
+    if (contentEl) // contentEl non-blocking
     if (loadingEl) loadingEl.classList.add('hidden');
     prefetchAdjacentSlots(currentLottery, slotVal);
     return;
@@ -2817,7 +2764,7 @@ async function loadPrediction(forceRefresh = false) {
 
   // Feedback visual imediato: esmaece o dashboard e bloqueia cliques duplicados durante a consulta
   if (contentEl) {
-    contentEl.classList.add('opacity-40', 'pointer-events-none');
+    // contentEl non-blocking
   }
   const hasRendered = currentPrediction && currentPrediction.top_groups && currentPrediction.top_groups.length > 0;
   if (!hasRendered && loadingEl) {
@@ -2848,7 +2795,7 @@ async function loadPrediction(forceRefresh = false) {
     }
   } finally {
     if (loadingEl) loadingEl.classList.add('hidden');
-    if (contentEl) contentEl.classList.remove('opacity-40', 'pointer-events-none');
+    if (contentEl) // contentEl non-blocking
   }
 }
 
