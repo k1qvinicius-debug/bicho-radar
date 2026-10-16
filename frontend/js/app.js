@@ -8,7 +8,17 @@ window.isUserVip = function() {
   const isExpired = tenant.is_expired || tenant.subscription_status === 'expired' || 
     (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0);
   if (isExpired) return false;
-  return tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free';
+
+  const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
+    ? tenant.trial_info.days_remaining
+    : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 0);
+
+  // Se tiver mais de 5 dias ou plano pago ativo, é 100% assinante VIP
+  if (days > 5) return true;
+  if (tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free') return true;
+  if (tenant.plan_type === 'monthly' || tenant.plan_type === 'vip' || tenant.plan_type === 'anual') return true;
+
+  return false;
 };
 
 window.showAuthGateModal = function() {
@@ -6419,24 +6429,34 @@ function updateAuthUI() {
         btnHeaderPlans.classList.add('hidden', 'sm:inline-flex');
       }
 
-      const isSubscriber = tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free';
+      const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
+        ? tenant.trial_info.days_remaining
+        : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 5);
+
+      // Usuário que pagou (30 dias ou plano ativo) é identificado como Assinante VIP
+      const isSubscriber = (tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free') ||
+                           tenant.plan_type === 'monthly' ||
+                           tenant.plan_type === 'vip' ||
+                           tenant.plan_type === 'anual' ||
+                           days > 5;
+
       const isExpired = !isSubscriber && (
         tenant.is_expired || 
         tenant.subscription_status === 'expired' || 
         (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0)
       );
 
-      const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
-        ? tenant.trial_info.days_remaining
-        : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 5);
+      if (isSubscriber && btnHeaderPlans) {
+        btnHeaderPlans.classList.add('hidden');
+      }
 
       if (drawerUserLabel) {
         if (isSubscriber) {
-          drawerUserLabel.textContent = (tenant.name || 'Assinante') + ' (VIP)';
+          drawerUserLabel.textContent = (tenant.name || 'Assinante') + ` (VIP • ${days}d)`;
         } else if (isExpired) {
           drawerUserLabel.textContent = (tenant.name || 'Visitante') + ' (Básico)';
         } else {
-          drawerUserLabel.textContent = tenant.name || 'Testador Convidado';
+          drawerUserLabel.textContent = (tenant.name || 'Visitante') + ` (Teste • ${days}d)`;
         }
       }
 
@@ -6444,9 +6464,9 @@ function updateAuthUI() {
         if (isSubscriber) {
           badgeContainer.innerHTML = `
             <div class="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full font-bold shadow-md shadow-emerald-500/10">
-              <span>⭐</span>
-              <span class="font-black tracking-wide">Assinante VIP</span>
-              <button type="button" onclick="handleUserLogout()" class="ml-1 text-slate-400 hover:text-red-400 text-xs transition-colors cursor-pointer" title="Sair desta conta">✕</button>
+              <span class="text-xs">⭐</span>
+              <span class="font-black tracking-wide"><span class="hidden sm:inline">Assinante </span>VIP (${days}d)</span>
+              <button type="button" onclick="handleUserLogout()" class="ml-1 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-300 text-[10px] font-bold transition-colors cursor-pointer" title="Sair desta conta">Sair 🚪</button>
             </div>
           `;
         } else if (isExpired) {
@@ -6462,7 +6482,7 @@ function updateAuthUI() {
           badgeContainer.innerHTML = `
             <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 text-slate-300 text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-sm">
               <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse"></span>
-              <span class="font-bold text-amber-300 cursor-pointer hover:underline" onclick="openPlansModal()" title="Toque para ver Planos VIP">${days}d teste</span>
+              <span class="font-bold text-amber-300 cursor-pointer hover:underline" onclick="openPlansModal()" title="Toque para ver Planos VIP">Teste VIP (${days}d)</span>
               <button type="button" onclick="handleUserLogout()" class="ml-1 px-1.5 py-0.5 rounded bg-slate-700/60 hover:bg-red-500/20 text-slate-400 hover:text-red-300 text-[10px] sm:text-[11px] font-bold transition-colors cursor-pointer" title="Sair desta conta">Sair 🚪</button>
             </div>
           `;
