@@ -21,12 +21,17 @@ window.isUserVip = function() {
   return false;
 };
 
-window.showAuthGateModal = function() {
+window.showAuthGateModal = function(tab) {
   const gate = document.getElementById('app-auth-gate');
   if (gate) {
     gate.classList.add('is-open');
     gate.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
+    if (tab === 'login' && typeof window.switchAuthGateTab === 'function') {
+      window.switchAuthGateTab('login');
+    } else if (tab === 'register' && typeof window.switchAuthGateTab === 'function') {
+      window.switchAuthGateTab('register');
+    }
   }
 };
 
@@ -6504,7 +6509,7 @@ function updateAuthUI() {
           <button type="button" onclick="openPlansModal()" class="px-2 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] sm:text-xs shadow-md shadow-amber-500/20 hover:scale-105 transition-transform flex items-center gap-1 cursor-pointer shrink-0">
             <span>⭐</span> <span><span class="hidden sm:inline">Ativar </span>VIP<span class="hidden sm:inline"> (R$ 14,90)</span></span>
           </button>
-          <button type="button" onclick="showAuthGateModal()" class="px-2.5 sm:px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] sm:text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-sm flex items-center gap-1" title="Já é cadastrado? Entrar">
+          <button type="button" onclick="showAuthGateModal('login')" class="px-2.5 sm:px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] sm:text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-sm flex items-center gap-1" title="Já é cadastrado? Entrar">
             <span>🔐</span> <span>Entrar</span>
           </button>
         </div>
