@@ -203,15 +203,23 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
                 "status": "expired",
                 "is_expired": True,
                 "days_remaining": 0,
-                "badge": "🔒 Teste Expirado"
+                "badge": "🔒 Acesso Expirado"
             }
         else:
             days_left = max(1, int(diff.days) + (1 if diff.seconds > 0 else 0))
+            # Se possui mais de 5 dias ou plano pago, é Assinante VIP
+            if days_left > 5 or plan_type not in ("free", None, ""):
+                return {
+                    "status": "active",
+                    "is_expired": False,
+                    "days_remaining": days_left,
+                    "badge": f"⭐ Assinante VIP • {days_left}d"
+                }
             return {
                 "status": "trial",
                 "is_expired": False,
                 "days_remaining": days_left,
-                "badge": f"⏳ Teste VIP • {days_left}d restantes"
+                "badge": f"⚡ Teste VIP • {days_left}d"
             }
     except Exception:
         return {
