@@ -1,4 +1,21 @@
 
+/* Correção definitiva de rolagem e toques para Celular (iOS Safari & Android Chrome) */
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+body {
+  min-height: 100%;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
 #app-main-header {
   overflow-x: hidden !important;
   max-width: 100vw !important;
@@ -6,19 +23,55 @@
   box-sizing: border-box !important;
 }
 
-html, body {
-  overflow-x: hidden !important;
-  max-width: 100vw !important;
-  width: 100% !important;
-  position: relative;
-  -webkit-overflow-scrolling: touch;
-}
-
 #app-auth-gate {
   overflow-x: hidden !important;
   max-width: 100vw !important;
   width: 100% !important;
   box-sizing: border-box !important;
+}
+
+/* Prevenção de bloqueio de toques e telas congeladas em celulares */
+.hidden {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Overlay do menu lateral: NUNCA intercepta toques quando fechado */
+#drawer-overlay:not(.opacity-100),
+#drawer-overlay.hidden,
+#drawer-overlay.opacity-0 {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+#drawer-overlay.opacity-100 {
+  display: block !important;
+  pointer-events: auto !important;
+}
+
+/* Modais e popups fechados nunca bloqueiam a tela */
+#app-auth-gate.hidden,
+#modal-plans.hidden,
+#modal-bingo-celebration.hidden,
+#modal-complete-profile.hidden,
+#factors-modal.hidden,
+#ios-install-modal.hidden,
+#generic-install-modal.hidden,
+#pwa-install-banner.hidden,
+[id^="modal-"].hidden {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Barra de navegação mobile: visível no celular, oculta no desktop */
+#mob-bottom-nav {
+  display: block !important;
+  pointer-events: auto !important;
+}
+@media (min-width: 768px) {
+  #mob-bottom-nav {
+    display: none !important;
+  }
 }
 
 /* Estilos Globais e Customizações Modernas - Bicho Analytics */
