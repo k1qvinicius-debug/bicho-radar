@@ -1325,9 +1325,12 @@
           <div class="flex items-center gap-2.5">
             <span class="text-2xl">⚡</span>
             <div>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <h2 class="text-sm sm:text-base font-black text-white">Palpite Cirúrgico do Momento</h2>
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950 uppercase tracking-wide">ALTA PROBABILIDADE</span>
+                <div id="aps-next-slot-pill" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm animate-pulse">
+                  <span>⏰</span> <span id="aps-next-slot-name">Próxima: Calculando...</span>
+                </div>
               </div>
               <p class="text-xs text-slate-300">Resumo direto ao ponto: os alvos filtrados para você copiar e apostar com sabedoria.</p>
             </div>
@@ -1335,6 +1338,34 @@
           <button type="button" onclick="copyApsQuickTarget()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-lg shadow-amber-500/20 transition-transform hover:scale-105 cursor-pointer self-start sm:self-auto shrink-0">
             <span>📋</span> Copiar Jogo Rápido
           </button>
+        </div>
+
+        <!-- BANNER DA PRÓXIMA EXTRAÇÃO & CONTAGEM REGRESSIVA -->
+        <div id="aps-next-slot-bar" class="mb-3.5 p-3 rounded-xl bg-slate-950/85 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 via-emerald-500/20 to-slate-900 border border-amber-500/40 flex items-center justify-center text-lg shadow-inner shrink-0">
+              ⏰
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-0.5">
+                <span class="text-[10px] font-bold tracking-wider uppercase text-slate-400">Próxima Extração Alvo:</span>
+                <span id="aps-target-slot-live-badge" class="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500 text-slate-950 uppercase tracking-wide animate-pulse">EM ABERTO</span>
+              </div>
+              <div class="flex items-baseline gap-2 flex-wrap">
+                <span id="aps-target-slot-title" class="text-sm sm:text-base font-black text-amber-300 font-mono tracking-wide">--:-- • Carregando...</span>
+                <span id="aps-target-slot-countdown" class="text-xs font-bold text-emerald-400 font-mono bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-md">⏳ Calculando...</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:items-end gap-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+            <span class="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+              <span>📅</span> Horários de hoje (<span id="aps-today-lot-name" class="font-bold text-amber-400">RJ</span>):
+            </span>
+            <div id="aps-today-slots-list" class="flex items-center gap-1.5 overflow-x-auto max-w-full pb-0.5 scrollbar-thin">
+              <!-- Chips injetados dinamicamente via JS -->
+            </div>
+          </div>
         </div>
 
         <div id="aps-quick-target-content" class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800">
@@ -2789,7 +2820,7 @@
   </div>
 
   <script src="/js/api.js?v=1792153208"></script>
-  <script src="/js/app.js?v=1792160039"></script>
+  <script src="/js/app.js?v=1792238000"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
