@@ -9464,6 +9464,11 @@ function switchApsLottery(lottery) {
     }
   });
 
+  // Atualiza imediatamente o card da próxima extração
+  if (typeof updateApsNextSlotUI === 'function') {
+    updateApsNextSlotUI(window.currentApsLottery);
+  }
+
   renderApsScreen(true);
 }
 window.switchApsLottery = switchApsLottery;
@@ -10120,6 +10125,11 @@ function renderApsQuickTarget(data) {
   const container = document.getElementById('aps-quick-target-content');
   if (!container || !data) return;
 
+  // Atualiza indicador e contagem regressiva da próxima extração
+  if (typeof updateApsNextSlotUI === 'function') {
+    updateApsNextSlotUI(data.lottery || window.currentApsLottery);
+  }
+
   const top3 = (data.elite_animals || []).slice(0, 3);
   const topPedras = data.pedras_analysis?.top_pedras || [8, 6, 3];
   const p1 = topPedras[0] !== undefined ? topPedras[0] : 8;
@@ -10243,14 +10253,319 @@ function copyApsQuickTarget() {
     (a.tens || []).slice(0, 2).forEach(dez => goldCentenas.push(`${p1}${dez}`));
   });
 
+  const lotCode = window.currentApsLottery || d.lottery || 'NACIONAL';
+  let slotLine = '';
+  if (typeof getApsUpcomingSlotInfo === 'function') {
+    const slotInfo = getApsUpcomingSlotInfo(lotCode);
+    if (slotInfo) {
+      slotLine = `⏰ EXTRAÇÃO ALVO: ${slotInfo.targetTime} (${slotInfo.targetName} - ${slotInfo.lotteryName}) • ${slotInfo.countdown}`;
+    }
+  }
+
   const msg = [
-    `🎯 RADAR 5x5 • PALPITE DE OURO (${d.lottery || 'NACIONAL'})`,
+    `🎯 RADAR 5x5 • PALPITE DE OURO (${(d.lottery || lotCode).toUpperCase()})`,
+    ...(slotLine ? [slotLine] : []),
     `🐾 Bichos: ${top3.map(a => `${a.name} (G${String(a.group).padStart(2,'0')})`).join(', ')}`,
     `💎 Centenas Fortes: ${goldCentenas.join(' - ')}`,
     `🎲 Terno de Dezena: ${terno}`,
     `⚡ Apostando com Sabedoria`
   ].join('\n');
 
-  copyTextToClipboard(msg, 'Palpite de Ouro copiado pronto para envio!');
+  copyTextToClipboard(msg, 'Palpite de Ouro copiado com horário do sorteio alvo!');
 }
 window.copyApsQuickTarget = copyApsQuickTarget;
+
+
+// =============================================================================
+// CRONOGRAMA OFICIAL DAS LOTERIAS & INDICADOR DA PRÓXIMA EXTRAÇÃO
+// =============================================================================
+
+const APS_LOTTERY_SCHEDULES = {
+  'RJ': {
+    name: 'Rio de Janeiro',
+    shortName: 'RJ',
+    slots: [
+      { code: 'PPT', name: 'PPT', time: '09:20' },
+      { code: 'PTM', name: 'PTM', time: '11:20' },
+      { code: 'PT',  name: 'PT',  time: '14:20' },
+      { code: 'PTV', name: 'PTV', time: '16:20' },
+      { code: 'PTN', name: 'PTN', time: '18:20' },
+      { code: 'COR', name: 'Coruja', time: '21:20' }
+    ]
+  },
+  'LOOK': {
+    name: 'Look Loterias',
+    shortName: 'LOOK',
+    slots: [
+      { code: 'LK-07', name: '07h', time: '07:20' },
+      { code: 'LK-09', name: '09h', time: '09:20' },
+      { code: 'LK-11', name: '11h', time: '11:20' },
+      { code: 'LK-14', name: '14h', time: '14:20' },
+      { code: 'LK-16', name: '16h', time: '16:20' },
+      { code: 'LK-18', name: '18h', time: '18:20' },
+      { code: 'LK-21', name: '21h', time: '21:20' },
+      { code: 'LK-23', name: '23h', time: '23:20' }
+    ]
+  },
+  'NACIONAL': {
+    name: 'Loteria Nacional',
+    shortName: 'Nacional',
+    slots: [
+      { code: 'LN-02', name: '02h', time: '02:00' },
+      { code: 'LN-08', name: '08h', time: '08:00' },
+      { code: 'LN-10', name: '10h', time: '10:00' },
+      { code: 'LN-12', name: '12h', time: '12:00' },
+      { code: 'LN-15', name: '15h', time: '15:00' },
+      { code: 'LN-17', name: '17h', time: '17:00' },
+      { code: 'LN-19', name: '19h', time: '19:00' },
+      { code: 'LN-21', name: '21h', time: '21:00' },
+      { code: 'LN-23', name: '23h', time: '23:00' }
+    ]
+  },
+  'SP': {
+    name: 'São Paulo',
+    shortName: 'SP',
+    slots: [
+      { code: 'SP-08', name: 'PT 08h', time: '08:20' },
+      { code: 'SP-09', name: 'PT 09h', time: '09:00' },
+      { code: 'SP-10', name: 'PT 10h', time: '10:00' },
+      { code: 'SP-12', name: 'PT 12h', time: '12:20' },
+      { code: 'SP-13', name: 'PT 13h', time: '13:00' },
+      { code: 'SP-15', name: 'BAND 15h', time: '15:30' },
+      { code: 'SP-17', name: 'PT 17h', time: '17:00' },
+      { code: 'SP-19', name: 'PT 19h', time: '19:00' },
+      { code: 'SP-20', name: 'PTN 20h', time: '20:00' }
+    ]
+  },
+  'BAHIA': {
+    name: 'Bahia (Paratodos)',
+    shortName: 'Bahia',
+    slots: [
+      { code: 'BA-10', name: 'PT 10h', time: '10:00' },
+      { code: 'BA-12', name: 'PT 12h', time: '12:00' },
+      { code: 'BA-15', name: 'PT 15h', time: '15:00' },
+      { code: 'BA-19', name: 'PT 19h', time: '19:00' },
+      { code: 'BA-21', name: 'Coruja 21h', time: '21:00' }
+    ]
+  },
+  'MINAS': {
+    name: 'Minas Gerais',
+    shortName: 'Minas',
+    slots: [
+      { code: 'MG-12', name: 'Alvorada 11h', time: '11:00' },
+      { code: 'MG-15', name: 'Minas Dia 15h', time: '15:00' },
+      { code: 'MG-19', name: 'Minas Noite 19h', time: '19:00' },
+      { code: 'MG-21', name: 'Pref. 21h', time: '21:00' }
+    ]
+  },
+  'FEDERAL': {
+    name: 'Loteria Federal',
+    shortName: 'Federal',
+    slots: [
+      { code: 'FED', name: 'Federal 19h', time: '19:00' }
+    ]
+  }
+};
+window.APS_LOTTERY_SCHEDULES = APS_LOTTERY_SCHEDULES;
+
+function getBrazilDate() {
+  try {
+    const s = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+    return new Date(s);
+  } catch (e) {
+    return new Date();
+  }
+}
+window.getBrazilDate = getBrazilDate;
+
+function getApsUpcomingSlotInfo(lotteryCode) {
+  const normCode = (lotteryCode || 'NACIONAL').toUpperCase();
+  const sched = APS_LOTTERY_SCHEDULES[normCode] || APS_LOTTERY_SCHEDULES['RJ'];
+  const now = getBrazilDate();
+  const curHours = now.getHours();
+  const curMins = now.getMinutes();
+  const curTotalMins = curHours * 60 + curMins;
+  const dayOfWeek = now.getDay(); // 0 = Dom, 1 = Seg, 2 = Ter, 3 = Qua, 4 = Qui, 5 = Sex, 6 = Sab
+
+  // Trata caso especial de Loteria Federal
+  if (normCode === 'FEDERAL') {
+    const isFederalDay = (dayOfWeek === 3 || dayOfWeek === 6);
+    const fedMins = 19 * 60;
+    if (isFederalDay && fedMins > (curTotalMins + 2)) {
+      const diff = fedMins - curTotalMins;
+      const h = Math.floor(diff / 60);
+      const m = diff % 60;
+      return {
+        lotteryCode: normCode,
+        lotteryName: sched.name,
+        shortName: sched.shortName,
+        targetTime: '19:00',
+        targetName: 'Federal 19h',
+        targetCode: 'FED',
+        countdown: h === 0 ? `Faltam ${m} min` : (m > 0 ? `Faltam ${h}h ${m}m` : `Faltam ${h}h`),
+        diffMinutes: diff,
+        isToday: true,
+        isTomorrow: false,
+        allSlots: sched.slots,
+        currentTotalMins: curTotalMins
+      };
+    } else {
+      const nextDayName = (dayOfWeek === 3 || dayOfWeek >= 6) ? 'Quarta' : 'Sábado';
+      return {
+        lotteryCode: normCode,
+        lotteryName: sched.name,
+        shortName: sched.shortName,
+        targetTime: '19:00',
+        targetName: `Federal (${nextDayName})`,
+        targetCode: 'FED',
+        countdown: `Próximo: ${nextDayName} às 19:00`,
+        diffMinutes: 9999,
+        isToday: false,
+        isTomorrow: false,
+        allSlots: sched.slots,
+        currentTotalMins: curTotalMins
+      };
+    }
+  }
+
+  // Loterias regulares
+  let targetSlot = null;
+  let diffMinutes = 0;
+  let isTomorrow = false;
+
+  for (const s of sched.slots) {
+    const [hStr, mStr] = s.time.split(':');
+    const sMins = parseInt(hStr, 10) * 60 + parseInt(mStr, 10);
+    // 2 minutos de margem após o horário do sorteio antes de mudar para o próximo
+    if (sMins > (curTotalMins + 2)) {
+      targetSlot = s;
+      diffMinutes = sMins - curTotalMins;
+      break;
+    }
+  }
+
+  if (!targetSlot) {
+    isTomorrow = true;
+    targetSlot = sched.slots[0];
+    const [hStr, mStr] = targetSlot.time.split(':');
+    const sMins = parseInt(hStr, 10) * 60 + parseInt(mStr, 10);
+    diffMinutes = (24 * 60 - curTotalMins) + sMins;
+  }
+
+  const hours = Math.floor(diffMinutes / 60);
+  const mins = diffMinutes % 60;
+  let countdown = '';
+  if (isTomorrow) {
+    countdown = `Amanhã às ${targetSlot.time} (em ${hours}h ${mins}m)`;
+  } else if (hours === 0) {
+    countdown = `Faltam ${mins} min`;
+  } else {
+    countdown = mins > 0 ? `Faltam ${hours}h ${mins}m` : `Faltam ${hours}h`;
+  }
+
+  return {
+    lotteryCode: normCode,
+    lotteryName: sched.name,
+    shortName: sched.shortName,
+    targetTime: targetSlot.time,
+    targetName: targetSlot.name,
+    targetCode: targetSlot.code,
+    countdown: countdown,
+    diffMinutes: diffMinutes,
+    isToday: !isTomorrow,
+    isTomorrow: isTomorrow,
+    allSlots: sched.slots,
+    currentTotalMins: curTotalMins
+  };
+}
+window.getApsUpcomingSlotInfo = getApsUpcomingSlotInfo;
+
+function updateApsNextSlotUI(lotteryCode) {
+  const lot = (lotteryCode || window.currentApsLottery || 'NACIONAL').toUpperCase();
+  const info = getApsUpcomingSlotInfo(lot);
+  if (!info) return;
+
+  // 1. Pílula do cabeçalho
+  const pillEl = document.getElementById('aps-next-slot-name');
+  if (pillEl) {
+    pillEl.textContent = `Próxima: ${info.targetTime} (${info.targetName} - ${info.shortName || lot})`;
+  }
+
+  // 2. Título e contagem na barra do alvo
+  const titleEl = document.getElementById('aps-target-slot-title');
+  if (titleEl) {
+    titleEl.textContent = `${info.targetTime} • ${info.targetName} (${info.lotteryName})`;
+  }
+
+  const countdownEl = document.getElementById('aps-target-slot-countdown');
+  if (countdownEl) {
+    countdownEl.innerHTML = `⏳ ${info.countdown}`;
+  }
+
+  const badgeEl = document.getElementById('aps-target-slot-live-badge');
+  if (badgeEl) {
+    if (info.isTomorrow) {
+      badgeEl.textContent = 'ENCERRADO HOJE';
+      badgeEl.className = 'px-1.5 py-0.5 rounded text-[9px] font-black bg-slate-700 text-slate-300 uppercase tracking-wide';
+    } else if (info.diffMinutes && info.diffMinutes <= 30) {
+      badgeEl.textContent = 'ÚLTIMOS MINUTOS';
+      badgeEl.className = 'px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500 text-slate-950 uppercase tracking-wide animate-pulse';
+    } else {
+      badgeEl.textContent = 'EM ABERTO';
+      badgeEl.className = 'px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500 text-slate-950 uppercase tracking-wide animate-pulse';
+    }
+  }
+
+  const lotNameEl = document.getElementById('aps-today-lot-name');
+  if (lotNameEl) {
+    lotNameEl.textContent = info.shortName || lot;
+  }
+
+  // 3. Renderiza lista de horários do dia
+  const slotsListEl = document.getElementById('aps-today-slots-list');
+  if (slotsListEl && info.allSlots) {
+    const curMins = info.currentTotalMins || 0;
+    slotsListEl.innerHTML = info.allSlots.map(s => {
+      const [hStr, mStr] = s.time.split(':');
+      const sMins = parseInt(hStr, 10) * 60 + parseInt(mStr, 10);
+      const isTarget = (s.code === info.targetCode && info.isToday);
+      const isPassed = !info.isTomorrow && (sMins <= curMins + 2);
+
+      if (isTarget) {
+        return `<span class="px-2 py-0.5 rounded-lg text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400 shadow-sm flex items-center gap-1 shrink-0 animate-pulse" title="Próxima extração alvo">
+          <span>⭐</span> <span>${s.time}</span> <span class="text-[9px] opacity-80 uppercase">${s.name}</span>
+        </span>`;
+      } else if (isPassed) {
+        return `<span class="px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-900/60 text-slate-500 border border-slate-800 line-through shrink-0" title="Extração já realizada">
+          ${s.time}
+        </span>`;
+      } else {
+        return `<span class="px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-900/90 text-slate-300 border border-slate-800 hover:border-slate-700 shrink-0" title="Extração posterior">
+          ${s.time}
+        </span>`;
+      }
+    }).join('');
+  }
+}
+window.updateApsNextSlotUI = updateApsNextSlotUI;
+
+// Inicia ticker automático a cada 30 segundos para atualizar contagem regressiva
+if (!window.apsNextSlotTimer) {
+  window.apsNextSlotTimer = setInterval(() => {
+    try {
+      const viewAps = document.getElementById('view-aps');
+      if (viewAps && !viewAps.classList.contains('hidden')) {
+        updateApsNextSlotUI(window.currentApsLottery || 'NACIONAL');
+      }
+    } catch (e) {
+      // ticker silencioso
+    }
+  }, 30000);
+}
+
+// Execução inicial preventiva
+try {
+  if (typeof updateApsNextSlotUI === 'function') {
+    updateApsNextSlotUI(window.currentApsLottery || 'NACIONAL');
+  }
+} catch (e) {}
