@@ -9444,7 +9444,7 @@ document.addEventListener('keydown', function(e) {
 
 
 // =============================================================================
-// IMPLEMENTAÇÃO COMPLETA DO MÉTODO APS (APOSTANDO COM SABEDORIA)
+// IMPLEMENTAÇÃO COMPLETA DO RADAR 5x5 PRO
 // =============================================================================
 
 window.currentApsLottery = 'NACIONAL';
@@ -9566,7 +9566,7 @@ async function renderApsScreen(forceRefresh = false) {
 
   } catch (err) {
     console.error('Erro ao renderizar tela APS:', err);
-    showToast('Erro ao carregar análise do Método APS: ' + err.message, 'error');
+    showToast('Erro ao carregar análise do Radar 5x5: ' + err.message, 'error');
   } finally {
     if (refreshBtn) refreshBtn.innerHTML = '<span>🔄</span> Atualizar Leitura';
   }
@@ -10267,8 +10267,7 @@ function copyApsQuickTarget() {
     ...(slotLine ? [slotLine] : []),
     `🐾 Bichos: ${top3.map(a => `${a.name} (G${String(a.group).padStart(2,'0')})`).join(', ')}`,
     `💎 Centenas Fortes: ${goldCentenas.join(' - ')}`,
-    `🎲 Terno de Dezena: ${terno}`,
-    `⚡ Apostando com Sabedoria`
+    `🎲 Terno de Dezena: ${terno}`
   ].join('\n');
 
   copyTextToClipboard(msg, 'Palpite de Ouro copiado com horário do sorteio alvo!');
