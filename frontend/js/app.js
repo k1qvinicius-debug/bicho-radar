@@ -9995,6 +9995,43 @@ function renderApsTernos(ternos) {
   container.innerHTML = html;
 }
 
+function getAnimalForMC(mc) {
+  const s = String(mc).padStart(4, '0').trim();
+  const dezena = parseInt(s.slice(-2), 10);
+  const grp = dezena === 0 ? 25 : Math.floor((dezena - 1) / 4) + 1;
+  const bicho = (typeof ALL_ANIMALS_CATALOG !== 'undefined')
+    ? ALL_ANIMALS_CATALOG.find(a => a.group === grp)
+    : null;
+  return {
+    group: grp,
+    name: bicho ? bicho.name : `Grupo ${grp}`,
+    emoji: bicho ? bicho.emoji : '🐾'
+  };
+}
+window.getAnimalForMC = getAnimalForMC;
+
+function groupMCsByAnimal(mcList) {
+  const map = new Map();
+  (mcList || []).forEach(m => {
+    const s = String(m).padStart(4, '0').trim();
+    if (!s) return;
+    const a = getAnimalForMC(s);
+    if (!map.has(a.group)) {
+      map.set(a.group, {
+        animal: a,
+        mcs: []
+      });
+    }
+    map.get(a.group).mcs.push(s);
+  });
+  const sorted = Array.from(map.values()).sort((a, b) => a.animal.group - b.animal.group);
+  sorted.forEach(g => {
+    g.mcs.sort((x, y) => parseInt(x, 10) - parseInt(y, 10));
+  });
+  return sorted;
+}
+window.groupMCsByAnimal = groupMCsByAnimal;
+
 function renderAps60MC(mcList) {
   const container = document.getElementById('aps-60mc-container');
   const countEl = document.getElementById('aps-60mc-count');
@@ -10025,36 +10062,73 @@ function renderAps60MC(mcList) {
     return;
   }
 
-  container.innerHTML = mcList.map(m => `
-    <span class="inline-block px-1.5 py-0.5 m-0.5 rounded bg-slate-900 border border-slate-800 font-mono font-bold text-amber-300 hover:border-amber-400/60 select-all cursor-pointer" onclick="copyTextToClipboard('${m}', 'MC copiada!')">${m}</span>
-  `).join('');
-}
+  const grouped = groupMCsByAnimal(mcList);
 
-function copyApsCentenas() {
+  container.innerHTML = `
+    <div class="space-y-2.5">
+      ${grouped.map(g => {
+        const plural = g.mcs.length === 1 ? 'MC' : 'MCs';
+        return `
+          <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800/90 hover:border-amber-500/40 transition-colors">
+            <div class="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-slate-800">
+              <div class="flex items-center gap-1.5">
+                <span class="text-base">${g.animal.emoji}</span>
+                <span class="font-bold text-white text-xs">${g.animal.name}</span>
+                <span class="text-[10px] text-amber-400 font-mono px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/20">G${String(g.animal.group).padStart(2, '0')}</span>
+                <span class="text-[10px] text-slate-400 font-medium">(${g.mcs.length} ${plural})</span>
+              </div>
+              <button type="button" onclick="copyApsSingleAnimalMC(${g.animal.group})" class="text-[10px] font-bold text-amber-300 hover:text-white px-2 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 transition-colors cursor-pointer flex items-center gap-1">
+                <span>📋</span> Copiar Bicho
+              </button>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              ${g.mcs.map(m => `
+                <span class="inline-block px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs font-bold text-amber-300 hover:border-amber-400/60 transition-colors select-all cursor-pointer" onclick="copyTextToClipboard('${m}', 'MC ${m} copiada!')" title="Clique para copiar MC ${m}">
+                  ${m}
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+window.renderAps60MC = renderAps60MC;
+
+function copyApsSingleAnimalMC(targetGroup) {
   if (!window.isUserVip()) {
     openPlansModal();
-    showToast('Centenas Cirúrgicas exclusivas para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    showToast('Exclusivo para assinantes VIP!', 'warning');
     return;
   }
-  if (!window.currentApsData || !window.currentApsData.centenas_cirurgicas) return;
-  const allCentenas = [];
-  window.currentApsData.centenas_cirurgicas.forEach(item => {
-    (item.centenas || []).forEach(c => allCentenas.push(c));
-  });
-  copyTextToClipboard(allCentenas.join(', '), `${allCentenas.length} centenas copiadas!`);
-}
-window.copyApsCentenas = copyApsCentenas;
+  if (!window.currentApsData || !window.currentApsData.fechamento_60_mc) return;
 
-function copyApsTernos() {
-  if (!window.isUserVip()) {
-    openPlansModal();
-    showToast('Ternos de Dezena exclusivos para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
-    return;
+  const mcList = window.currentApsData.fechamento_60_mc || [];
+  const grouped = groupMCsByAnimal(mcList);
+  const target = grouped.find(g => g.animal.group === targetGroup);
+  if (!target) return;
+
+  const lotCode = window.currentApsLottery || window.currentApsData.lottery || 'NACIONAL';
+  let slotLine = '';
+  if (typeof getApsUpcomingSlotInfo === 'function') {
+    const slotInfo = getApsUpcomingSlotInfo(lotCode);
+    if (slotInfo) {
+      slotLine = `⏰ EXTRAÇÃO ALVO: ${slotInfo.targetTime} (${slotInfo.targetName} - ${slotInfo.lotteryName}) • ${slotInfo.countdown}`;
+    }
   }
-  if (!window.currentApsData || !window.currentApsData.ternos_de_dezena_12) return;
-  copyTextToClipboard(window.currentApsData.ternos_de_dezena_12.join('\n'), '12 Ternos de Dezena copiados!');
+
+  const plural = target.mcs.length === 1 ? 'MC' : 'MCs';
+  const lines = [
+    `💥 MC RADAR 5X5 • ${target.animal.emoji} ${target.animal.name.toUpperCase()} (G${String(target.animal.group).padStart(2, '0')})`,
+    ...(slotLine ? [slotLine] : []),
+    `🎯 ${target.mcs.length} ${plural}:`,
+    target.mcs.join(' - ')
+  ];
+
+  copyTextToClipboard(lines.join('\n'), `MCs do ${target.animal.name} copiadas!`);
 }
-window.copyApsTernos = copyApsTernos;
+window.copyApsSingleAnimalMC = copyApsSingleAnimalMC;
 
 function copyAps60MC() {
   if (!window.isUserVip()) {
@@ -10063,7 +10137,35 @@ function copyAps60MC() {
     return;
   }
   if (!window.currentApsData || !window.currentApsData.fechamento_60_mc) return;
-  copyTextToClipboard(window.currentApsData.fechamento_60_mc.join(', '), '60 MC copiadas!');
+
+  const mcList = window.currentApsData.fechamento_60_mc || [];
+  const lotCode = window.currentApsLottery || window.currentApsData.lottery || 'NACIONAL';
+
+  let slotLine = '';
+  if (typeof getApsUpcomingSlotInfo === 'function') {
+    const slotInfo = getApsUpcomingSlotInfo(lotCode);
+    if (slotInfo) {
+      slotLine = `⏰ EXTRAÇÃO ALVO: ${slotInfo.targetTime} (${slotInfo.targetName} - ${slotInfo.lotteryName}) • ${slotInfo.countdown}`;
+    }
+  }
+
+  const grouped = groupMCsByAnimal(mcList);
+  const lines = [
+    `💥 MC RADAR 5X5 • (${lotCode.toUpperCase()})`,
+    ...(slotLine ? [slotLine] : []),
+    ''
+  ];
+
+  grouped.forEach(g => {
+    const plural = g.mcs.length === 1 ? 'MC' : 'MCs';
+    lines.push(`${g.animal.emoji} GRUPO ${String(g.animal.group).padStart(2, '0')} - ${g.animal.name.toUpperCase()} (${g.mcs.length} ${plural}):`);
+    lines.push(g.mcs.join(' - '));
+    lines.push('');
+  });
+
+  lines.push(`📊 Total: ${mcList.length} Combinações Prontas`);
+
+  copyTextToClipboard(lines.join('\n'), '60 MC copiadas separadas por bicho para envio no grupo!');
 }
 window.copyAps60MC = copyAps60MC;
 
