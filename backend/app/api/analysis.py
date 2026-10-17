@@ -1073,7 +1073,7 @@ def get_aps_analysis_endpoint(
     try:
         return calculate_full_aps_analysis(lottery=lottery, target_date=date)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao processar Método APS: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao processar Radar 5x5: {str(e)}")
 
 
 @router.post("/aps-simulate", response_model=Dict[str, Any])
