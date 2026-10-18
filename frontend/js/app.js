@@ -10388,7 +10388,8 @@ const APS_LOTTERY_SCHEDULES = {
     name: 'Loteria Federal',
     shortName: 'Federal',
     slots: [
-      { code: 'FED', name: 'Federal 19h', time: '19:00' }
+      { code: 'FED-11', name: 'Federal 11h', time: '11:00' },
+      { code: 'FED-19', name: 'Federal 19h', time: '19:00' }
     ]
   }
 };
@@ -10413,45 +10414,67 @@ function getApsUpcomingSlotInfo(lotteryCode) {
   const curTotalMins = curHours * 60 + curMins;
   const dayOfWeek = now.getDay(); // 0 = Dom, 1 = Seg, 2 = Ter, 3 = Qua, 4 = Qui, 5 = Sex, 6 = Sab
 
-  // Trata caso especial de Loteria Federal
+  // Trata caso especial de Loteria Federal (com suporte a Domingos e Calendário Eleitoral)
   if (normCode === 'FEDERAL') {
-    const isFederalDay = (dayOfWeek === 3 || dayOfWeek === 6);
-    const fedMins = 19 * 60;
-    if (isFederalDay && fedMins > (curTotalMins + 2)) {
-      const diff = fedMins - curTotalMins;
-      const h = Math.floor(diff / 60);
-      const m = diff % 60;
-      return {
-        lotteryCode: normCode,
-        lotteryName: sched.name,
-        shortName: sched.shortName,
-        targetTime: '19:00',
-        targetName: 'Federal 19h',
-        targetCode: 'FED',
-        countdown: h === 0 ? `Faltam ${m} min` : (m > 0 ? `Faltam ${h}h ${m}m` : `Faltam ${h}h`),
-        diffMinutes: diff,
-        isToday: true,
-        isTomorrow: false,
-        allSlots: sched.slots,
-        currentTotalMins: curTotalMins
-      };
-    } else {
-      const nextDayName = (dayOfWeek === 3 || dayOfWeek >= 6) ? 'Quarta' : 'Sábado';
-      return {
-        lotteryCode: normCode,
-        lotteryName: sched.name,
-        shortName: sched.shortName,
-        targetTime: '19:00',
-        targetName: `Federal (${nextDayName})`,
-        targetCode: 'FED',
-        countdown: `Próximo: ${nextDayName} às 19:00`,
-        diffMinutes: 9999,
-        isToday: false,
-        isTomorrow: false,
-        allSlots: sched.slots,
-        currentTotalMins: curTotalMins
-      };
+    const isFederalDay = (dayOfWeek === 3 || dayOfWeek === 6 || dayOfWeek === 0);
+    
+    // Identifica horários de hoje se for dia de Federal
+    if (isFederalDay) {
+      // Domingo pode ter sorteio às 11h e/ou 19h
+      const potentialTimes = (dayOfWeek === 0) ? [11 * 60, 19 * 60] : [19 * 60];
+      let targetMins = null;
+      for (const t of potentialTimes) {
+        if (t > (curTotalMins + 2)) {
+          targetMins = t;
+          break;
+        }
+      }
+
+      if (targetMins !== null) {
+        const diff = targetMins - curTotalMins;
+        const h = Math.floor(diff / 60);
+        const m = diff % 60;
+        const targetTimeStr = targetMins === 11 * 60 ? '11:00' : '19:00';
+        const targetNameStr = targetMins === 11 * 60 ? 'Federal 11h (Domingo)' : (dayOfWeek === 0 ? 'Federal 19h (Domingo)' : (dayOfWeek === 3 ? 'Federal (Quarta)' : 'Federal (Sábado)'));
+        return {
+          lotteryCode: normCode,
+          lotteryName: sched.name,
+          shortName: sched.shortName,
+          targetTime: targetTimeStr,
+          targetName: targetNameStr,
+          targetCode: targetMins === 11 * 60 ? 'FED-11' : 'FED-19',
+          countdown: h === 0 ? `Faltam ${m} min` : (m > 0 ? `Faltam ${h}h ${m}m` : `Faltam ${h}h`),
+          diffMinutes: diff,
+          isToday: true,
+          isTomorrow: false,
+          allSlots: sched.slots,
+          currentTotalMins: curTotalMins
+        };
+      }
     }
+
+    // Se já passou hoje ou não corre hoje:
+    // Semana que vem: Sábado 24/10 corre Federal (Eleições no Domingo 25/10)
+    let nextDayName = 'Quarta';
+    if (dayOfWeek === 0 || dayOfWeek === 1 || dayOfWeek === 2) {
+      nextDayName = 'Quarta';
+    } else {
+      nextDayName = 'Sábado';
+    }
+    return {
+      lotteryCode: normCode,
+      lotteryName: sched.name,
+      shortName: sched.shortName,
+      targetTime: '19:00',
+      targetName: `Federal (${nextDayName})`,
+      targetCode: 'FED-19',
+      countdown: `Próximo: ${nextDayName} às 19:00`,
+      diffMinutes: 9999,
+      isToday: false,
+      isTomorrow: false,
+      allSlots: sched.slots,
+      currentTotalMins: curTotalMins
+    };
   }
 
   // Loterias regulares
