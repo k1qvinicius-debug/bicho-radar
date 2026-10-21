@@ -469,16 +469,33 @@ def generate_aps_inversion_and_ternos(prizes: List[str], top_pedras: List[int]) 
 
     ternos = []
     all_tens = sorted(list(pontas_tens)) + sorted(list(meio_tens))
-    if len(all_tens) >= 3:
+    unique_tens = sorted(list(set(all_tens)))
+    if len(unique_tens) >= 3:
         for i in range(12):
-            idx1 = i % len(all_tens)
-            idx2 = (i * 2 + 1) % len(all_tens)
-            idx3 = (i * 3 + 2) % len(all_tens)
-            t_set = sorted(list({all_tens[idx1], all_tens[idx2], all_tens[idx3]}))
-            while len(t_set) < 3:
-                extra = all_tens[(len(t_set) + i * 5) % len(all_tens)]
-                if extra not in t_set:
-                    t_set.append(extra)
+            idx1 = i % len(unique_tens)
+            idx2 = (i * 2 + 1) % len(unique_tens)
+            idx3 = (i * 3 + 2) % len(unique_tens)
+            t_set = [unique_tens[idx1]]
+            if unique_tens[idx2] not in t_set:
+                t_set.append(unique_tens[idx2])
+            if unique_tens[idx3] not in t_set:
+                t_set.append(unique_tens[idx3])
+
+            offset = 1
+            while len(t_set) < 3 and offset < len(unique_tens) * 2:
+                cand = unique_tens[(i + offset) % len(unique_tens)]
+                if cand not in t_set:
+                    t_set.append(cand)
+                offset += 1
+
+            fallback_tens = ["02", "34", "52", "46", "83", "05", "63"]
+            for fb in fallback_tens:
+                if len(t_set) >= 3:
+                    break
+                if fb not in t_set:
+                    t_set.append(fb)
+
+            t_set = sorted(t_set[:3])
             ternos.append(f"{t_set[0]} - {t_set[1]} - {t_set[2]}")
     else:
         ternos = [
