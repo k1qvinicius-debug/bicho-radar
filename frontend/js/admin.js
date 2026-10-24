@@ -786,15 +786,37 @@ window.renderFilteredClientsList = function() {
     const isExpired = isClientExpired(t);
     const userPass = t.password || t.tenant_key || '---';
 
-    // Badge do Plano / Teste
+    // Badge do Plano / Teste com Dias Restantes Visíveis
     let planBadge = '';
+    const daysRemaining = (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null) ? t.trial_days_remaining : 0;
+    
+    // Formatação amigável da data de vencimento (ex: 02/01/2027)
+    let expireFormatted = '';
+    if (t.trial_expires_at) {
+      try {
+        const parts = t.trial_expires_at.split(' ')[0].split('-');
+        if (parts.length === 3) {
+          expireFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+      } catch (e) {}
+    }
+
     if (isSubscriber) {
-      const planName = t.plan_type === 'monthly' ? 'MENSAL' : (t.plan_type === 'trimestral' ? 'TRIMESTRAL' : (t.plan_type === 'semestral' ? 'SEMESTRAL' : (t.plan_type === 'anual' ? 'ANUAL' : 'VIP')));
-      planBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">⭐ VIP ${planName}</span>`;
+      const planName = t.plan_type === 'monthly' ? 'MENSAL' : (t.plan_type === 'trimestral' ? 'TRIMESTRAL' : (t.plan_type === 'semestral' ? 'SEMESTRAL' : (t.plan_type === 'anual' ? 'ANUAL' : (t.plan_type === 'custom' ? 'VIP' : 'VIP'))));
+      const badgeDaysClass = daysRemaining <= 5 
+        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' 
+        : 'bg-emerald-500/25 text-emerald-300 border-emerald-500/50';
+
+      planBadge = `
+        <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">⭐ VIP ${planName}</span>
+        <span class="px-2 py-0.5 rounded text-[10px] font-black ${badgeDaysClass} inline-flex items-center gap-1 shadow-sm" title="Vencimento: ${expireFormatted || t.trial_expires_at}">
+          <span>⏳</span> <span class="font-mono font-black">${daysRemaining}d</span> <span>restantes</span>
+        </span>
+      `;
     } else if (isExpired) {
       planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">🔒 TESTE EXPIRADO</span>';
     } else {
-      const days = t.trial_days_remaining !== undefined && t.trial_days_remaining !== null ? t.trial_days_remaining : 5;
+      const days = daysRemaining > 0 ? daysRemaining : 5;
       planBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">⏳ Teste (${days}d restantes)</span>`;
     }
 
@@ -862,6 +884,14 @@ window.renderFilteredClientsList = function() {
             <span>Uso: ${usageBadge}</span>
             <span class="text-slate-700">•</span>
             <span>Acesso: <strong class="font-mono text-slate-300">${t.last_active_at ? t.last_active_at.replace(/^2026-/, '') : 'Nunca'}</strong></span>
+            ${expireFormatted ? `
+              <span class="text-slate-700">•</span>
+              <span class="inline-flex items-center gap-1 text-[11px] ${isSubscriber ? 'text-emerald-400' : 'text-slate-400'}">
+                <span>📅 Vence:</span>
+                <strong class="font-mono font-bold ${isSubscriber ? 'text-emerald-300' : 'text-slate-200'}">${expireFormatted}</strong>
+                <span class="text-[10px] font-mono font-bold ${daysRemaining <= 5 ? 'text-amber-400' : (isSubscriber ? 'text-emerald-400' : 'text-cyan-400')}">(${daysRemaining}d)</span>
+              </span>
+            ` : ''}
             ${t.notes ? `<span class="text-slate-700">•</span><span class="text-[10px] text-slate-500 italic truncate max-w-[150px]" title="${t.notes}">📝 ${t.notes}</span>` : ''}
           </div>
         </div>
