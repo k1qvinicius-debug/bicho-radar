@@ -200,7 +200,7 @@ async def create_subscription(
 
 @router.get("/version")
 def payments_version():
-    return {"version": "v2_mp_merchant_order_fix", "status": "active"}
+    return {"version": "v3_db_schema_fix", "status": "active"}
 
 
 def process_approved_payment(payment: Dict[str, Any]) -> Dict[str, Any]:
@@ -231,6 +231,7 @@ def process_approved_payment(payment: Dict[str, Any]) -> Dict[str, Any]:
 
     payer = payment.get("payer") or {}
     payer_email = (payer.get("email") or "").strip().lower()
+    payer_name = f"{payer.get('first_name', '')} {payer.get('last_name', '')}".strip() or "Assinante VIP"
 
     if not tenant_id and payer_email:
         with get_db_connection() as conn:
@@ -244,18 +245,23 @@ def process_approved_payment(payment: Dict[str, Any]) -> Dict[str, Any]:
         cursor = conn.cursor()
 
         # Verifica se este pagamento ja foi registrado anteriormente para evitar duplicacoes
-        cursor.execute("SELECT id, tenant_id FROM subscription_payments WHERE mp_payment_id = ?", (resource_id,))
-        existing_pay = cursor.fetchone()
-        if existing_pay:
-            return {"status": "already_processed", "tenant_id": existing_pay[1], "payment_id": resource_id}
+        try:
+            cursor.execute("""
+                SELECT id, tenant_id FROM subscription_payments 
+                WHERE notes LIKE ? OR (notes IS NOT NULL AND notes LIKE ?)
+            """, (f"%MP_ID:{resource_id}%", f"%{ext_ref}%"))
+            existing_pay = cursor.fetchone()
+            if existing_pay:
+                return {"status": "already_processed", "tenant_id": existing_pay[1], "payment_id": resource_id}
+        except Exception as check_err:
+            print(f"[CHECK EXISTING PAY ERROR] {check_err}")
 
         now = datetime.now()
         now_str = now.strftime("%Y-%m-%d %H:%M:%S")
-        amount = payment.get("transaction_amount", 0)
+        amount = float(payment.get("transaction_amount", 0))
 
         # Se for um pagamento direto de visitante que ainda nao existia na base de dados:
         if not tenant_id:
-            payer_name = f"{payer.get('first_name', '')} {payer.get('last_name', '')}".strip() or "Assinante VIP"
             phone_data = payer.get("phone")
             payer_phone = ""
             if isinstance(phone_data, dict):
@@ -305,17 +311,13 @@ def process_approved_payment(payment: Dict[str, Any]) -> Dict[str, Any]:
 
         try:
             cursor.execute("""
-                INSERT INTO subscription_payments (tenant_id, amount, plan_type, mp_payment_id, status, created_at, notes)
-                VALUES (?, ?, ?, ?, 'approved', ?, ?)
-            """, (tenant_id, amount, plan, resource_id, now_str, ext_ref))
-        except Exception:
-            try:
-                cursor.execute("""
-                    INSERT INTO subscription_payments (tenant_id, amount, plan_type, mp_payment_id, status, created_at)
-                    VALUES (?, ?, ?, ?, 'approved', ?)
-                """, (tenant_id, amount, plan, resource_id, now_str))
-            except Exception:
-                pass
+                INSERT INTO subscription_payments (
+                    tenant_id, customer_name, plan_type, amount, days,
+                    payment_method, status, notes, created_at
+                ) VALUES (?, ?, ?, ?, ?, 'mercadopago', 'completed', ?, ?)
+            """, (tenant_id, payer_name, plan, amount, plan_days, f"MP_ID:{resource_id} | Ref:{ext_ref}", now_str))
+        except Exception as insert_err:
+            print(f"[INSERT PAYMENT ERROR] {insert_err}")
 
     print(f"[MP WEBHOOK] Pagamento aprovado! Tenant #{tenant_id} | Plano: {plan} | R${amount:.2f} | Expira: {new_expiry_str}")
     return {"status": "activated", "tenant_id": tenant_id, "plan": plan, "expires_at": new_expiry_str}
