@@ -461,7 +461,7 @@ async def mp_webhook(request: Request):
                     print(f"[MP PREAPPROVAL] Assinatura autorizada para Tenant #{tenant_id} ate {expiry_str}")
                     return {"status": "subscription_activated", "tenant_id": tenant_id}
         except Exception as e:
-            print(f"[MP PREAPPROVAL ERROR] {e}")
+            return {"status": "preapproval_exception", "error": str(e)}
 
     # 2. Notificacao de Checkout Pro (merchant_order) - Padrao oficial do MP quando pago via Pix ou Cartao no Checkout Pro!
     if topic in ("merchant_order", "merchant_orders"):
@@ -483,9 +483,11 @@ async def mp_webhook(request: Request):
                             )
                         if pay_resp.is_success:
                             return process_approved_payment(pay_resp.json())
-                return {"status": "merchant_order_pending", "order_id": resource_id}
+                return {"status": "merchant_order_pending", "order_id": resource_id, "payments": payments_list}
+            else:
+                return {"status": "merchant_order_not_ok", "code": mo_resp.status_code, "body": mo_resp.text[:200]}
         except Exception as e:
-            print(f"[MP MERCHANT ORDER ERROR] {e}")
+            return {"status": "merchant_order_exception", "error": str(e)}
 
     # 3. Notificacao direta de pagamento (/v1/payments)
     try:
@@ -517,9 +519,16 @@ async def mp_webhook(request: Request):
                             )
                         if pay_resp.is_success:
                             return process_approved_payment(pay_resp.json())
+                return {"status": "merchant_order_fallback_pending", "order_id": resource_id}
         except Exception:
             pass
-        return {"status": "payment_not_found"}
+        return {
+            "status": "payment_not_found",
+            "topic": topic,
+            "resource_id": resource_id,
+            "pay_code": resp.status_code,
+            "pay_body": resp.text[:150]
+        }
 
     payment = resp.json()
     return process_approved_payment(payment)
