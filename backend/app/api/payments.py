@@ -198,6 +198,11 @@ async def create_subscription(
     }
 
 
+@router.get("/version")
+def payments_version():
+    return {"version": "v2_mp_merchant_order_fix", "status": "active"}
+
+
 def process_approved_payment(payment: Dict[str, Any]) -> Dict[str, Any]:
     """
     Ativa ou renova o plano VIP com base nos dados de um pagamento aprovado do Mercado Pago.
@@ -408,6 +413,8 @@ async def mp_webhook(request: Request):
     if not resource_id:
         return {"status": "ignored_no_id"}
 
+    resource_id = str(resource_id).strip()
+    topic = str(topic).strip()
     token = get_mp_token()
 
     # 1. Notificacao de assinatura recorrente (preapproval)
