@@ -198,10 +198,129 @@ async def create_subscription(
     }
 
 
+def process_approved_payment(payment: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Ativa ou renova o plano VIP com base nos dados de um pagamento aprovado do Mercado Pago.
+    - Se o assinante ja tiver dias ativos, SOMA os novos dias ao vencimento atual (nao perde dias restantes!).
+    - Evita processamento duplicado se o pagamento ja tiver sido registrado em subscription_payments.
+    """
+    resource_id = str(payment.get("id", ""))
+    status = payment.get("status")
+    if status != "approved":
+        return {"status": f"payment_{status}"}
+
+    metadata = payment.get("metadata") or {}
+    ext_ref = payment.get("external_reference", "")
+    tenant_id = metadata.get("tenant_id")
+    plan = metadata.get("plan", "monthly")
+    plan_days = int(metadata.get("plan_days", 30))
+
+    if not tenant_id and ext_ref.startswith("tenant_"):
+        parts = ext_ref.split("_")
+        try:
+            tenant_id = int(parts[1])
+            plan = parts[2] if len(parts) > 2 else "monthly"
+            plan_days = PLANS.get(plan, {}).get("days", 30)
+        except (ValueError, IndexError):
+            pass
+
+    payer = payment.get("payer") or {}
+    payer_email = (payer.get("email") or "").strip().lower()
+
+    if not tenant_id and payer_email:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM tenants WHERE email = ?", (payer_email,))
+            row = cursor.fetchone()
+            if row:
+                tenant_id = row[0]
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        # Verifica se este pagamento ja foi registrado anteriormente para evitar duplicacoes
+        cursor.execute("SELECT id, tenant_id FROM subscription_payments WHERE mp_payment_id = ?", (resource_id,))
+        existing_pay = cursor.fetchone()
+        if existing_pay:
+            return {"status": "already_processed", "tenant_id": existing_pay[1], "payment_id": resource_id}
+
+        now = datetime.now()
+        now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        amount = payment.get("transaction_amount", 0)
+
+        # Se for um pagamento direto de visitante que ainda nao existia na base de dados:
+        if not tenant_id:
+            payer_name = f"{payer.get('first_name', '')} {payer.get('last_name', '')}".strip() or "Assinante VIP"
+            phone_data = payer.get("phone")
+            payer_phone = ""
+            if isinstance(phone_data, dict):
+                payer_phone = f"{phone_data.get('area_code', '')}{phone_data.get('number', '')}".strip()
+
+            clean_email = payer_email or f"cliente_{int(time.time())}@bicho.app"
+            unique_key = f"vip-{secrets.token_hex(4)}"
+            expiry_str = (now + timedelta(days=plan_days)).strftime("%Y-%m-%d %H:%M:%S")
+
+            cursor.execute("""
+                INSERT INTO tenants (
+                    name, email, phone, password, tenant_key, role, status,
+                    auth_provider, trial_started_at, trial_expires_at,
+                    subscription_status, plan_type, notes, created_at, last_active_at
+                ) VALUES (?, ?, ?, ?, ?, 'subscriber', 'active', 'mercadopago', ?, ?, 'active', ?, ?, ?, ?)
+            """, (payer_name, clean_email, payer_phone, unique_key, unique_key, now_str, expiry_str, plan, f"Pagamento MP Ref: {ext_ref}", now_str, now_str))
+
+            tenant_id = cursor.lastrowid
+            if not tenant_id:
+                cursor.execute("SELECT id FROM tenants WHERE tenant_key = ?", (unique_key,))
+                r = cursor.fetchone()
+                if r:
+                    tenant_id = r[0]
+
+        if not tenant_id:
+            return {"status": "tenant_creation_failed"}
+
+        # Calcula a nova data de vencimento: se ja tiver dias restantes ativos, SOMA os dias!
+        cursor.execute("SELECT trial_expires_at FROM tenants WHERE id = ?", (tenant_id,))
+        row = cursor.fetchone()
+        base_time = now
+        if row and row[0]:
+            try:
+                current_exp = datetime.strptime(str(row[0]).strip()[:19], "%Y-%m-%d %H:%M:%S")
+                if current_exp > now:
+                    base_time = current_exp
+            except Exception:
+                pass
+
+        new_expiry_str = (base_time + timedelta(days=plan_days)).strftime("%Y-%m-%d %H:%M:%S")
+
+        cursor.execute("""
+            UPDATE tenants 
+            SET subscription_status='active', plan_type=?, trial_expires_at=?, status='active', last_active_at=?
+            WHERE id=?
+        """, (plan, new_expiry_str, now_str, tenant_id))
+
+        try:
+            cursor.execute("""
+                INSERT INTO subscription_payments (tenant_id, amount, plan_type, mp_payment_id, status, created_at, notes)
+                VALUES (?, ?, ?, ?, 'approved', ?, ?)
+            """, (tenant_id, amount, plan, resource_id, now_str, ext_ref))
+        except Exception:
+            try:
+                cursor.execute("""
+                    INSERT INTO subscription_payments (tenant_id, amount, plan_type, mp_payment_id, status, created_at)
+                    VALUES (?, ?, ?, ?, 'approved', ?)
+                """, (tenant_id, amount, plan, resource_id, now_str))
+            except Exception:
+                pass
+
+    print(f"[MP WEBHOOK] Pagamento aprovado! Tenant #{tenant_id} | Plano: {plan} | R${amount:.2f} | Expira: {new_expiry_str}")
+    return {"status": "activated", "tenant_id": tenant_id, "plan": plan, "expires_at": new_expiry_str}
+
+
 @router.get("/verify-status")
-def verify_status(ref: Optional[str] = Query(None)):
+async def verify_status(ref: Optional[str] = Query(None)):
     """
     Verifica se o pagamento referenciado ja foi aprovado e retorna dados de autenticacao para login automatico imediato do comprador.
+    Tambem consulta ativamente o Mercado Pago para ativacao instantanea caso o webhook ainda nao tenha chegado.
     """
     if not ref:
         return {"status": "no_ref"}
@@ -214,6 +333,26 @@ def verify_status(ref: Optional[str] = Query(None)):
         except (ValueError, IndexError):
             pass
 
+    # 1. Consulta ativamente a API do Mercado Pago pelo external_reference para ativacao em tempo real
+    token = get_mp_token()
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            search_resp = await client.get(
+                f"{MP_API_BASE}/v1/payments/search",
+                params={"external_reference": ref},
+                headers={"Authorization": f"Bearer {token}"}
+            )
+        if search_resp.is_success:
+            s_data = search_resp.json()
+            results = s_data.get("results") or []
+            for p in results:
+                if p.get("status") == "approved":
+                    process_approved_payment(p)
+                    break
+    except Exception as e:
+        print(f"[VERIFY STATUS MP SEARCH ERROR] {e}")
+
+    # 2. Busca o tenant no banco de dados
     with get_db_connection() as conn:
         cursor = conn.cursor()
         tenant = None
@@ -223,7 +362,6 @@ def verify_status(ref: Optional[str] = Query(None)):
             if row:
                 tenant = dict(row)
         else:
-            # Busca pelo external reference em subscription_payments ou em tenants
             cursor.execute("""
                 SELECT t.* FROM tenants t
                 JOIN subscription_payments p ON p.tenant_id = t.id
@@ -272,7 +410,7 @@ async def mp_webhook(request: Request):
 
     token = get_mp_token()
 
-    # Se for notificacao de assinatura recorrente (preapproval)
+    # 1. Notificacao de assinatura recorrente (preapproval)
     if topic in ("subscription_preapproval", "preapproval"):
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
@@ -318,6 +456,31 @@ async def mp_webhook(request: Request):
         except Exception as e:
             print(f"[MP PREAPPROVAL ERROR] {e}")
 
+    # 2. Notificacao de Checkout Pro (merchant_order) - Padrao oficial do MP quando pago via Pix ou Cartao no Checkout Pro!
+    if topic in ("merchant_order", "merchant_orders"):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                mo_resp = await client.get(
+                    f"{MP_API_BASE}/merchant_orders/{resource_id}",
+                    headers={"Authorization": f"Bearer {token}"}
+                )
+            if mo_resp.is_success:
+                mo_data = mo_resp.json()
+                payments_list = mo_data.get("payments") or []
+                for p in payments_list:
+                    if p.get("status") == "approved":
+                        async with httpx.AsyncClient(timeout=15.0) as client:
+                            pay_resp = await client.get(
+                                f"{MP_API_BASE}/v1/payments/{p['id']}",
+                                headers={"Authorization": f"Bearer {token}"}
+                            )
+                        if pay_resp.is_success:
+                            return process_approved_payment(pay_resp.json())
+                return {"status": "merchant_order_pending", "order_id": resource_id}
+        except Exception as e:
+            print(f"[MP MERCHANT ORDER ERROR] {e}")
+
+    # 3. Notificacao direta de pagamento (/v1/payments)
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.get(
@@ -327,96 +490,29 @@ async def mp_webhook(request: Request):
     except Exception as e:
         return {"status": "fetch_error", "detail": str(e)}
 
+    # Se retornou 404, pode ser que resource_id seja um merchant_order enviado sem o parametro topic
     if not resp.is_success:
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                mo_resp = await client.get(
+                    f"{MP_API_BASE}/merchant_orders/{resource_id}",
+                    headers={"Authorization": f"Bearer {token}"}
+                )
+            if mo_resp.is_success:
+                mo_data = mo_resp.json()
+                payments_list = mo_data.get("payments") or []
+                for p in payments_list:
+                    if p.get("status") == "approved":
+                        async with httpx.AsyncClient(timeout=15.0) as client:
+                            pay_resp = await client.get(
+                                f"{MP_API_BASE}/v1/payments/{p['id']}",
+                                headers={"Authorization": f"Bearer {token}"}
+                            )
+                        if pay_resp.is_success:
+                            return process_approved_payment(pay_resp.json())
+        except Exception:
+            pass
         return {"status": "payment_not_found"}
 
     payment = resp.json()
-    status = payment.get("status")
-    if status != "approved":
-        return {"status": f"payment_{status}"}
-
-    metadata = payment.get("metadata") or {}
-    ext_ref = payment.get("external_reference", "")
-    tenant_id = metadata.get("tenant_id")
-    plan = metadata.get("plan", "monthly")
-    plan_days = int(metadata.get("plan_days", 30))
-
-    if not tenant_id and ext_ref.startswith("tenant_"):
-        parts = ext_ref.split("_")
-        try:
-            tenant_id = int(parts[1])
-            plan = parts[2] if len(parts) > 2 else "monthly"
-            plan_days = PLANS.get(plan, {}).get("days", 30)
-        except (ValueError, IndexError):
-            pass
-
-    payer = payment.get("payer") or {}
-    payer_email = (payer.get("email") or "").strip().lower()
-
-    if not tenant_id and payer_email:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM tenants WHERE email = ?", (payer_email,))
-            row = cursor.fetchone()
-            if row:
-                tenant_id = row[0]
-
-    now = datetime.now()
-    expiry_str = (now + timedelta(days=plan_days)).strftime("%Y-%m-%d %H:%M:%S")
-    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
-    amount = payment.get("transaction_amount", 0)
-
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        
-        # Se for um pagamento direto de visitante que ainda nao existia na base de dados:
-        if not tenant_id:
-            payer_name = f"{payer.get('first_name', '')} {payer.get('last_name', '')}".strip() or "Assinante VIP"
-            phone_data = payer.get("phone")
-            payer_phone = ""
-            if isinstance(phone_data, dict):
-                payer_phone = f"{phone_data.get('area_code', '')}{phone_data.get('number', '')}".strip()
-            
-            clean_email = payer_email or f"cliente_{int(time.time())}@bicho.app"
-            unique_key = f"vip-{secrets.token_hex(4)}"
-
-            cursor.execute("""
-                INSERT INTO tenants (
-                    name, email, phone, password, tenant_key, role, status,
-                    auth_provider, trial_started_at, trial_expires_at,
-                    subscription_status, plan_type, notes, created_at, last_active_at
-                ) VALUES (?, ?, ?, ?, ?, 'subscriber', 'active', 'mercadopago', ?, ?, 'active', ?, ?, ?, ?)
-            """, (payer_name, clean_email, payer_phone, unique_key, unique_key, now_str, expiry_str, plan, f"Pagamento MP Ref: {ext_ref}", now_str, now_str))
-
-            tenant_id = cursor.lastrowid
-            if not tenant_id:
-                cursor.execute("SELECT id FROM tenants WHERE tenant_key = ?", (unique_key,))
-                r = cursor.fetchone()
-                if r:
-                    tenant_id = r[0]
-
-        if not tenant_id:
-            return {"status": "tenant_creation_failed"}
-
-        cursor.execute("""
-            UPDATE tenants 
-            SET subscription_status='active', plan_type=?, trial_expires_at=?, status='active', last_active_at=?
-            WHERE id=?
-        """, (plan, expiry_str, now_str, tenant_id))
-
-        try:
-            cursor.execute("""
-                INSERT INTO subscription_payments (tenant_id, amount, plan_type, mp_payment_id, status, created_at, notes)
-                VALUES (?, ?, ?, ?, 'approved', ?, ?)
-            """, (tenant_id, amount, plan, str(resource_id), now_str, ext_ref))
-        except Exception:
-            try:
-                cursor.execute("""
-                    INSERT INTO subscription_payments (tenant_id, amount, plan_type, mp_payment_id, status, created_at)
-                    VALUES (?, ?, ?, ?, 'approved', ?)
-                """, (tenant_id, amount, plan, str(resource_id), now_str))
-            except Exception:
-                pass
-
-    print(f"[MP WEBHOOK] Pagamento 100% aprovado! Tenant #{tenant_id} | Plano: {plan} | R${amount:.2f} | Expira: {expiry_str}")
-    return {"status": "activated", "tenant_id": tenant_id, "plan": plan, "expires_at": expiry_str}
+    return process_approved_payment(payment)
