@@ -1065,20 +1065,16 @@ window.inspectSnapshot = async function (id) {
     const p4 = data.prize_4;
     const p5 = data.prize_5;
 
-    const isMilhar1stHit = Boolean(
-      data.acerto_milhar_1 ||
-      evalDetails?.milhar?.hit_1st ||
-      evalDetails?.milhar?.matriz_hit ||
-      evalDetails?.chave_mestra?.hit_milhar_1st ||
-      String(p1) === '3734'
-    );
-    const isCentena1stHit = Boolean(
-      data.acerto_centena_1 ||
-      evalDetails?.centena?.hit_1st ||
-      evalDetails?.centena?.matriz_hit ||
-      evalDetails?.chave_mestra?.hit_centena_1st ||
-      String(p1).slice(-3) === '734'
-    );
+    const topMArray = (preds.top_thousands || []).map(m => String(m.value || m).padStart(4, '0'));
+    const topCArray = (preds.top_hundreds || []).map(c => String(c.value || c).padStart(3, '0'));
+
+    const isMilharInPredictions = Boolean(p1 && topMArray.includes(String(p1).padStart(4, '0')));
+    const isMilharInChaveMestra = Boolean(evalDetails?.chave_mestra?.hit_milhar_1st && evalDetails?.milhar?.matriz_hit);
+    const isMilhar1stHit = isMilharInPredictions || isMilharInChaveMestra;
+
+    const isCentenaInPredictions = Boolean(p1 && topCArray.includes(String(p1).slice(-3)));
+    const isCentenaInChaveMestra = Boolean(evalDetails?.chave_mestra?.hit_centena_1st && evalDetails?.centena?.matriz_hit);
+    const isCentena1stHit = isCentenaInPredictions || isCentenaInChaveMestra;
     const prizes = [
       { label: '1º Prêmio', val: p1, isHead: true },
       { label: '2º Prêmio', val: p2, isHead: false },
@@ -1304,19 +1300,23 @@ window.inspectSnapshot = async function (id) {
             <span>📖</span> <span>Entenda de Onde Vieram os Bichos Desta Extração:</span>
           </div>
           <div class="text-xs text-slate-300 space-y-1.5 pl-1 leading-relaxed">
-            ${isMilhar1stHit ? `
+            ${isMilharInChaveMestra ? `
             <div class="p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/40 mb-2">
               <strong class="text-amber-300 font-bold flex items-center gap-1">⚡ Veio da Chave Mestra (Matriz 3x3)?</strong>
               <div class="text-slate-200 mt-1">
-                • <strong class="text-yellow-300">SIM, CRAVADO!</strong> A Matriz 3x3 da Data calculou os dígitos regentes e gerou a confluência da <strong>Cobra (Grupo 09)</strong>, indicando com precisão a Milhar <strong class="text-yellow-300 font-mono">${p1}</strong> no 1º Prêmio!
+                • <strong class="text-yellow-300">SIM, CRAVADO!</strong> A Matriz 3x3 da Data calculou os dígitos regentes e gerou a confluência de <strong>${getAnimalByGroup(getGroupFromNumber(p1)).name} (Grupo ${String(getGroupFromNumber(p1)).padStart(2, '0')})</strong>, indicando com precisão a Milhar <strong class="text-yellow-300 font-mono">${p1}</strong> no 1º Prêmio!
               </div>
             </div>
             ` : ''}
             <p>
               <strong>1. Vieram dos Palpites?</strong><br>
               <span class="text-slate-400">
-                ✅ <strong class="text-emerald-400">Sim!</strong> O nosso motor estatístico calculou o Top 5 de Grupos para o horário <strong>${data.target_slot}</strong>. 
-                Deles, <strong class="text-amber-300">${winningCount} bicho(s)</strong> apareceram exatamente entre os 5 prêmios oficiais da banca!
+                ${winningCount > 0 ? `
+                  ✅ <strong class="text-emerald-400">Sim!</strong> O nosso motor estatístico calculou o Top 5 de Grupos para o horário <strong>${data.target_slot}</strong>. 
+                  Deles, <strong class="text-amber-300">${winningCount} bicho(s)</strong> apareceram entre os 5 prêmios oficiais da banca!
+                ` : `
+                  ⚪ Nesta extração, nenhum dos 5 grupos principais recomendados figurou entre os 5 prêmios oficiais.
+                `}
               </span>
             </p>
             <p>
@@ -1469,15 +1469,15 @@ window.inspectSnapshot = async function (id) {
           </div>
 
 <!-- Milhares -->
-          <div class="p-2.5 rounded-lg border ${(hitM1 || isMilhar1stHit) ? 'border-amber-500/60 bg-amber-950/30 shadow-md shadow-amber-500/10' : 'border-slate-800 bg-slate-800/40'}">
+          <div class="p-2.5 rounded-lg border ${isMilhar1stHit ? 'border-amber-500/60 bg-amber-950/30 shadow-md shadow-amber-500/10' : 'border-slate-800 bg-slate-800/40'}">
             <div class="flex justify-between items-center mb-1">
               <span class="font-bold text-slate-200">Milhares Analisadas:</span>
-              <span class="${(hitM1 || isMilhar1stHit) ? 'text-amber-300 font-black' : 'text-slate-400'} text-[11px] flex items-center gap-1">
-                ${(hitM1 || isMilhar1stHit) ? '💥 Acerto no 1º Prêmio (Chave Mestra)!' : 'Sem 1º prêmio'}
+              <span class="${isMilhar1stHit ? 'text-amber-300 font-black' : 'text-slate-400'} text-[11px] flex items-center gap-1">
+                ${isMilhar1stHit ? (isMilharInChaveMestra ? '💥 Acerto no 1º Prêmio (Chave Mestra)!' : '💥 Acerto no 1º Prêmio!') : 'Sem 1º prêmio'}
               </span>
             </div>
-            <div class="text-slate-300 font-mono text-[11px]">Palpites Indicados: [ <span class="text-yellow-300 font-bold">${topM ? (topM.includes(p1) ? topM : topM + ', ' + p1) : (p1 || '-')}</span> ]</div>
-            <div class="text-slate-400 text-[11px] mt-0.5">Milhar Ocorrida 1º: <b class="text-yellow-300 font-mono font-bold">${actM1 || p1 || '-'}</b></div>
+            <div class="text-slate-300 font-mono text-[11px]">Palpites Indicados: [ <span class="${isMilhar1stHit ? 'text-yellow-300 font-bold' : 'text-slate-300'}">${topM || '-'}</span> ]</div>
+            <div class="text-slate-400 text-[11px] mt-0.5">Milhar Ocorrida 1º: <b class="${isMilhar1stHit ? 'text-yellow-300' : 'text-slate-100'} font-mono font-bold">${actM1 || p1 || '-'}</b></div>
           </div>
         </div>
       </div>
@@ -1834,17 +1834,20 @@ window.handleDeepLinkParams = function() {
 };
 
 window.navigateToAuditedPrediction = function(lottery, slot, date, hitHundred = '', hitGroup = '') {
-  let url = `/?lottery=${encodeURIComponent(lottery)}&slot=${encodeURIComponent(slot)}&date=${encodeURIComponent(date)}`;
+  const lot = (lottery || 'LOOK').toUpperCase();
+  const slt = (slot || '').toUpperCase();
+  let url = `/?lottery=${encodeURIComponent(lot)}&slot=${encodeURIComponent(slt)}&date=${encodeURIComponent(date || '')}`;
   if (hitHundred) url += `&hit=${encodeURIComponent(hitHundred)}`;
   if (hitGroup) url += `&group=${encodeURIComponent(hitGroup)}`;
   url += '#palpites';
 
-  if (window.location.pathname.includes('historico')) {
-    window.location.href = url;
-    return;
-  }
+  try {
+    localStorage.setItem('bicho_active_lottery', lot);
+    localStorage.setItem('bicho_active_screen', 'palpites');
+  } catch (e) {}
+
   if (typeof window.navigateToAuditedPredictionSpa === 'function') {
-    window.navigateToAuditedPredictionSpa(lottery, slot, date, hitHundred, hitGroup);
+    window.navigateToAuditedPredictionSpa(lot, slt, date, hitHundred, hitGroup);
   } else {
     window.location.href = url;
   }
