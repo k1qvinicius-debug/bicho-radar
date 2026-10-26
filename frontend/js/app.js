@@ -9649,6 +9649,9 @@ async function renderApsScreen(forceRefresh = false) {
     // 6. Renderiza Centenas Cirúrgicas
     renderApsCentenas(data.centenas_cirurgicas);
 
+    // 6.1. Renderiza Milhares Cirúrgicas por Bicho (MC de Elite)
+    renderApsMilhares(data.milhares_cirurgicas);
+
     // 7. Renderiza 12 Ternos de Dezena
     renderApsTernos(data.ternos_de_dezena_12);
 
@@ -9964,8 +9967,23 @@ function renderApsEliteAnimals(eliteAnimals) {
             </div>
           </div>
 
-          <div class="text-[11px] text-slate-400 font-mono bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800 mb-2.5">
+          <div class="text-[11px] text-slate-400 font-mono bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800 mb-2">
             Dezenas: <strong class="text-slate-200">${(anim.tens || []).join(', ')}</strong>
+          </div>
+
+          <!-- Milhares de Elite (MC) -->
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 mb-2.5">
+            <div class="text-[10px] font-bold text-amber-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+              <span class="flex items-center gap-1"><span>🎯</span> <span>Milhares de Elite (MC):</span></span>
+              <span class="text-[9px] text-amber-400/80 font-normal">Toque p/ copiar</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1 font-mono text-center">
+              ${(anim.main_milhares || []).map(m => `
+                <button type="button" onclick="copyTextToClipboard('${m}', 'Milhar ${m} copiada!')" class="py-1 px-1.5 bg-slate-900 border border-amber-500/40 hover:bg-amber-500 hover:text-slate-950 text-amber-300 rounded font-bold text-xs transition-colors cursor-pointer select-all shadow-sm">
+                  ${m}
+                </button>
+              `).join('')}
+            </div>
           </div>
 
           <div class="space-y-1 mb-2">
@@ -10044,6 +10062,122 @@ function renderApsCentenas(centenasData) {
 
   container.innerHTML = html;
 }
+
+function copyApsCentenas() {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Centenas Cirúrgicas exclusivas para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
+  if (!window.currentApsData || !window.currentApsData.centenas_cirurgicas) return;
+
+  const lines = [
+    `⚡ CENTENAS CIRÚRGICAS - RADAR 5X5`,
+    `Loteria: ${window.currentApsLottery || 'NACIONAL'}`,
+    ''
+  ];
+
+  window.currentApsData.centenas_cirurgicas.forEach(item => {
+    lines.push(`${item.emoji || '🐾'} ${item.name} (Grupo ${String(item.group).padStart(2, '0')}):`);
+    lines.push((item.centenas || []).join(', '));
+    lines.push('');
+  });
+
+  copyTextToClipboard(lines.join('\n').trim(), 'Centenas Cirúrgicas copiadas para WhatsApp!');
+}
+window.copyApsCentenas = copyApsCentenas;
+
+function renderApsMilhares(milharesData) {
+  const container = document.getElementById('aps-milhares-cirurgicas-container');
+  if (!container || !milharesData) return;
+
+  const isVip = window.isUserVip();
+  if (!isVip) {
+    container.innerHTML = `
+      <div onclick="openPlansModal()" class="rounded-2xl bg-gradient-to-b from-amber-500/10 via-slate-900/95 to-slate-950 border-2 border-amber-500/50 p-5 sm:p-6 text-center shadow-xl space-y-3 cursor-pointer group hover:border-amber-400 transition-all col-span-full">
+        <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/60 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20">
+          🔒
+        </div>
+        <div>
+          <div class="text-sm sm:text-base font-black text-white">Milhares Cirúrgicas por Bicho Bloqueadas</div>
+          <p class="text-xs text-slate-300 mt-1 max-w-md mx-auto leading-relaxed">
+            As milhares armadas nas <strong>Pedras Líderes</strong> de cada animal de elite são 100% exclusivas para membros VIP.
+          </p>
+        </div>
+        <div class="flex items-center justify-center gap-1.5 filter blur-[4px] select-none opacity-40">
+          <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800">1033</span>
+          <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800">0134</span>
+          <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800">1235</span>
+          <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800">2036</span>
+        </div>
+        <div class="pt-1">
+          <button type="button" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-950/50 group-hover:scale-105 transition-transform">
+            Desbloquear Milhares VIP (R$ 14,90/mês) ➔
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  milharesData.forEach(item => {
+    const milharesBadges = (item.milhares || []).map(m => `
+      <span onclick="copyTextToClipboard('${m}', 'Milhar ${m} copiada!')" class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800 select-all hover:border-amber-400 hover:text-amber-200 transition-all cursor-pointer" title="Clique para copiar">${m}</span>
+    `).join('');
+
+    const formattedCopy = `${item.emoji || '🐾'} ${item.name} (G${String(item.group).padStart(2, '0')}): ${(item.milhares || []).join(', ')}`;
+
+    html += `
+      <div class="rounded-xl bg-slate-950/60 border border-slate-800 p-3.5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-lg">${item.emoji || '🐾'}</span>
+              <span class="text-xs font-black text-white">${item.name} (G${String(item.group).padStart(2, '0')})</span>
+            </div>
+            <span class="text-[10px] text-slate-400">Pedras: <strong class="text-amber-300">${(item.pedras || []).join(', ')}</strong></span>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            ${milharesBadges}
+          </div>
+        </div>
+
+        <button type="button" onclick="copyTextToClipboard('${formattedCopy}', 'Milhares do ${item.name} copiadas!')" class="mt-2 w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[11px] font-bold border border-slate-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+          <span>📋</span> Copiar Milhares (${(item.milhares || []).length})
+        </button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+window.renderApsMilhares = renderApsMilhares;
+
+function copyAllApsMilhares() {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('Milhares de Elite exclusivas para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
+  if (!window.currentApsData || !window.currentApsData.milhares_cirurgicas) return;
+
+  const lines = [
+    `🎯 MILHARES CIRÚRGICAS - RADAR 5X5`,
+    `Loteria: ${window.currentApsLottery || 'NACIONAL'}`,
+    ''
+  ];
+
+  window.currentApsData.milhares_cirurgicas.forEach(item => {
+    lines.push(`${item.emoji || '🐾'} ${item.name} (Grupo ${String(item.group).padStart(2, '0')}):`);
+    lines.push((item.milhares || []).join(', '));
+    lines.push('');
+  });
+
+  copyTextToClipboard(lines.join('\n').trim(), 'Todas as Milhares do Radar copiadas para WhatsApp!');
+}
+window.copyAllApsMilhares = copyAllApsMilhares;
 
 function renderApsTernos(ternos) {
   const container = document.getElementById('aps-ternos-list');
