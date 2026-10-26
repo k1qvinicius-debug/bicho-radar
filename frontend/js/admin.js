@@ -513,8 +513,18 @@ let currentTenantFilter = 'all'; // 'all' | 'trial' | 'subscribers' | 'active_to
 let currentTenantSearch = '';
 
 function isClientExpired(t) {
-  return t.subscription_status === 'expired' || 
-         (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0);
+  if (t.subscription_status === 'expired' || t.subscription_status === 'suspended') return true;
+  if (t.subscription_status === 'active' || t.role === 'admin') return false;
+  if (t.trial_info && t.trial_info.is_expired !== undefined) return t.trial_info.is_expired;
+  if (t.trial_expires_at) {
+    try {
+      const exp = new Date(t.trial_expires_at.replace(' ', 'T'));
+      if (!isNaN(exp.getTime())) {
+        return exp.getTime() <= Date.now();
+      }
+    } catch (e) {}
+  }
+  return (t.trial_days_remaining !== undefined && t.trial_days_remaining !== null && t.trial_days_remaining <= 0);
 }
 
 function isClientActiveToday(t) {
