@@ -1406,58 +1406,67 @@
           </div>
         </div>
 
-        <!-- CENTENAS CIRÚRGICAS -->
+        <!-- FECHAMENTOS & MODALIDADES (ABAS RÁPIDAS) -->
         <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 shadow-xl backdrop-blur-md">
-          <div class="flex items-center justify-between mb-3">
-            <div>
-              <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                <span>⚡ Centenas Cirúrgicas (Pedras Líderes)</span>
-              </h2>
-              <p class="text-xs text-slate-400">Centenas econômicas montadas exclusivamente com os dígitos mais quentes.</p>
-            </div>
-            <button type="button" onclick="copyApsCentenas()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all cursor-pointer">
-              📋 Copiar Centenas
-            </button>
-          </div>
-
-          <div id="aps-centenas-cirurgicas-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            <!-- Injetado via JS -->
-          </div>
-        </div>
-
-        <!-- MILHARES CIRÚRGICAS POR BICHO -->
-        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 shadow-xl backdrop-blur-md">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
-            <div>
-              <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                <span>🎯 Milhares Cirúrgicas por Bicho (MC de Elite)</span>
-              </h2>
-              <p class="text-xs text-slate-400">Milhares de alta precisão cruzando as pedras líderes do Radar com cada animal de elite.</p>
-            </div>
-            <button type="button" onclick="copyAllApsMilhares()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all cursor-pointer self-start sm:self-center">
-              📋 Copiar Todas as MCs
-            </button>
-          </div>
-
-          <div id="aps-milhares-cirurgicas-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            <!-- Injetado via JS -->
-          </div>
-        </div>
-
-        <!-- 12 TERNOS E 60 MC -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           
-          <!-- 12 TERNOS DE DEZENA -->
-          <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 shadow-xl backdrop-blur-md">
-            <div class="flex items-center justify-between mb-3">
-              <div>
-                <h2 class="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🎲 12 Ternos de Dezena (Pontas e Meio)</span>
-                </h2>
-                <p class="text-[11px] text-slate-400">Inversão e cruzamento das milhares anteriores.</p>
-              </div>
-              <button type="button" onclick="copyApsTernos()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 cursor-pointer">
-                📋 Copiar Ternos
+          <!-- BARRA DE ABAS RÁPIDAS -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
+            <div>
+              <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <span>⚡ Fechamentos & Jogos Prontos</span>
+              </h2>
+              <p class="text-xs text-slate-400">Alterne entre as modalidades do Radar sem poluição visual.</p>
+            </div>
+            
+            <!-- Pílulas de Navegação -->
+            <div class="flex items-center gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800 self-start sm:self-center overflow-x-auto max-w-full">
+              <button type="button" onclick="switchApsModalidade('milhares')" id="tab-btn-aps-milhares" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-slate-950 shadow-sm cursor-pointer whitespace-nowrap">
+                🎯 Milhares (MC)
+              </button>
+              <button type="button" onclick="switchApsModalidade('centenas')" id="tab-btn-aps-centenas" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white cursor-pointer whitespace-nowrap">
+                ⚡ Centenas
+              </button>
+              <button type="button" onclick="switchApsModalidade('ternos')" id="tab-btn-aps-ternos" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white cursor-pointer whitespace-nowrap">
+                🎲 12 Ternos
+              </button>
+              <button type="button" onclick="switchApsModalidade('60mc')" id="tab-btn-aps-60mc" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white cursor-pointer whitespace-nowrap">
+                💥 60 MC
+              </button>
+            </div>
+          </div>
+
+          <!-- ABA 1: MILHARES CIRÚRGICAS -->
+          <div id="aps-modalidade-milhares" class="space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+              <span class="text-xs text-slate-400">8 Milhares Cirúrgicas armadas nas pedras líderes para cada bicho de elite:</span>
+              <button type="button" onclick="copyAllApsMilhares()" class="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all cursor-pointer self-start sm:self-center">
+                📋 Copiar Todas as MCs
+              </button>
+            </div>
+            <div id="aps-milhares-cirurgicas-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              <!-- Injetado via JS -->
+            </div>
+          </div>
+
+          <!-- ABA 2: CENTENAS CIRÚRGICAS -->
+          <div id="aps-modalidade-centenas" class="space-y-3 hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+              <span class="text-xs text-slate-400">Centenas econômicas montadas exclusivamente com os dígitos mais quentes:</span>
+              <button type="button" onclick="copyApsCentenas()" class="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all cursor-pointer self-start sm:self-center">
+                📋 Copiar Centenas
+              </button>
+            </div>
+            <div id="aps-centenas-cirurgicas-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              <!-- Injetado via JS -->
+            </div>
+          </div>
+
+          <!-- ABA 3: 12 TERNOS DE DEZENA -->
+          <div id="aps-modalidade-ternos" class="space-y-3 hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+              <span class="text-xs text-slate-400">12 Ternos de Dezena com inversão e cruzamento das pontas e meio:</span>
+              <button type="button" onclick="copyApsTernos()" class="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all cursor-pointer self-start sm:self-center">
+                📋 Copiar 12 Ternos
               </button>
             </div>
             <div id="aps-ternos-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1465,16 +1474,11 @@
             </div>
           </div>
 
-          <!-- FECHAMENTO 60 MC -->
-          <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 shadow-xl backdrop-blur-md">
-            <div class="flex items-center justify-between mb-3">
-              <div>
-                <h2 class="text-sm font-bold text-white flex items-center gap-2">
-                  <span>💥 Fechamento Econômico 60 MC</span>
-                </h2>
-                <p class="text-[11px] text-slate-400">Combinações prontas com garantia matemática.</p>
-              </div>
-              <button type="button" onclick="copyAps60MC()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer">
+          <!-- ABA 4: FECHAMENTO 60 MC -->
+          <div id="aps-modalidade-60mc" class="space-y-3 hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+              <span class="text-xs text-slate-400">Fechamento completo com garantia matemática de pontas e meio:</span>
+              <button type="button" onclick="copyAps60MC()" class="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all cursor-pointer self-start sm:self-center">
                 📋 Copiar 60 MC
               </button>
             </div>
@@ -1486,7 +1490,7 @@
             </div>
           </div>
 
-        </div>
+        </div></div>
 
       </div>
 
@@ -2839,7 +2843,7 @@
   </div>
 
   <script src="/js/api.js?v=1793032831"></script>
-  <script src="/js/app.js?v=1793034809"></script>
+  <script src="/js/app.js?v=1793036235"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
