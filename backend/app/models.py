@@ -250,6 +250,8 @@ class TenantModel(BaseModel):
     created_at: Optional[str] = None
     snapshots_count: int = 0
     trial_days_remaining: Optional[int] = None
+    trial_hours_remaining: Optional[int] = None
+    trial_info: Optional[Dict[str, Any]] = None
     registration_ip: Optional[str] = None
     last_ip: Optional[str] = None
     device_id: Optional[str] = None
@@ -282,6 +284,7 @@ class TenantUpdateModel(BaseModel):
 class SystemSettingsModel(BaseModel):
     support_whatsapp: Optional[str] = ""
     trial_days: Optional[int] = 0
+    trial_hours: Optional[int] = 5
     app_name: Optional[str] = "Bicho Master Pro"
     google_client_id: Optional[str] = ""
     plan_link_monthly: Optional[str] = ""
