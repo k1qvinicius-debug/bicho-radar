@@ -141,6 +141,29 @@ def sync_rj_and_federal(url: str = TARGET_URL_RJ) -> Dict[str, Any]:
                 not (p1 == "0000" and p2 == "0000" and p3 == "0000" and p4 == "0000" and p5 == "0000")):
 
                 lottery_val = "FEDERAL" if slot == "FED" else "RJ"
+
+                # Trava de seguranca de horario: impede que sorteios de hoje sejam importados antes do horario real de extracao
+                from datetime import timezone, timedelta
+                br_tz = timezone(timedelta(hours=-3))
+                now_br = datetime.now(br_tz)
+                now_br_date = now_br.strftime("%Y-%m-%d")
+                now_br_mins = now_br.hour * 60 + now_br.minute
+
+                rj_slot_earliest = {
+                    "PPT": 9 * 60 + 15,    # 09:15
+                    "PTM": 11 * 60 + 15,   # 11:15
+                    "PT":  14 * 60 + 15,   # 14:15
+                    "PTV": 15 * 60 + 55,   # 15:55
+                    "PTN": 18 * 60 + 15,   # 18:15
+                    "COR": 21 * 60 + 15,   # 21:15
+                    "FED": 18 * 60 + 55,   # 18:55
+                }
+
+                if today_date == now_br_date and slot in rj_slot_earliest:
+                    if now_br_mins < rj_slot_earliest[slot]:
+                        # Horario do sorteio ainda nao aconteceu hoje no relogio oficial de Brasilia
+                        continue
+
                 # Bloqueia Federal em domingos de eleição (04/10/2026 e 25/10/2026)
                 if slot == "FED" and today_date in ("2026-10-04", "2026-10-25"):
                     continue
