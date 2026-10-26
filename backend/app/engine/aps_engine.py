@@ -606,11 +606,17 @@ def calculate_full_aps_analysis(lottery: str = "NACIONAL", target_date: Optional
     animal_scores.sort(key=lambda x: x["aps_score"], reverse=True)
     elite_animals = animal_scores[:5]
 
+    p1 = str(top_pedras[0]) if len(top_pedras) > 0 else '8'
+    p2 = str(top_pedras[1]) if len(top_pedras) > 1 else '6'
+    p3 = str(top_pedras[2]) if len(top_pedras) > 2 else '3'
+
     centenas_cirurgicas = []
+    milhares_cirurgicas = []
     for anim in elite_animals:
+        tens = anim["tens"]
         anim_centenas = []
         for pedra in top_pedras:
-            for d in anim["tens"]:
+            for d in tens:
                 anim_centenas.append(f"{pedra}{d}")
         centenas_cirurgicas.append({
             "group": anim["group"],
@@ -618,6 +624,31 @@ def calculate_full_aps_analysis(lottery: str = "NACIONAL", target_date: Optional
             "emoji": anim["emoji"],
             "pedras": top_pedras,
             "centenas": anim_centenas
+        })
+
+        # 4 Milhares de Elite Principais (1 por dezena cruzando com as pedras líderes do radar)
+        main_milhares = [
+            f"{p1}{p2}{tens[0]}",
+            f"{p2}{p1}{tens[1]}",
+            f"{p1}{p3}{tens[2]}",
+            f"{p3}{p2}{tens[3]}"
+        ]
+        anim["main_milhares"] = main_milhares
+
+        # Fechamento Completo de 8 Milhares Cirúrgicas para este bicho
+        anim_milhares = []
+        for pref in [f"{p1}{p2}", f"{p2}{p1}"]:
+            for d in tens:
+                anim_milhares.append(f"{pref}{d}")
+        anim["milhares"] = anim_milhares
+
+        milhares_cirurgicas.append({
+            "group": anim["group"],
+            "name": anim["name"],
+            "emoji": anim["emoji"],
+            "pedras": top_pedras,
+            "main_milhares": main_milhares,
+            "milhares": anim_milhares
         })
 
     last_prizes = []
@@ -638,6 +669,7 @@ def calculate_full_aps_analysis(lottery: str = "NACIONAL", target_date: Optional
         "d3_cycle": d3_analysis,
         "elite_animals": elite_animals,
         "centenas_cirurgicas": centenas_cirurgicas,
+        "milhares_cirurgicas": milhares_cirurgicas,
         "ternos_de_dezena_12": inversion_data["ternos_12"],
         "fechamento_60_mc": inversion_data["fechamento_60_mc"],
         "inversion_summary": {
