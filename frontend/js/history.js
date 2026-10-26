@@ -894,11 +894,18 @@ function renderFilteredSnapshots() {
               <div class="text-[11px] text-slate-400">
                 ${hitCount > 0 ? `<span class="text-emerald-400 font-bold">🎯 ${hitCount} bicho(s)</span> do palpite foram sorteados!` : '<span class="text-slate-500">Nenhum bicho do palpite sorteado nesta apuração</span>'}
               </div>
-              <button onclick="inspectSnapshot(${s.id})" class="px-3 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-bold text-indigo-200 hover:text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
-                <span>🔍</span>
-                <span>Conferência Detalhada e Origem dos Acertos</span>
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-              </button>
+              <div class="flex items-center gap-2 flex-wrap">
+                <button type="button" onclick="navigateToAuditedPrediction('${getCanonicalLottery(s)}', '${s.target_slot}', '${s.target_date}', '${s.prize_1 ? String(s.prize_1).slice(-3) : ''}', '${s.prize_1 ? getGroupFromNumber(s.prize_1) : ''}')"
+                  class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600/30 to-teal-600/30 hover:from-emerald-600/50 hover:to-teal-600/50 border border-emerald-500/50 text-xs font-bold text-emerald-300 hover:text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
+                  <span>🎯</span>
+                  <span>Ver Palpites Deste Horário ➔</span>
+                </button>
+                <button onclick="inspectSnapshot(${s.id})" class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-bold text-indigo-200 hover:text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
+                  <span>🔍</span>
+                  <span>Conferência Detalhada</span>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+              </div>
             </div>
           </div>
         `
@@ -1836,18 +1843,22 @@ window.handleDeepLinkParams = function() {
 window.navigateToAuditedPrediction = function(lottery, slot, date, hitHundred = '', hitGroup = '') {
   const lot = (lottery || 'LOOK').toUpperCase();
   const slt = (slot || '').toUpperCase();
-  let url = `/?lottery=${encodeURIComponent(lot)}&slot=${encodeURIComponent(slt)}&date=${encodeURIComponent(date || '')}`;
-  if (hitHundred) url += `&hit=${encodeURIComponent(hitHundred)}`;
-  if (hitGroup) url += `&group=${encodeURIComponent(hitGroup)}`;
-  url += '#palpites';
+  const dt = date || '';
 
   try {
     localStorage.setItem('bicho_active_lottery', lot);
     localStorage.setItem('bicho_active_screen', 'palpites');
+    localStorage.setItem('bicho_audited_slot', slt);
+    localStorage.setItem('bicho_audited_date', dt);
   } catch (e) {}
 
+  let url = `/?lottery=${encodeURIComponent(lot)}&slot=${encodeURIComponent(slt)}&date=${encodeURIComponent(dt)}`;
+  if (hitHundred) url += `&hit=${encodeURIComponent(hitHundred)}`;
+  if (hitGroup) url += `&group=${encodeURIComponent(hitGroup)}`;
+  url += '#palpites';
+
   if (typeof window.navigateToAuditedPredictionSpa === 'function') {
-    window.navigateToAuditedPredictionSpa(lot, slt, date, hitHundred, hitGroup);
+    window.navigateToAuditedPredictionSpa(lot, slt, dt, hitHundred, hitGroup);
   } else {
     window.location.href = url;
   }
