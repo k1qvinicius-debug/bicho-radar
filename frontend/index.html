@@ -995,36 +995,45 @@
     <div id="view-palpites" class="space-y-2.5 animate-fade-in hidden">
       <!-- Painel de Controle Minimalista Compacto -->
       <div class="card-glass p-2 sm:p-2.5 rounded-xl border border-slate-800/80 shadow-sm space-y-1.5">
-        <!-- Linha 1: Slot Ativo + Estatística + Data + Recalcular (Uma única linha fluida) -->
-        <div class="flex items-center justify-between gap-1.5">
-          <div class="flex items-center gap-1.5 min-w-0">
-            <button type="button" onclick="switchScreen('home')" title="Voltar ao Início"
-              class="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 text-slate-300 flex items-center justify-center text-xs transition-all active:scale-90 cursor-pointer shrink-0">
-              ←
-            </button>
-            <div class="flex items-center gap-1 min-w-0">
+        <!-- Linha 1: Slot Ativo + Estatística + Data + Recalcular (Responsivo e sem sobreposição de seta) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2">
+          
+          <!-- Topo Mobile / Lado Esquerdo Desktop: Voltar + Nome do Horário/Loteria + Contador de Jogos -->
+          <div class="flex items-center justify-between sm:justify-start gap-1.5 min-w-0">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <button type="button" onclick="switchScreen('home')" title="Voltar ao Início"
+                class="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 text-slate-300 flex items-center justify-center text-xs transition-all active:scale-90 cursor-pointer shrink-0">
+                ←
+              </button>
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-              <h2 id="header-slot-name" class="text-xs sm:text-sm font-black text-white tracking-tight shrink-0 whitespace-nowrap">Carregando...</h2>
+              <h2 id="header-slot-name" class="text-xs sm:text-sm font-black text-white tracking-tight truncate">Carregando...</h2>
               <span class="text-slate-600 text-xs shrink-0">•</span>
-              <span id="analyzed-draws-count" class="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">304 jogos</span>
+              <span id="analyzed-draws-count" class="text-[10px] sm:text-[11px] text-slate-400 font-medium shrink-0">304 jogos</span>
             </div>
+
+            <!-- Botão Recalcular visível no mobile no topo à direita -->
+            <button type="button" onclick="document.getElementById('btn-refresh').click()" title="Recalcular Palpites"
+              class="sm:hidden w-7 h-7 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white flex items-center justify-center shadow-sm transition-all cursor-pointer shrink-0">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </button>
           </div>
 
-          <div class="flex items-center gap-1 shrink-0">
+          <!-- Linha de Data Mobile / Lado Direito Desktop: [‹] [Data] [›] [Recalcular] -->
+          <div class="flex items-center justify-center sm:justify-end gap-1 shrink-0 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-800/60">
             <button type="button" onclick="stepTargetDate(-1)" title="Dia Anterior"
-              class="w-6 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold transition-all active:scale-90 cursor-pointer">
+              class="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold transition-all active:scale-90 cursor-pointer shrink-0">
               ‹
             </button>
             <input type="date" id="target-date" autocomplete="off"
-              class="w-[105px] sm:w-auto bg-slate-900 border border-slate-700/80 rounded-lg px-1.5 sm:px-2 py-1 text-[11px] sm:text-xs text-slate-200 font-mono focus:outline-none focus:border-indigo-500 shadow-inner" />
+              class="flex-1 sm:flex-initial sm:w-auto bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono text-center focus:outline-none focus:border-indigo-500 shadow-inner" />
             <button type="button" onclick="stepTargetDate(1)" title="Próximo Dia"
-              class="w-6 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold transition-all active:scale-90 cursor-pointer">
+              class="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold transition-all active:scale-90 cursor-pointer shrink-0">
               ›
             </button>
             <button id="btn-refresh" title="Recalcular Palpites"
-              class="h-7 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer">
+              class="hidden sm:flex h-7 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold items-center justify-center gap-1 shadow-sm transition-all cursor-pointer shrink-0">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-              <span class="hidden sm:inline text-xs">Recalcular</span>
+              <span class="text-xs">Recalcular</span>
             </button>
           </div>
 
@@ -1073,7 +1082,8 @@
           <button type="button" id="topic-tab-contra" onclick="switchPalpitesTopic('contra')"
             class="py-1.5 px-0.5 sm:px-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 cursor-pointer relative">
             <span>🛡️</span>
-            <span class="truncate">Contra-Banca</span>
+            <span class="truncate hidden sm:inline">Contra-Banca</span>
+            <span class="sm:hidden">C. Banca</span>
             <span id="topic-contra-badge" class="hidden w-2 h-2 rounded-full bg-rose-500 animate-ping absolute top-1 right-1"></span>
           </button>
 
@@ -2843,7 +2853,7 @@
   </div>
 
   <script src="/js/api.js?v=1793032831"></script>
-  <script src="/js/app.js?v=1793036235"></script>
+  <script src="/js/app.js?v=1793041730"></script>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
