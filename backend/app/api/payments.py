@@ -84,6 +84,8 @@ async def create_preference(
     ref_prefix = f"tenant_{tenant_id}" if tenant_id else "guest"
     external_ref = f"{ref_prefix}_{selected_plan}_{int(time.time())}_{secrets.token_hex(3)}"
 
+    key_param = f"&key={tenant_key}" if tenant_key else ""
+
     payload = {
         "items": [{
             "id": selected_plan,
@@ -95,9 +97,9 @@ async def create_preference(
             "currency_id": "BRL"
         }],
         "back_urls": {
-            "success": f"{APP_URL}/?payment=success&plan={selected_plan}&ref={external_ref}",
-            "failure": f"{APP_URL}/?payment=failed",
-            "pending": f"{APP_URL}/?payment=pending&plan={selected_plan}&ref={external_ref}",
+            "success": f"{APP_URL}/?payment=success{key_param}&plan={selected_plan}&ref={external_ref}",
+            "failure": f"{APP_URL}/?payment=failed{key_param}",
+            "pending": f"{APP_URL}/?payment=pending{key_param}&plan={selected_plan}&ref={external_ref}",
         },
         "auto_return": "approved",
         "notification_url": f"{APP_URL}/api/payments/webhook",
