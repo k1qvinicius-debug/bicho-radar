@@ -12,7 +12,15 @@ import secrets
 from typing import Optional, Dict, Any
 from fastapi import Header, HTTPException, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+def get_now_brasilia() -> datetime:
+    """Retorna o horário oficial de Brasília (UTC-3) independente do fuso do servidor."""
+    return datetime.now(timezone(timedelta(hours=-3))).replace(tzinfo=None)
+
+def get_now_brasilia_str() -> str:
+    """Retorna data/hora formatada no horário de Brasília (YYYY-MM-DD HH:MM:SS)."""
+    return get_now_brasilia().strftime("%Y-%m-%d %H:%M:%S")
 from .database import get_db_connection, get_system_setting
 
 SECRET_KEY = "bicho-radar-master-auth-secret-2026"
@@ -88,7 +96,7 @@ def get_tenant_by_id(tenant_id: int) -> Optional[Dict[str, Any]]:
 
 def update_tenant_activity(tenant_id: int) -> None:
     """Registra a data/hora do último acesso do tenant."""
-    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    now_str = get_now_brasilia_str()
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -207,7 +215,7 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
         else:
             expires_dt = datetime.now()
 
-        now = datetime.now()
+        now = get_now_brasilia()
         diff = expires_dt - now
         seconds_left = diff.total_seconds()
 
@@ -358,7 +366,7 @@ def get_or_create_google_tenant(
     """
     email_clean = email.strip().lower()
     name_clean = name.strip() or email_clean.split("@")[0]
-    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    now_str = get_now_brasilia_str()
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -490,8 +498,8 @@ def register_new_tenant(
     if not email_clean or "@" not in email_clean:
         email_clean = f"{phone_digits}@bichomaster.app"
 
-    now = datetime.now()
-    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    now = get_now_brasilia()
+    now_str = get_now_brasilia_str()
     try:
         trial_days_setting = int(get_system_setting('trial_days', '1') or '1')
     except Exception:
