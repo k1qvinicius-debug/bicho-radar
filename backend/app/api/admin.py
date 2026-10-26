@@ -516,6 +516,16 @@ def get_financial_report(group_by: str = "week", range_days: int = 90):
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
+        try:
+            cursor.execute("""
+                UPDATE subscription_payments 
+                SET customer_name = (SELECT name FROM tenants WHERE tenants.id = subscription_payments.tenant_id)
+                WHERE (customer_name IS NULL OR customer_name = 'None None' OR customer_name = '') 
+                  AND tenant_id IS NOT NULL
+            """)
+        except Exception:
+            pass
+
         query = "SELECT * FROM subscription_payments"
         params = []
         if cutoff_date:
@@ -631,7 +641,7 @@ def get_financial_report(group_by: str = "week", range_days: int = 90):
         recent.append({
             "id": p["id"],
             "tenant_id": p.get("tenant_id"),
-            "customer_name": p.get("customer_name") or "Cliente",
+            "customer_name": p.get("customer_name") if (p.get("customer_name") and p.get("customer_name").strip() not in ("None None", "None", "")) else "Assinante VIP",
             "plan_type": p.get("plan_type"),
             "amount": round(float(p.get("amount") or 0.0), 2),
             "days": p.get("days"),
