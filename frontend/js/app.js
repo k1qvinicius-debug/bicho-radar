@@ -79,7 +79,7 @@ window.closeAuthGateModal = function() {
   }
 };
 
-﻿// Remove stale cached elements if present
+// Remove stale cached elements if present
 (function() {
   var b = document.getElementById('nav-btn-milhares-atrasadas');
   if (b) b.remove();
@@ -262,6 +262,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   setDefaultDate();
+  if (paramDate) {
+    const targetDateEl = document.getElementById('target-date');
+    if (targetDateEl) targetDateEl.value = paramDate;
+  }
 
   if (paramSlot) {
     window._userSelectedSlot = paramSlot.toUpperCase();
@@ -281,7 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   updateLotteryButtonsUI();
-  await initSlotSelector(currentLottery, window._userSelectedSlot);
+  await initSlotSelector(currentLottery, window._userSelectedSlot, paramDate);
 
   // 2. Determina tela alvo antes do carregamento inicial (mantém na mesma tela ao atualizar com F5)
   const validScreens = ['home', 'palpites', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
@@ -309,6 +313,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     await Promise.all([loadPrediction(), loadDrawResults()]);
     checkAndRenderMilharBingoBanner();
+    if (paramSlot || paramDate) {
+      showAuditedPredictionBanner(currentLottery, window._userSelectedSlot || paramSlot, paramDate);
+    }
   } catch (err) {
     console.warn('Erro ao carregar dados iniciais:', err);
     try { await loadDrawResults(); } catch(e) {}
@@ -9470,6 +9477,16 @@ window.toggleExtraGroupNumbers = function(containerId, btn, count) {
   }
 };
 
+window.showAuditedPredictionBanner = function(lottery, slot, date) {
+  const banner = document.getElementById('audited-prediction-banner');
+  const label = document.getElementById('audited-banner-lottery-slot');
+  if (banner && label) {
+    const dtFormatted = date ? date.split('-').reverse().join('/') : 'Hoje';
+    label.textContent = `${lottery} • ${slot} (${dtFormatted})`;
+    banner.classList.remove('hidden');
+  }
+};
+
 window.navigateToAuditedPredictionSpa = async function(lottery, slot, date, hitHundred = '', hitGroup = '') {
   const modal = document.getElementById('snapshot-modal');
   if (modal) modal.classList.add('hidden');
@@ -9478,11 +9495,7 @@ window.navigateToAuditedPredictionSpa = async function(lottery, slot, date, hitH
   const backdrop = document.getElementById('modal-bingo-backdrop');
   if (backdrop) backdrop.remove();
 
-  if (typeof showToast === 'function') {
-    showToast(`Carregando palpites de ${lottery} (${slot})...`, 'info');
-  }
-
-  const lot = (lottery || 'RJ').toUpperCase();
+  const lot = (lottery || 'LOOK').toUpperCase();
   const slt = (slot || '').toUpperCase();
 
   if (hitHundred) window._targetHitCentena = hitHundred;
@@ -9499,7 +9512,7 @@ window.navigateToAuditedPredictionSpa = async function(lottery, slot, date, hitH
   }
 
   updateLotteryButtonsUI();
-  await initSlotSelector(lot, slt);
+  await initSlotSelector(lot, slt, date);
 
   if (typeof window.switchScreen === 'function') {
     window.switchScreen('palpites', true);
@@ -9520,6 +9533,7 @@ window.navigateToAuditedPredictionSpa = async function(lottery, slot, date, hitH
   updateSlotPillsUI(slt);
 
   await loadPrediction(true);
+  showAuditedPredictionBanner(lot, slt, date);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 window.navigateToAuditedPrediction = window.navigateToAuditedPredictionSpa;
