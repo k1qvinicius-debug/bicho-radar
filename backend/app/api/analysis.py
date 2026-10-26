@@ -944,11 +944,12 @@ def get_recent_bingos():
             slot = d["slot"]
             anim = get_animal_info(grp)
 
-            key_aps = (lot, dt)
+            # Passa before_id para garantir que a análise NÃO leia o próprio sorteio (elimina vazamento circular)
+            key_aps = (lot, dt, d["id"])
             if key_aps not in cache_aps:
                 try:
                     from ..engine.aps_engine import calculate_full_aps_analysis
-                    cache_aps[key_aps] = calculate_full_aps_analysis(lot, dt)
+                    cache_aps[key_aps] = calculate_full_aps_analysis(lot, dt, before_id=d["id"])
                 except Exception:
                     cache_aps[key_aps] = {}
             aps = cache_aps[key_aps]
