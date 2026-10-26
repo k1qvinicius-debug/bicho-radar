@@ -220,10 +220,17 @@ const api = {
         if (data.token) {
           this.setToken(data.token);
         }
-        const isExpired = Boolean(
-          data.subscription_status === 'expired' || 
-          (data.trial_info && data.trial_info.is_expired && data.role !== 'admin') ||
-          (data.trial_info && data.trial_info.days_remaining !== undefined && data.trial_info.days_remaining <= 0 && data.role !== 'admin'));
+        let isExpired = false;
+        if (data.role === 'admin') {
+          isExpired = false;
+        } else if (data.subscription_status === 'expired' || data.subscription_status === 'suspended') {
+          isExpired = true;
+        } else if (data.trial_info && data.trial_info.is_expired !== undefined) {
+          isExpired = Boolean(data.trial_info.is_expired);
+        } else if (data.subscription_status === 'active') {
+          isExpired = false;
+        }
+
         const tenantData = {
           id: data.id,
           name: data.name,
@@ -231,9 +238,12 @@ const api = {
           phone: data.phone,
           role: data.role,
           subscription_status: isExpired ? 'expired' : data.subscription_status,
+          plan_type: data.plan_type || 'free',
+          trial_expires_at: data.trial_expires_at || (data.trial_info ? data.trial_info.expires_at : null),
+          trial_info: data.trial_info || null,
           trial_days_remaining: (data.trial_info && data.trial_info.days_remaining !== undefined) ? data.trial_info.days_remaining : null,
           is_expired: isExpired,
-          is_admin: data.is_admin
+          is_admin: Boolean(data.is_admin || data.role === 'admin')
         };
         this.setCurrentTenant(tenantData);
         if (!isExpired) {
