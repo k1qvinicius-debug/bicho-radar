@@ -231,7 +231,10 @@ def process_approved_payment(payment: Dict[str, Any]) -> Dict[str, Any]:
 
     payer = payment.get("payer") or {}
     payer_email = (payer.get("email") or "").strip().lower()
-    payer_name = f"{payer.get('first_name', '')} {payer.get('last_name', '')}".strip() or "Assinante VIP"
+    fn = (payer.get("first_name") or "").strip()
+    ln = (payer.get("last_name") or "").strip()
+    p_name = f"{fn} {ln}".strip()
+    payer_name = p_name if p_name and p_name not in ("None None", "None") else ""
 
     if not tenant_id and payer_email:
         with get_db_connection() as conn:
@@ -288,6 +291,15 @@ def process_approved_payment(payment: Dict[str, Any]) -> Dict[str, Any]:
 
         if not tenant_id:
             return {"status": "tenant_creation_failed"}
+
+        # Se o nome do pagador nao veio preenchido pelo MP, usa o nome cadastrado do tenant
+        if not payer_name or payer_name in ("None None", "None"):
+            cursor.execute("SELECT name FROM tenants WHERE id = ?", (tenant_id,))
+            r_name = cursor.fetchone()
+            if r_name and r_name[0]:
+                payer_name = r_name[0]
+        if not payer_name or payer_name in ("None None", "None"):
+            payer_name = "Assinante VIP"
 
         # Calcula a nova data de vencimento: se ja tiver dias restantes ativos, SOMA os dias!
         cursor.execute("SELECT trial_expires_at FROM tenants WHERE id = ?", (tenant_id,))
