@@ -302,6 +302,7 @@ def get_public_settings():
     return {
         "support_whatsapp": get_system_setting("support_whatsapp", ""),
         "trial_days": int(get_system_setting("trial_days", "0")),
+        "trial_hours": int(get_system_setting("trial_hours", "5")),
         "app_name": get_system_setting("app_name", "Bicho Master Pro"),
         "google_client_id": get_system_setting("google_client_id", ""),
         "plans": {
