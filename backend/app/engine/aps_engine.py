@@ -66,20 +66,21 @@ def get_aps_grid_definition() -> Dict[str, Any]:
     return {"grid_rows": grid_rows, "rows_count": 5, "cols_count": 5}
 
 
-def fetch_recent_draws_for_aps(lottery: str = "NACIONAL", limit: int = 15) -> List[Dict[str, Any]]:
-    """Busca as extrações mais recentes da loteria especificada ordenadas da mais recente para a mais antiga."""
+def fetch_recent_draws_for_aps(lottery: str = "NACIONAL", limit: int = 15, before_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    """Busca as extrações mais recentes da loteria especificada ordenadas da mais recente para a mais antiga, opcionalmente anteriores a before_id."""
     eff_lot = (lottery or "NACIONAL").upper()
     with get_db_connection() as conn:
         cursor = conn.cursor()
+        id_cond = " AND id < ?" if before_id is not None else ""
         if eff_lot == "FEDERAL":
-            query = "SELECT * FROM draw_results WHERE (lottery = 'FEDERAL' OR slot = 'FED') ORDER BY draw_date DESC, id DESC LIMIT ?"
-            params = [limit]
+            query = f"SELECT * FROM draw_results WHERE (lottery = 'FEDERAL' OR slot = 'FED'){id_cond} ORDER BY draw_date DESC, id DESC LIMIT ?"
+            params = ([before_id, limit] if before_id is not None else [limit])
         elif eff_lot == "RJ":
-            query = "SELECT * FROM draw_results WHERE (lottery = 'RJ' OR lottery IS NULL OR slot = 'FED') ORDER BY draw_date DESC, id DESC LIMIT ?"
-            params = [limit]
+            query = f"SELECT * FROM draw_results WHERE (lottery = 'RJ' OR lottery IS NULL OR slot = 'FED'){id_cond} ORDER BY draw_date DESC, id DESC LIMIT ?"
+            params = ([before_id, limit] if before_id is not None else [limit])
         else:
-            query = "SELECT * FROM draw_results WHERE lottery = ? ORDER BY draw_date DESC, id DESC LIMIT ?"
-            params = [eff_lot, limit]
+            query = f"SELECT * FROM draw_results WHERE lottery = ?{id_cond} ORDER BY draw_date DESC, id DESC LIMIT ?"
+            params = ([eff_lot, before_id, limit] if before_id is not None else [eff_lot, limit])
         
         cursor.execute(query, params)
         rows = cursor.fetchall()
@@ -545,13 +546,13 @@ def generate_aps_inversion_and_ternos(prizes: List[str], top_pedras: List[int]) 
     }
 
 
-def calculate_full_aps_analysis(lottery: str = "NACIONAL", target_date: Optional[str] = None) -> Dict[str, Any]:
+def calculate_full_aps_analysis(lottery: str = "NACIONAL", target_date: Optional[str] = None, before_id: Optional[int] = None) -> Dict[str, Any]:
     """
     Executa a análise completa do Método APS integrando:
     Grade 5x5, Ausências, D3, Pedras de Centena, Seleção de Elite,
     Centenas Cirúrgicas, 12 Ternos e 60 MC.
     """
-    recent_draws = fetch_recent_draws_for_aps(lottery=lottery, limit=20)
+    recent_draws = fetch_recent_draws_for_aps(lottery=lottery, limit=20, before_id=before_id)
     grid_analysis = analyze_aps_grid(recent_draws)
     pedras_analysis = analyze_pedras_centena(recent_draws)
     d3_analysis = analyze_d3_cycle(recent_draws)
