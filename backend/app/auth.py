@@ -108,7 +108,7 @@ from datetime import datetime, timedelta
 
 def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Calcula dias restantes de teste ou status de assinatura do tenant.
+    Calcula tempo restante de teste ou status de assinatura do tenant.
     Administradores possuem acesso perpétuo.
     """
     role = tenant.get("role", "tester")
@@ -117,6 +117,9 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
             "status": "admin",
             "is_expired": False,
             "days_remaining": 9999,
+            "hours_remaining": 9999,
+            "minutes_remaining": 9999,
+            "seconds_remaining": 9999999,
             "badge": "👑 Administrador Master"
         }
 
@@ -128,21 +131,16 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
             "status": "suspended",
             "is_expired": True,
             "days_remaining": 0,
+            "hours_remaining": 0,
+            "minutes_remaining": 0,
+            "seconds_remaining": 0,
             "badge": "⛔ Conta Suspensa"
-        }
-
-    if sub_status == "expired":
-        return {
-            "status": "expired",
-            "is_expired": True,
-            "days_remaining": 0,
-            "badge": "🔒 Modo Básico"
         }
 
     expires_at_raw = tenant.get("trial_expires_at") or tenant.get("expires_at")
 
     # Se for assinante com plano pago ativo
-    if sub_status == "active" and plan_type != "free":
+    if sub_status == "active" and plan_type not in ("free", "trial", None, ""):
         if expires_at_raw:
             try:
                 if isinstance(expires_at_raw, str):
@@ -154,11 +152,15 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
                     expires_dt = datetime.now()
                 now = datetime.now()
                 diff = expires_dt - now
-                if diff.total_seconds() <= 0:
+                sec_left = diff.total_seconds()
+                if sec_left <= 0:
                     return {
                         "status": "expired",
                         "is_expired": True,
                         "days_remaining": 0,
+                        "hours_remaining": 0,
+                        "minutes_remaining": 0,
+                        "seconds_remaining": 0,
                         "badge": "🔒 Assinatura Expirada"
                     }
                 days_left = max(1, int(diff.days) + (1 if diff.seconds > 0 else 0))
@@ -166,6 +168,9 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
                     "status": "active",
                     "is_expired": False,
                     "days_remaining": days_left,
+                    "hours_remaining": int(sec_left // 3600),
+                    "minutes_remaining": int((sec_left % 3600) // 60),
+                    "seconds_remaining": int(sec_left),
                     "badge": f"⭐ Assinante • {days_left}d"
                 }
             except Exception:
@@ -174,18 +179,25 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
             "status": "active",
             "is_expired": False,
             "days_remaining": 30,
+            "hours_remaining": 720,
+            "minutes_remaining": 0,
+            "seconds_remaining": 2592000,
             "badge": "⭐ Assinante Ativo"
         }
 
-    # Se for período de teste (trial gratuito)
-    if not expires_at_raw:
+    # Se sub_status foi marcado como expirado ou não tem expiração definida
+    if sub_status == "expired" or not expires_at_raw:
         return {
-            "status": "trial",
-            "is_expired": False,
-            "days_remaining": 3,
-            "badge": "⏳ Teste Grátis • 5 dias"
+            "status": "expired",
+            "is_expired": True,
+            "days_remaining": 0,
+            "hours_remaining": 0,
+            "minutes_remaining": 0,
+            "seconds_remaining": 0,
+            "badge": "🔒 Modo Básico"
         }
 
+    # Período de Teste / Degustação
     try:
         if isinstance(expires_at_raw, str):
             clean_str = expires_at_raw.replace("T", " ").split(".")[0]
@@ -204,30 +216,53 @@ def calculate_trial_info(tenant: Dict[str, Any]) -> Dict[str, Any]:
                 "status": "expired",
                 "is_expired": True,
                 "days_remaining": 0,
-                "badge": "🔒 Acesso Expirado"
+                "hours_remaining": 0,
+                "minutes_remaining": 0,
+                "seconds_remaining": 0,
+                "badge": "🔒 Degustação Expirada"
             }
-        else:
-            days_left = max(1, int(diff.days) + (1 if diff.seconds > 0 else 0))
-            # Se possui mais de 5 dias ou plano pago, é Assinante VIP
-            if days_left > 5 or plan_type not in ("free", None, ""):
-                return {
-                    "status": "active",
-                    "is_expired": False,
-                    "days_remaining": days_left,
-                    "badge": f"⭐ Assinante VIP • {days_left}d"
-                }
+
+        total_hours = int(seconds_left // 3600)
+        minutes_left = int((seconds_left % 3600) // 60)
+        days_left = int(seconds_left // 86400)
+
+        # Se for mais de 5 dias ou plano pago, é Assinante VIP
+        if days_left > 5 or plan_type not in ("free", "trial", None, ""):
             return {
-                "status": "trial",
+                "status": "active",
                 "is_expired": False,
                 "days_remaining": days_left,
-                "badge": f"⚡ Teste VIP • {days_left}d"
+                "hours_remaining": total_hours,
+                "minutes_remaining": minutes_left,
+                "seconds_remaining": int(seconds_left),
+                "badge": f"⭐ Assinante VIP • {days_left}d"
             }
-    except Exception:
+
+        if days_left >= 1:
+            badge = f"⚡ Teste VIP • {days_left}d"
+        elif total_hours > 0:
+            badge = f"⏳ Teste VIP • {total_hours}h {minutes_left}m"
+        else:
+            badge = f"⏳ Teste VIP • {minutes_left}m"
+
         return {
             "status": "trial",
             "is_expired": False,
-            "days_remaining": 3,
-            "badge": "⏳ Teste VIP"
+            "days_remaining": days_left,
+            "hours_remaining": total_hours,
+            "minutes_remaining": minutes_left,
+            "seconds_remaining": int(seconds_left),
+            "badge": badge
+        }
+    except Exception:
+        return {
+            "status": "expired",
+            "is_expired": True,
+            "days_remaining": 0,
+            "hours_remaining": 0,
+            "minutes_remaining": 0,
+            "seconds_remaining": 0,
+            "badge": "🔒 Modo Básico"
         }
 
 
@@ -371,7 +406,23 @@ def get_or_create_google_tenant(
             trial_days_setting = int(get_system_setting('trial_days', '0') or '0')
         except Exception:
             trial_days_setting = 0
-        trial_expire_ts = time.time() + (trial_days_setting * 86400)
+        try:
+            trial_hours_setting = int(get_system_setting('trial_hours', '5') or '5')
+        except Exception:
+            trial_hours_setting = 5
+
+        if trial_hours_setting > 0 and trial_days_setting == 0:
+            trial_expire_ts = time.time() + (trial_hours_setting * 3600)
+            initial_sub_status = 'trial'
+            initial_notes = f'Cadastro via Google ({trial_hours_setting} horas de degustação)'
+        elif trial_days_setting > 0:
+            trial_expire_ts = time.time() + (trial_days_setting * 86400)
+            initial_sub_status = 'trial'
+            initial_notes = f'Cadastro via Google ({trial_days_setting} dias)'
+        else:
+            trial_expire_ts = time.time()
+            initial_sub_status = 'expired'
+            initial_notes = 'Cadastro via Google (Modo Básico)'
         trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
 
         if row:
@@ -392,8 +443,8 @@ def get_or_create_google_tenant(
 
         # Se não existe e passou na validação, cria um novo tenant com 5 dias de teste
         key = generate_clean_key("usr")
-        initial_sub_status = 'active' if trial_days_setting > 0 else 'expired'
-        initial_notes = f'Cadastro via Google ({trial_days_setting} dias)' if trial_days_setting > 0 else 'Cadastro via Google (Plano VIP Pendente)'
+        # Status e notas já definidos com base em horas/dias
+        pass
 
         cursor.execute("""
         INSERT INTO tenants (
@@ -445,7 +496,23 @@ def register_new_tenant(
         trial_days_setting = int(get_system_setting('trial_days', '0') or '0')
     except Exception:
         trial_days_setting = 0
-    trial_expire_ts = time.time() + (trial_days_setting * 86400)
+    try:
+        trial_hours_setting = int(get_system_setting('trial_hours', '5') or '5')
+    except Exception:
+        trial_hours_setting = 5
+
+    if trial_hours_setting > 0 and trial_days_setting == 0:
+        trial_expire_ts = time.time() + (trial_hours_setting * 3600)
+        initial_sub_status = 'trial'
+        initial_notes = f'Cadastro WhatsApp ({trial_hours_setting} horas de degustação)'
+    elif trial_days_setting > 0:
+        trial_expire_ts = time.time() + (trial_days_setting * 86400)
+        initial_sub_status = 'trial'
+        initial_notes = f'Cadastro WhatsApp ({trial_days_setting} dias de teste)'
+    else:
+        trial_expire_ts = time.time()
+        # initial_sub_status e initial_notes configurados para 5 horas de degustação
+        pass
     trial_expire_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(trial_expire_ts))
 
     with get_db_connection() as conn:
@@ -489,8 +556,8 @@ def register_new_tenant(
 
         unique_key = f"vip-{phone_digits[-4:]}-{secrets.token_hex(3)}"
 
-        initial_sub_status = 'expired'
-        initial_notes = 'Cadastro Gratuito - Plano VIP Pendente'
+        # initial_sub_status e initial_notes configurados para 5 horas de degustação
+        pass
 
         cursor.execute("""
             INSERT INTO tenants (
