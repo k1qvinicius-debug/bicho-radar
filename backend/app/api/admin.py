@@ -235,6 +235,15 @@ def update_tenant(tenant_id: int, data: TenantUpdateModel):
         if data.trial_expires_at is not None:
             updates.append("trial_expires_at = ?")
             params.append(data.trial_expires_at)
+        if data.trial_started_at is not None:
+            updates.append("trial_started_at = ?")
+            params.append(data.trial_started_at)
+        if data.created_at is not None:
+            updates.append("created_at = ?")
+            params.append(data.created_at)
+        if data.last_active_at is not None:
+            updates.append("last_active_at = ?")
+            params.append(data.last_active_at)
         if data.subscription_status is not None:
             updates.append("subscription_status = ?")
             params.append(data.subscription_status)
