@@ -993,6 +993,35 @@
     <!-- TELA 2: PALPITES DO HORÁRIO (ORGANIZADA POR 3 TÓPICOS LIMPOS) -->
     <!-- =================================================================== -->
     <div id="view-palpites" class="space-y-2.5 animate-fade-in hidden">
+      <!-- Banner Didático de Auditoria Direta (Exibido ao navegar da Auditoria/Histórico) -->
+      <div id="audited-prediction-banner" class="hidden p-3 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-indigo-500/20 border border-emerald-500/40 shadow-lg animate-fade-in flex items-center justify-between flex-wrap gap-2 mb-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/30 border border-emerald-500/50 flex items-center justify-center text-base shrink-0 shadow-inner">
+            🎯
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/25 text-emerald-300 border border-emerald-500/40">
+                Auditoria • Palpites Congelados
+              </span>
+              <span id="audited-banner-lottery-slot" class="text-xs font-bold text-white font-mono truncate"></span>
+            </div>
+            <p class="text-[11px] text-slate-300 mt-0.5 leading-snug">
+              Exibindo a grade exata de palpites oficiais gerada pelo robô antes desta extração.
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+          <a href="/historico" 
+            class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1 transition-all active:scale-95 cursor-pointer no-underline">
+            <span>← Voltar à Auditoria</span>
+          </a>
+          <button type="button" onclick="document.getElementById('audited-prediction-banner').classList.add('hidden')" 
+            class="w-6 h-6 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs transition-all cursor-pointer" title="Fechar aviso">
+            ✕
+          </button>
+        </div>
+      </div>
       <!-- Painel de Controle Minimalista Compacto -->
       <div class="card-glass p-2 sm:p-2.5 rounded-xl border border-slate-800/80 shadow-sm space-y-1.5">
         <!-- Linha 1: Slot Ativo + Estatística + Data + Recalcular (Responsivo e sem sobreposição de seta) -->
