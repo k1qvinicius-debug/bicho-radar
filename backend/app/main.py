@@ -6,7 +6,7 @@ if hasattr(time, "tzset"):
         time.tzset()
     except Exception:
         pass
-﻿"""
+"""
 Aplicação Principal FastAPI - Bicho Analytics.
 Configuração de rotas de API, middlewares e montagem dos arquivos estáticos do frontend.
 """
