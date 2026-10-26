@@ -393,18 +393,25 @@ async def verify_status(ref: Optional[str] = Query(None)):
 
         if tenant and tenant.get("subscription_status") == "active":
             token = create_token_for_tenant(tenant)
+            from ..auth import calculate_trial_info
+            trial_info = calculate_trial_info(tenant)
             return {
                 "status": "approved",
                 "subscription_status": "active",
-                "plan": tenant.get("plan_type"),
+                "plan": tenant.get("plan_type", "monthly"),
                 "token": token,
                 "tenant": {
                     "id": tenant["id"],
                     "name": tenant.get("name"),
                     "email": tenant.get("email"),
-                    "role": tenant.get("role"),
-                    "subscription_status": tenant.get("subscription_status"),
-                    "plan_type": tenant.get("plan_type")
+                    "phone": tenant.get("phone"),
+                    "role": tenant.get("role", "tester"),
+                    "subscription_status": tenant.get("subscription_status", "active"),
+                    "plan_type": tenant.get("plan_type", "monthly"),
+                    "trial_expires_at": tenant.get("trial_expires_at"),
+                    "trial_info": trial_info,
+                    "trial_days_remaining": trial_info.get("days_remaining", 30),
+                    "is_expired": False
                 }
             }
 
