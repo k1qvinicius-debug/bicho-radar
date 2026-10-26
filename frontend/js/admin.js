@@ -826,8 +826,16 @@ window.renderFilteredClientsList = function() {
     } else if (isExpired) {
       planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">🔒 TESTE EXPIRADO</span>';
     } else {
-      const days = daysRemaining > 0 ? daysRemaining : 5;
-      planBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">⏳ Teste (${days}d restantes)</span>`;
+      let badgeText = '';
+      if (t.trial_info && t.trial_info.badge) {
+        badgeText = t.trial_info.badge;
+      } else if (daysRemaining > 0) {
+        badgeText = `⏳ Teste (${daysRemaining}d restantes)`;
+      } else {
+        const h = t.trial_hours_remaining || (t.trial_info ? t.trial_info.hours_remaining : 0) || 0;
+        badgeText = h > 0 ? `⏳ Teste (${h}h restantes)` : '⏳ Teste (1d restante)';
+      }
+      planBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">${badgeText}</span>`;
     }
 
     // Badge de Engajamento
@@ -916,10 +924,10 @@ window.renderFilteredClientsList = function() {
             </button>
 
             ${(!isSubscriber) ? `
-              <button type="button" onclick="renewTenantTrialDays(${t.id}, '${escapeJsString(t.name)}', 5)"
+              <button type="button" onclick="renewTenantTrialDays(${t.id}, '${escapeJsString(t.name)}', 1)"
                 class="px-2 py-1 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/80 font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-                title="Conceder +5 dias de teste grátis">
-                <span>⏳</span> <span>+5d Teste</span>
+                title="Conceder +1 dia de teste grátis">
+                <span>⏳</span> <span>+1d Teste</span>
               </button>
             ` : ''}
 
@@ -954,8 +962,9 @@ window.renderFilteredClientsList = function() {
   }).join('');
 };
 
-window.renewTenantTrialDays = async function(tenantId, tenantName, days = 5) {
-  if (!confirm(`Deseja conceder mais ${days} dias de Teste VIP para o cliente '${tenantName}'?`)) return;
+window.renewTenantTrialDays = async function(tenantId, tenantName, days = 1) {
+  const diaTexto = days === 1 ? '1 dia' : `${days} dias`;
+  if (!confirm(`Deseja conceder mais ${diaTexto} de Teste VIP para o cliente '${tenantName}'?`)) return;
   try {
     const res = await api.addTenantTrial(tenantId, days);
     showToast(res.message || `Teste VIP renovado por mais ${days} dias para ${tenantName}!`, 'success');
