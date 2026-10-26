@@ -5,18 +5,38 @@ window.isUserVip = function() {
   if (tenant.role === 'admin') return true;
   const userEmail = (tenant.email || '').toLowerCase();
   if (userEmail === 'k1qvinicius.cs@gmail.com' || userEmail === 'k1qvinicius@gmail.com') return true;
-  const isExpired = tenant.is_expired || tenant.subscription_status === 'expired' || 
-    (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0);
-  if (isExpired) return false;
 
-  const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
-    ? tenant.trial_info.days_remaining
-    : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 0);
-
-  // Se tiver mais de 5 dias ou plano pago ativo, é 100% assinante VIP
-  if (days > 5) return true;
+  // Assinante pago ativo
   if (tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free') return true;
   if (tenant.plan_type === 'monthly' || tenant.plan_type === 'vip' || tenant.plan_type === 'anual') return true;
+
+  // Verificação de expiração explícita
+  if (tenant.is_expired === true || tenant.subscription_status === 'expired' || tenant.subscription_status === 'suspended') {
+    return false;
+  }
+
+  // Se tiver trial_info calculado pelo backend
+  if (tenant.trial_info) {
+    if (tenant.trial_info.is_expired === true || tenant.trial_info.status === 'expired') {
+      return false;
+    }
+    if (tenant.trial_info.seconds_remaining > 0 || tenant.trial_info.hours_remaining > 0 || tenant.trial_info.days_remaining > 0) {
+      return true;
+    }
+    if (tenant.trial_info.status === 'trial' || tenant.trial_info.status === 'active') {
+      return !tenant.trial_info.is_expired;
+    }
+  }
+
+  // Verificação direta pela data trial_expires_at
+  if (tenant.trial_expires_at) {
+    try {
+      const expDate = new Date(tenant.trial_expires_at.replace(' ', 'T'));
+      if (!isNaN(expDate.getTime())) {
+        return expDate.getTime() > Date.now();
+      }
+    } catch (e) {}
+  }
 
   return false;
 };
@@ -320,11 +340,7 @@ function switchScreen(screenName, updateHash = true) {
   if (!screens.includes(screenName)) screenName = 'home';
 
   const currentTenant = api.getCurrentTenant();
-  const isExpired = currentTenant && currentTenant.role !== 'admin' && (
-    currentTenant.is_expired || 
-    currentTenant.subscription_status === 'expired' || 
-    (currentTenant.trial_days_remaining !== undefined && currentTenant.trial_days_remaining !== null && currentTenant.trial_days_remaining <= 0)
-  );
+  const isExpired = currentTenant && currentTenant.role !== 'admin' && typeof window.isUserVip === 'function' && !window.isUserVip();
   // Modo Degustação: permite navegar nas telas para conhecer as funcionalidades e ver o valor do app
   /* if (isExpired && screenName !== 'home' && screenName !== 'resultados') {
     showTrialExpiredModal();
@@ -6323,12 +6339,7 @@ async function initTenantAuth() {
 
   // Verifica se o usuário atual está com teste expirado
   const tenant = api.getCurrentTenant();
-  const isSubscriber = tenant && tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free';
-  const isExpired = tenant && tenant.role !== 'admin' && !isSubscriber && (
-    tenant.is_expired || 
-    tenant.subscription_status === 'expired' || 
-    (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0)
-  );
+  const isExpired = tenant && tenant.role !== 'admin' && typeof window.isUserVip === 'function' && !window.isUserVip();
 
   if (isExpired) {
     if (typeof window.renderExpiredBasicBanner === 'function') {
@@ -6436,7 +6447,7 @@ function updateAuthUI() {
 
       const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
         ? tenant.trial_info.days_remaining
-        : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 5);
+        : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 0);
 
       // Usuário que pagou (30 dias ou plano ativo) é identificado como Assinante VIP
       const isSubscriber = (tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free') ||
@@ -6445,11 +6456,44 @@ function updateAuthUI() {
                            tenant.plan_type === 'anual' ||
                            days > 5;
 
-      const isExpired = !isSubscriber && (
-        tenant.is_expired || 
-        tenant.subscription_status === 'expired' || 
-        (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0)
-      );
+      // Determina se o teste está ativo e calcula tempo amigável
+      let isTrialActive = false;
+      let timeText = '';
+
+      if (!isSubscriber) {
+        if (tenant.trial_info && tenant.trial_info.is_expired === false) {
+          isTrialActive = true;
+          const h = tenant.trial_info.hours_remaining || 0;
+          const m = tenant.trial_info.minutes_remaining || 0;
+          const d = tenant.trial_info.days_remaining || 0;
+          if (d >= 1) {
+            timeText = `${d}d`;
+          } else if (h > 0) {
+            timeText = `${h}h ${m}m`;
+          } else {
+            timeText = `${m}m`;
+          }
+        } else if (tenant.trial_expires_at && tenant.subscription_status !== 'expired' && tenant.subscription_status !== 'suspended') {
+          try {
+            const exp = new Date(tenant.trial_expires_at.replace(' ', 'T'));
+            const diffMs = exp.getTime() - Date.now();
+            if (diffMs > 0) {
+              isTrialActive = true;
+              const totalH = Math.floor(diffMs / (1000 * 60 * 60));
+              const totalM = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+              if (totalH >= 24) {
+                timeText = `${Math.floor(totalH / 24)}d`;
+              } else if (totalH > 0) {
+                timeText = `${totalH}h ${totalM}m`;
+              } else {
+                timeText = `${totalM}m`;
+              }
+            }
+          } catch (e) {}
+        }
+      }
+
+      const isExpired = !isSubscriber && !isTrialActive;
 
       if (isSubscriber && btnHeaderPlans) {
         btnHeaderPlans.classList.add('hidden');
@@ -6458,8 +6502,8 @@ function updateAuthUI() {
       if (drawerUserLabel) {
         if (isSubscriber) {
           drawerUserLabel.textContent = (tenant.name || 'Assinante') + ` (VIP • ${days}d)`;
-        } else if (isExpired) {
-          drawerUserLabel.textContent = (tenant.name || 'Visitante') + ' (Básico)';
+        } else if (isTrialActive) {
+          drawerUserLabel.textContent = (tenant.name || 'Visitante') + ` (Teste • ${timeText})`;
         } else {
           drawerUserLabel.textContent = (tenant.name || 'Visitante') + ' (Básico)';
         }
@@ -6473,6 +6517,21 @@ function updateAuthUI() {
                 <span class="text-[10px] sm:text-xs">⭐</span>
                 <span class="font-black tracking-wide"><span class="hidden sm:inline">Assinante </span>VIP (${days}d)</span>
               </div>
+              <button type="button" onclick="handleUserLogout()" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-300 flex items-center justify-center text-[10px] sm:text-xs transition-colors cursor-pointer shrink-0" title="Sair desta conta">
+                🚪
+              </button>
+            </div>
+          `;
+        } else if (isTrialActive) {
+          badgeContainer.innerHTML = `
+            <div class="flex items-center gap-1.5 shrink-0">
+              <div class="flex items-center gap-1 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/40 text-amber-300 text-[10px] sm:text-xs px-2.5 py-1 rounded-full font-bold shadow-md shadow-amber-500/10 shrink-0">
+                <span class="text-[10px] sm:text-xs">⚡</span>
+                <span class="font-black tracking-wide"><span class="hidden sm:inline">Teste </span>VIP (${timeText})</span>
+              </div>
+              <button type="button" onclick="openPlansModal()" class="px-2 sm:px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] sm:text-xs shadow-md shadow-amber-500/20 hover:scale-105 transition-transform flex items-center gap-1 cursor-pointer shrink-0" title="Assinar Plano Definitivo">
+                <span>⭐</span> <span><span class="hidden sm:inline">Virar </span>VIP</span>
+              </button>
               <button type="button" onclick="handleUserLogout()" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-300 flex items-center justify-center text-[10px] sm:text-xs transition-colors cursor-pointer shrink-0" title="Sair desta conta">
                 🚪
               </button>
@@ -7871,7 +7930,7 @@ window.handleMainRegister = async function(event) {
   if (errEl) errEl.classList.add('hidden');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span>⏳</span> <span>Criando sua conta...</span>';
+    btn.innerHTML = '<span>⏳</span> <span>Liberando 5 horas de teste...</span>';
   }
 
   try {
@@ -7883,7 +7942,7 @@ window.handleMainRegister = async function(event) {
     });
 
     if (typeof showToast === 'function') {
-      showToast('🎉 Bem-vindo! Conta criada com sucesso.', 'success');
+      showToast('🎉 Bem-vindo! Suas 5 horas de Teste VIP foram ativadas com sucesso.', 'success');
     }
     updateAuthUI();
     updateHomeScreenData();
@@ -7896,7 +7955,7 @@ window.handleMainRegister = async function(event) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<span>🚀</span> <span>Criar Minha Conta Agora</span>';
+      btn.innerHTML = '<span>🚀</span> <span>Ativar Minhas 5 Horas Grátis</span>';
     }
   }
 };
@@ -7922,12 +7981,7 @@ window.closePlansModal = function() {
   document.body.classList.remove('overflow-hidden');
 
   const tenant = api.getCurrentTenant();
-  const isSubscriber = tenant && tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free';
-  const isExpired = tenant && tenant.role !== 'admin' && !isSubscriber && (
-    tenant.is_expired || 
-    tenant.subscription_status === 'expired' || 
-    (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining <= 0)
-  );
+  const isExpired = tenant && tenant.role !== 'admin' && typeof window.isUserVip === 'function' && !window.isUserVip();
 
   // Se o usuário estiver no modo básico (expirado) e em uma tela VIP exclusiva, volta suavemente para Início
   if (isExpired && typeof window.currentScreen === 'string' && window.currentScreen !== 'home' && window.currentScreen !== 'resultados') {
