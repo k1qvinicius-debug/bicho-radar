@@ -6,16 +6,31 @@ window.isUserVip = function() {
   const userEmail = (tenant.email || '').toLowerCase();
   if (userEmail === 'k1qvinicius.cs@gmail.com' || userEmail === 'k1qvinicius@gmail.com') return true;
 
-  // Assinante pago ativo
-  if (tenant.subscription_status === 'active' && tenant.plan_type && tenant.plan_type !== 'free') return true;
-  if (tenant.plan_type === 'monthly' || tenant.plan_type === 'vip' || tenant.plan_type === 'anual') return true;
+  // 1. Assinante ativo (mensal, vip, anual ou com status ativo não expirado)
+  if (tenant.subscription_status === 'active') {
+    if (tenant.plan_type && tenant.plan_type !== 'free') return true;
+    if (tenant.trial_days_remaining !== undefined && tenant.trial_days_remaining !== null && tenant.trial_days_remaining > 0) return true;
+    if (tenant.trial_info && tenant.trial_info.is_expired === false) return true;
+    if (!tenant.is_expired) return true;
+  }
+  if (tenant.plan_type === 'monthly' || tenant.plan_type === 'vip' || tenant.plan_type === 'anual' || tenant.plan_type === 'trimestral' || tenant.plan_type === 'semestral') {
+    if (tenant.subscription_status !== 'expired' && tenant.subscription_status !== 'suspended') return true;
+  }
 
-  // Verificação de expiração explícita
+  // 2. Dias restantes > 0 e não expirado
+  const days = (tenant.trial_info && tenant.trial_info.days_remaining !== undefined)
+    ? tenant.trial_info.days_remaining
+    : (tenant.trial_days_remaining !== undefined ? tenant.trial_days_remaining : 0);
+  if (days > 0 && tenant.subscription_status !== 'expired' && tenant.subscription_status !== 'suspended') {
+    return true;
+  }
+
+  // 3. Verificação de expiração explícita
   if (tenant.is_expired === true || tenant.subscription_status === 'expired' || tenant.subscription_status === 'suspended') {
     return false;
   }
 
-  // Se tiver trial_info calculado pelo backend
+  // 4. Se tiver trial_info calculado pelo backend
   if (tenant.trial_info) {
     if (tenant.trial_info.is_expired === true || tenant.trial_info.status === 'expired') {
       return false;
@@ -28,7 +43,7 @@ window.isUserVip = function() {
     }
   }
 
-  // Verificação direta pela data trial_expires_at
+  // 5. Verificação direta pela data trial_expires_at
   if (tenant.trial_expires_at) {
     try {
       const expDate = new Date(tenant.trial_expires_at.replace(' ', 'T'));
@@ -6495,8 +6510,27 @@ function updateAuthUI() {
 
       const isExpired = !isSubscriber && !isTrialActive;
 
-      if (isSubscriber && btnHeaderPlans) {
-        btnHeaderPlans.classList.add('hidden');
+      if (btnHeaderPlans) {
+        if (isSubscriber) {
+          btnHeaderPlans.classList.add('hidden');
+          btnHeaderPlans.classList.remove('sm:inline-flex', 'inline-flex', 'flex');
+        } else {
+          btnHeaderPlans.classList.remove('hidden');
+          btnHeaderPlans.classList.add('hidden', 'sm:inline-flex');
+        }
+      }
+
+      // Oculta botões de planos e login no menu gaveta para assinantes
+      const drawerPlansBtn = document.getElementById('drawer-plans-btn');
+      const drawerLoginBtn = document.getElementById('drawer-login-btn');
+      const drawerPlansLink = document.getElementById('drawer-plans-link');
+      if (drawerLoginBtn) drawerLoginBtn.classList.add('hidden');
+      if (isSubscriber) {
+        if (drawerPlansBtn) drawerPlansBtn.classList.add('hidden');
+        if (drawerPlansLink) drawerPlansLink.classList.add('hidden');
+      } else {
+        if (drawerPlansBtn) drawerPlansBtn.classList.remove('hidden');
+        if (drawerPlansLink) drawerPlansLink.classList.remove('hidden');
       }
 
       if (drawerUserLabel) {
