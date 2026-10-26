@@ -152,6 +152,7 @@ def login(payload: LoginRequestModel, request: Request):
             "role": tenant["role"],
             "status": tenant["status"],
             "subscription_status": tenant.get("subscription_status", "trial"),
+            "plan_type": tenant.get("plan_type", "free"),
             "trial_expires_at": tenant.get("trial_expires_at"),
             "trial_info": trial_info,
             "created_at": str(tenant.get("created_at", "")),
@@ -220,6 +221,7 @@ def login_google(payload: LoginRequestModel, request: Request):
             "role": tenant["role"],
             "status": tenant["status"],
             "subscription_status": tenant.get("subscription_status", "trial"),
+            "plan_type": tenant.get("plan_type", "free"),
             "trial_expires_at": tenant.get("trial_expires_at"),
             "trial_info": trial_info,
             "created_at": str(tenant.get("created_at", "")),
@@ -399,6 +401,8 @@ def check_session(tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_
         "phone": tenant.get("phone"),
         "role": tenant["role"],
         "subscription_status": sub_status,
+        "plan_type": tenant.get("plan_type", "free"),
+        "trial_expires_at": tenant.get("trial_expires_at"),
         "trial_info": trial_info,
         "is_admin": tenant.get("role") == "admin"
     }
