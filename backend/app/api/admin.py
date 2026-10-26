@@ -110,7 +110,9 @@ def list_tenants():
                 last_active_at=str(r["last_active_at"] or ""),
                 created_at=str(r["created_at"] or ""),
                 snapshots_count=r["snapshots_count"] or 0,
-                trial_days_remaining=trial_info["days_remaining"]
+                trial_days_remaining=trial_info.get("days_remaining", 0),
+                trial_hours_remaining=trial_info.get("hours_remaining", 0),
+                trial_info=trial_info
             ))
         return tenants
 
@@ -754,6 +756,7 @@ def get_settings():
     return SystemSettingsModel(
         support_whatsapp=get_system_setting("support_whatsapp", ""),
         trial_days=int(get_system_setting("trial_days", "0")),
+        trial_hours=int(get_system_setting("trial_hours", "5")),
         app_name=get_system_setting("app_name", "Bicho Master Pro"),
         google_client_id=get_system_setting("google_client_id", ""),
         plan_link_monthly=get_system_setting("plan_link_monthly", ""),
@@ -772,6 +775,8 @@ def save_settings(data: SystemSettingsModel):
         set_system_setting("support_whatsapp", data.support_whatsapp.strip())
     if data.trial_days is not None:
         set_system_setting("trial_days", str(data.trial_days))
+    if data.trial_hours is not None:
+        set_system_setting("trial_hours", str(data.trial_hours))
     if data.google_client_id is not None:
         set_system_setting("google_client_id", data.google_client_id.strip())
     if data.plan_link_monthly is not None:
