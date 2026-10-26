@@ -9923,72 +9923,83 @@ function renderApsEliteAnimals(eliteAnimals) {
     // Se não for VIP, os animais a partir do 2º aparecem bloqueados com convite para assinar
     if (!isVip && idx > 0) {
       html += `
-        <div onclick="openPlansModal()" class="rounded-xl bg-gradient-to-b from-slate-900/90 to-slate-950 border border-amber-500/40 p-4 shadow-xl relative overflow-hidden flex flex-col justify-between text-center cursor-pointer group hover:border-amber-400 transition-all select-none">
-          <div class="w-9 h-9 mx-auto rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg mb-1.5 text-amber-300">
+        <div onclick="openPlansModal()" class="rounded-xl bg-gradient-to-b from-slate-900/90 to-slate-950 border border-amber-500/40 p-3 shadow-xl relative overflow-hidden flex flex-col justify-between text-center cursor-pointer group hover:border-amber-400 transition-all select-none">
+          <div class="w-8 h-8 mx-auto rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-base mb-1 text-amber-300">
             🔒
           </div>
-          <div class="text-[10px] font-black uppercase text-amber-400 tracking-wider">#${idx + 1} DE ELITE (ALERTA MÁXIMO)</div>
-          <div class="text-xs font-black text-white mt-1 filter blur-[4px]">🐾 Bicho Secreto VIP</div>
-          <p class="text-[10px] text-slate-300 mt-1 leading-snug">
-            Animal com alta pontuação e pressão de ciclo acumulada.
+          <div class="text-[9px] font-black uppercase text-amber-400 tracking-wider">#${idx + 1} DE ELITE</div>
+          <div class="text-xs font-black text-white mt-0.5 filter blur-[3px]">🐾 Bicho VIP</div>
+          <p class="text-[10px] text-slate-400 mt-1 leading-tight">
+            Animal com alta pontuação de ciclo.
           </p>
-          <button type="button" class="mt-2.5 w-full py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] shadow-sm group-hover:scale-102 transition-transform">
-            Liberar Acesso VIP ⭐
+          <button type="button" class="mt-2 w-full py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] shadow-sm group-hover:scale-102 transition-transform">
+            Liberar VIP ⭐
           </button>
         </div>
       `;
       return;
     }
+
     const reasonsHtml = (anim.reasons || []).map(r => `
-      <div class="text-[10px] text-slate-300 flex items-start gap-1">
+      <div class="text-[9px] text-slate-400 flex items-start gap-1 leading-snug">
         <span class="text-amber-400 shrink-0">•</span>
         <span>${r}</span>
       </div>
     `).join('');
 
     html += `
-      <div class="rounded-xl bg-gradient-to-b from-slate-800/90 to-slate-950 border border-amber-500/40 p-3.5 shadow-xl relative overflow-hidden flex flex-col justify-between">
+      <div class="rounded-xl bg-gradient-to-b from-slate-800/90 to-slate-950 border border-amber-500/40 p-3 shadow-xl relative overflow-hidden flex flex-col justify-between hover:border-amber-400 transition-colors">
         <div class="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
         <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 uppercase">
-              #${idx + 1} DE ELITE
+          <!-- Topo: Badge compacta e Score alinhados sem quebrar -->
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 tracking-tight uppercase">
+              #${idx + 1} ELITE
             </span>
-            <span class="text-xs font-mono font-bold text-amber-300">
-              Score: ${anim.aps_score}
+            <span class="text-[11px] font-mono font-bold text-amber-300">
+              ${anim.aps_score} pts
             </span>
           </div>
 
+          <!-- Animal: Emoji + Nome + Grupo -->
           <div class="flex items-center gap-2 mb-2">
             <span class="text-2xl">${anim.emoji || '🐾'}</span>
-            <div>
-              <div class="text-sm font-black text-white">${anim.name}</div>
-              <div class="text-[11px] text-amber-400 font-mono font-bold">Grupo ${String(anim.group).padStart(2, '0')} • Linha ${anim.row}</div>
+            <div class="min-w-0">
+              <div class="text-sm font-black text-white truncate leading-tight">${anim.name}</div>
+              <div class="text-[10px] text-amber-400 font-mono font-bold truncate">G${String(anim.group).padStart(2, '0')} • Linha ${anim.row}</div>
             </div>
           </div>
 
-          <div class="text-[11px] text-slate-400 font-mono bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800 mb-2">
-            Dezenas: <strong class="text-slate-200">${(anim.tens || []).join(', ')}</strong>
+          <!-- Dezenas: linha limpa -->
+          <div class="text-[11px] font-mono text-slate-300 bg-slate-950/80 px-2 py-1 rounded-lg border border-slate-800 mb-2 flex items-center justify-between">
+            <span class="text-[9px] text-slate-400 font-sans uppercase font-bold">Dezenas:</span>
+            <strong class="text-slate-100 tracking-wider">${(anim.tens || []).join(' • ')}</strong>
           </div>
 
-          <!-- Milhares de Elite (MC) -->
-          <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 mb-2.5">
-            <div class="text-[10px] font-bold text-amber-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-              <span class="flex items-center gap-1"><span>🎯</span> <span>Milhares de Elite (MC):</span></span>
-              <span class="text-[9px] text-amber-400/80 font-normal">Toque p/ copiar</span>
+          <!-- Milhares de Elite (MC): Grade compacta e direta -->
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-1.5 mb-1.5">
+            <div class="flex items-center justify-between text-[10px] text-amber-300 font-bold mb-1">
+              <span class="flex items-center gap-1"><span>🎯</span> <span>Milhares (MC):</span></span>
+              <span class="text-[9px] text-slate-400 font-normal">copiar</span>
             </div>
             <div class="grid grid-cols-2 gap-1 font-mono text-center">
               ${(anim.main_milhares || []).map(m => `
-                <button type="button" onclick="copyTextToClipboard('${m}', 'Milhar ${m} copiada!')" class="py-1 px-1.5 bg-slate-900 border border-amber-500/40 hover:bg-amber-500 hover:text-slate-950 text-amber-300 rounded font-bold text-xs transition-colors cursor-pointer select-all shadow-sm">
+                <button type="button" onclick="copyTextToClipboard('${m}', 'Milhar ${m} copiada!')" class="py-1 px-1 bg-slate-900 border border-amber-500/30 hover:border-amber-400 hover:bg-amber-500 hover:text-slate-950 text-amber-300 rounded text-xs font-bold transition-all cursor-pointer select-all shadow-sm">
                   ${m}
                 </button>
               `).join('')}
             </div>
           </div>
 
-          <div class="space-y-1 mb-2">
-            ${reasonsHtml}
-          </div>
+          <!-- Motivo colapsável (não polui a tela, mas fica acessível) -->
+          <details class="text-[10px] text-slate-400 group pt-0.5">
+            <summary class="cursor-pointer text-[9px] text-slate-500 hover:text-amber-400 flex items-center gap-1 select-none">
+              <span>ℹ️</span> <span>Por que este bicho?</span>
+            </summary>
+            <div class="space-y-0.5 mt-1 text-[9px] text-slate-300 pl-1 border-l border-slate-800">
+              ${reasonsHtml}
+            </div>
+          </details>
         </div>
       </div>
     `;
@@ -9996,7 +10007,6 @@ function renderApsEliteAnimals(eliteAnimals) {
 
   container.innerHTML = html;
 }
-
 function renderApsCentenas(centenasData) {
   const container = document.getElementById('aps-centenas-cirurgicas-container');
   if (!container || !centenasData) return;
@@ -10154,6 +10164,49 @@ function renderApsMilhares(milharesData) {
   container.innerHTML = html;
 }
 window.renderApsMilhares = renderApsMilhares;
+function switchApsModalidade(tab) {
+  const modalidadeTabs = ['milhares', 'centenas', 'ternos', '60mc'];
+  modalidadeTabs.forEach(t => {
+    const el = document.getElementById(`aps-modalidade-${t}`);
+    const btn = document.getElementById(`tab-btn-aps-${t}`);
+    if (el) {
+      if (t === tab) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+    if (btn) {
+      if (t === tab) {
+        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-slate-950 shadow-sm cursor-pointer whitespace-nowrap';
+      } else {
+        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white cursor-pointer whitespace-nowrap';
+      }
+    }
+  });
+}
+window.switchApsModalidade = switchApsModalidade;
+
+function copyApsTernos() {
+  if (!window.isUserVip()) {
+    openPlansModal();
+    showToast('12 Ternos de Dezena exclusivos para assinantes VIP! Assine por R$ 14,90/mês.', 'warning');
+    return;
+  }
+  if (!window.currentApsData || !window.currentApsData.ternos_de_dezena_12) return;
+
+  const lines = [
+    `🎲 12 TERNOS DE DEZENA - RADAR 5X5`,
+    `Loteria: ${window.currentApsLottery || 'NACIONAL'}`,
+    ''
+  ];
+
+  window.currentApsData.ternos_de_dezena_12.forEach((t, idx) => {
+    const arr = t.terno || t || [];
+    lines.push(`Terno #${idx + 1}: ${arr.join(' - ')}`);
+  });
+
+  copyTextToClipboard(lines.join('\n').trim(), '12 Ternos copiados para WhatsApp!');
+}
+window.copyApsTernos = copyApsTernos;
+
 
 function copyAllApsMilhares() {
   if (!window.isUserVip()) {
