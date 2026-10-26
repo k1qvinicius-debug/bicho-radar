@@ -1,3 +1,11 @@
+import os, time
+# Fuso horário oficial: Horário de Brasília (America/Sao_Paulo / UTC-3)
+os.environ["TZ"] = "America/Sao_Paulo"
+if hasattr(time, "tzset"):
+    try:
+        time.tzset()
+    except Exception:
+        pass
 ﻿"""
 Aplicação Principal FastAPI - Bicho Analytics.
 Configuração de rotas de API, middlewares e montagem dos arquivos estáticos do frontend.
