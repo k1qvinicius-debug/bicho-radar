@@ -8004,6 +8004,9 @@ window.openPlansModal = function() {
   if (modal) {
     modal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
+    if (typeof window.startPaymentApprovalWatcher === 'function') {
+      window.startPaymentApprovalWatcher();
+    }
   }
 };
 
@@ -10706,3 +10709,79 @@ try {
     updateApsNextSlotUI(window.currentApsLottery || 'NACIONAL');
   }
 } catch (e) {}
+
+
+// ===================================================================
+// SINCRONIZAÇÃO INSTANTÂNEA PÓS-PAGAMENTO E FOCO DA JANELA
+// ===================================================================
+window.reRenderActiveScreen = function() {
+  const scr = window.currentScreen || 'home';
+  if (scr === 'home') {
+    if (typeof updateHomeScreenData === 'function') updateHomeScreenData();
+    if (typeof loadCurrentPredictions === 'function') loadCurrentPredictions();
+    if (typeof loadHomeApsData === 'function') loadHomeApsData();
+  } else if (scr === 'palpites') {
+    if (typeof renderPicks === 'function') renderPicks();
+  } else if (scr === 'aps') {
+    if (typeof renderApsView === 'function') renderApsView();
+  } else if (scr === 'coluna-data') {
+    if (typeof renderColunaDataView === 'function') renderColunaDataView();
+  } else if (scr === 'cruz') {
+    if (typeof renderCruzDoDia === 'function') renderCruzDoDia();
+  } else if (scr === 'milhares-atrasadas') {
+    if (typeof renderMilharesAtrasadas === 'function') renderMilharesAtrasadas();
+  } else if (scr === 'matriz') {
+    if (typeof renderMatrizScreen === 'function') renderMatrizScreen();
+  }
+};
+
+let _lastCheckSessionTs = 0;
+async function syncSessionAfterPaymentOrFocus(force = false) {
+  const now = Date.now();
+  if (!force && (now - _lastCheckSessionTs < 2500)) return;
+  _lastCheckSessionTs = now;
+
+  const prevIsVip = typeof window.isUserVip === 'function' ? window.isUserVip() : false;
+  try {
+    if (typeof api !== 'undefined' && typeof api.checkSession === 'function') {
+      const session = await api.checkSession();
+      if (session && session.authenticated) {
+        updateAuthUI();
+        const newIsVip = typeof window.isUserVip === 'function' ? window.isUserVip() : false;
+        
+        if (!prevIsVip && newIsVip) {
+          if (typeof closePlansModal === 'function') closePlansModal();
+          showToast('🎉 Pagamento aprovado! Seu Acesso VIP está 100% liberado.', 'success');
+          window.reRenderActiveScreen();
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao sincronizar sessão:', e);
+  }
+}
+
+let _paymentWatcherInterval = null;
+window.startPaymentApprovalWatcher = function() {
+  if (_paymentWatcherInterval) clearInterval(_paymentWatcherInterval);
+  let attempts = 0;
+  _paymentWatcherInterval = setInterval(async () => {
+    attempts++;
+    if (attempts > 50 || (typeof window.isUserVip === 'function' && window.isUserVip())) {
+      clearInterval(_paymentWatcherInterval);
+      _paymentWatcherInterval = null;
+      return;
+    }
+    await syncSessionAfterPaymentOrFocus(true);
+  }, 3000);
+};
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    syncSessionAfterPaymentOrFocus();
+  }
+});
+
+window.addEventListener('focus', () => {
+  syncSessionAfterPaymentOrFocus();
+});
