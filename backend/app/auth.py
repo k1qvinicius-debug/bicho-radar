@@ -403,13 +403,13 @@ def get_or_create_google_tenant(
 
         # Sem dias gratis: novos usuarios devem assinar um plano VIP
         try:
-            trial_days_setting = int(get_system_setting('trial_days', '0') or '0')
+            trial_days_setting = int(get_system_setting('trial_days', '1') or '1')
         except Exception:
-            trial_days_setting = 0
+            trial_days_setting = 1
         try:
-            trial_hours_setting = int(get_system_setting('trial_hours', '5') or '5')
+            trial_hours_setting = int(get_system_setting('trial_hours', '0') or '0')
         except Exception:
-            trial_hours_setting = 5
+            trial_hours_setting = 0
 
         if trial_hours_setting > 0 and trial_days_setting == 0:
             trial_expire_ts = time.time() + (trial_hours_setting * 3600)
@@ -493,13 +493,13 @@ def register_new_tenant(
     now = datetime.now()
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
     try:
-        trial_days_setting = int(get_system_setting('trial_days', '0') or '0')
+        trial_days_setting = int(get_system_setting('trial_days', '1') or '1')
     except Exception:
-        trial_days_setting = 0
+        trial_days_setting = 1
     try:
-        trial_hours_setting = int(get_system_setting('trial_hours', '5') or '5')
+        trial_hours_setting = int(get_system_setting('trial_hours', '0') or '0')
     except Exception:
-        trial_hours_setting = 5
+        trial_hours_setting = 0
 
     if trial_hours_setting > 0 and trial_days_setting == 0:
         trial_expire_ts = time.time() + (trial_hours_setting * 3600)
