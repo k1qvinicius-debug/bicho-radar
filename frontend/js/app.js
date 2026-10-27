@@ -6689,7 +6689,14 @@ window.handleMainLogin = async function(event) {
     window.location.reload();
   } catch (err) {
     if (errEl) {
-      errEl.textContent = err.message || 'WhatsApp ou senha incorretos.';
+      errEl.innerHTML = `
+        <div class="space-y-1">
+          <div>${err.message || 'WhatsApp ou senha incorretos.'}</div>
+          <button type="button" onclick="openForgotPasswordModal()" class="text-amber-400 hover:text-amber-300 underline font-bold cursor-pointer text-[11px] block mx-auto pt-0.5">
+            🔑 Esqueceu sua senha? Clique aqui para recuperar
+          </button>
+        </div>
+      `;
       errEl.classList.remove('hidden');
     }
   } finally {
@@ -10986,3 +10993,141 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('focus', () => {
   syncSessionAfterPaymentOrFocus();
 });
+
+// ============================================================================
+// MODAL DE RECUPERAÇÃO DE SENHA DO USUÁRIO
+// ============================================================================
+window.openForgotPasswordModal = function() {
+  const modal = document.getElementById('modal-forgot-password');
+  const input = document.getElementById('forgot-input-user');
+  const statusMsg = document.getElementById('forgot-status-msg');
+  const actions = document.getElementById('forgot-action-container');
+  const btn = document.getElementById('btn-submit-forgot');
+
+  // Prefill phone from login input if already typed
+  const loginUser = (document.getElementById('login-input-user')?.value || '').trim();
+  if (input) {
+    if (loginUser && /^\d/.test(loginUser)) {
+      input.value = loginUser;
+    }
+  }
+
+  if (statusMsg) {
+    statusMsg.className = 'hidden p-3 rounded-xl text-xs font-medium';
+    statusMsg.textContent = '';
+  }
+  if (actions) {
+    actions.classList.add('hidden');
+    actions.innerHTML = '';
+  }
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<span>🔍</span> <span>Localizar Meu Cadastro</span>';
+  }
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    if (input) setTimeout(() => input.focus(), 100);
+  }
+};
+
+window.closeForgotPasswordModal = function() {
+  const modal = document.getElementById('modal-forgot-password');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.handleForgotPasswordSubmit = async function(e) {
+  if (e) e.preventDefault();
+  const input = document.getElementById('forgot-input-user');
+  const statusMsg = document.getElementById('forgot-status-msg');
+  const actions = document.getElementById('forgot-action-container');
+  const btn = document.getElementById('btn-submit-forgot');
+
+  const val = (input?.value || '').trim();
+  if (!val) {
+    if (statusMsg) {
+      statusMsg.className = 'p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs font-medium';
+      statusMsg.textContent = 'Por favor, digite seu WhatsApp ou e-mail cadastrado.';
+      statusMsg.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> <span>Localizando cadastro...</span>';
+  }
+  if (statusMsg) statusMsg.classList.add('hidden');
+  if (actions) actions.classList.add('hidden');
+
+  try {
+    const res = await api.forgotPassword(val);
+    if (res.found) {
+      if (statusMsg) {
+        statusMsg.className = 'p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-200 text-xs space-y-1';
+        statusMsg.innerHTML = `
+          <div class="font-bold flex items-center gap-1 text-emerald-300">
+            <span>✅</span> <span>Cadastro Localizado com Sucesso!</span>
+          </div>
+          <div>Olá, <strong>${res.name}</strong>! Localizamos seu registro (${res.phone || val}).</div>
+          <div class="text-[11px] text-emerald-400/90 pt-1">
+            Toque no botão abaixo para receber sua senha e redefinição instantânea com nosso suporte no WhatsApp:
+          </div>
+        `;
+        statusMsg.classList.remove('hidden');
+      }
+
+      if (actions) {
+        actions.innerHTML = `
+          <a href="${res.whatsapp_url}" target="_blank"
+            class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/30 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer text-center no-underline">
+            <span>📲</span> <span>Solicitar Senha no WhatsApp do Suporte</span>
+          </a>
+        `;
+        actions.classList.remove('hidden');
+      }
+
+      if (btn) {
+        btn.innerHTML = '<span>🔄</span> <span>Buscar Outro Número</span>';
+        btn.disabled = false;
+      }
+    } else {
+      if (statusMsg) {
+        statusMsg.className = 'p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-200 text-xs space-y-1.5';
+        statusMsg.innerHTML = `
+          <div class="font-bold flex items-center gap-1 text-amber-300">
+            <span>⚠️</span> <span>Nenhum cadastro encontrado</span>
+          </div>
+          <div>Não encontramos uma conta com este WhatsApp/e-mail (${val}). Verifique se digitou o DDD corretamente.</div>
+        `;
+        statusMsg.classList.remove('hidden');
+      }
+
+      if (actions && res.support_url) {
+        actions.innerHTML = `
+          <a href="${res.support_url}" target="_blank"
+            class="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 font-bold text-xs active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center no-underline">
+            <span>💬</span> <span>Falar com o Suporte Humano no WhatsApp</span>
+          </a>
+        `;
+        actions.classList.remove('hidden');
+      }
+
+      if (btn) {
+        btn.innerHTML = '<span>🔍</span> <span>Tentar Novamente</span>';
+        btn.disabled = false;
+      }
+    }
+  } catch (err) {
+    if (statusMsg) {
+      statusMsg.className = 'p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs font-medium';
+      statusMsg.textContent = err.message || 'Erro ao consultar cadastro. Tente novamente.';
+      statusMsg.classList.remove('hidden');
+    }
+    if (btn) {
+      btn.innerHTML = '<span>🔍</span> <span>Localizar Meu Cadastro</span>';
+      btn.disabled = false;
+    }
+  }
+};
+
