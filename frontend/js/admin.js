@@ -891,16 +891,16 @@ window.renderFilteredClientsList = function() {
 
           <!-- Linha 2: Senha, Análises, Acesso e Notas -->
           <div class="flex items-center gap-2 text-[11px] text-slate-400 flex-wrap pt-0.5">
-            <span class="inline-flex items-center gap-1">
+            <span class="inline-flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-amber-500/40 shadow-sm">
               <span class="text-amber-400 font-bold">🔑 Senha:</span>
               <button type="button" onclick="copySimpleText('${userPass}', 'Senha')" title="Clique para copiar a senha deste cliente"
-                class="font-mono font-black text-amber-200 bg-slate-950 px-2 py-0.5 rounded border border-amber-500/40 hover:border-amber-300 hover:text-white transition-colors cursor-pointer text-xs shadow-sm">
+                class="font-mono font-black text-amber-200 bg-slate-900 px-2 py-0.5 rounded border border-amber-500/40 hover:border-amber-300 hover:text-white transition-colors cursor-pointer text-xs shadow-sm">
                 ${userPass} 📋
               </button>
               <button type="button" onclick="openResetPasswordModal(${t.id}, '${escapeJsString(t.name)}', '${userPass}', '${t.phone || ''}')"
-                title="Trocar ou gerar nova senha para este cliente"
-                class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 hover:border-amber-400 font-bold cursor-pointer transition-colors">
-                ✏️ Trocar
+                title="Resetar a senha deste cliente agora"
+                class="px-2.5 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs cursor-pointer transition-all shadow-md shadow-amber-500/20 flex items-center gap-1 active:scale-95">
+                <span>🔑</span> <span>Resetar Senha</span>
               </button>
             </span>
             <span class="text-slate-700">•</span>
@@ -937,9 +937,9 @@ window.renderFilteredClientsList = function() {
             ` : ''}
 
             <button type="button" onclick="openResetPasswordModal(${t.id}, '${escapeJsString(t.name)}', '${userPass}', '${t.phone || ''}')"
-              class="px-2 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 text-amber-300 border border-amber-800/70 font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-              title="Trocar ou gerar nova senha">
-              <span>🔑</span> <span>Trocar Senha</span>
+              class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all flex items-center gap-1 shadow-md shadow-amber-500/25 active:scale-95 cursor-pointer"
+              title="Resetar senha deste cliente">
+              <span>🔑</span> <span>Resetar Senha</span>
             </button>
 
             <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${escapeJsString(t.name)}', this, '${t.phone || ''}', '${userPass}')"
@@ -1930,10 +1930,14 @@ window.openResetPasswordModal = function(id, name, currentPass, phone) {
   const newPassInput = document.getElementById('input-reset-new-password');
   const successBox = document.getElementById('reset-pass-success-box');
 
-  if (nameEl) nameEl.textContent = `Redefinir Senha: ${name}`;
+  if (nameEl) nameEl.textContent = `Resetar Senha de: ${name}`;
   if (infoEl) infoEl.textContent = phone ? `WhatsApp: ${phone}` : 'Sem telefone cadastrado';
   if (currentPassEl) currentPassEl.textContent = currentPass || '---';
-  if (newPassInput) newPassInput.value = '';
+  
+  // Ja gera automaticamente uma senha aleatoria de 6 digitos no campo para facilitar
+  const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+  if (newPassInput) newPassInput.value = randomPin;
+
   if (successBox) successBox.classList.add('hidden');
 
   if (modal) modal.classList.remove('hidden');
