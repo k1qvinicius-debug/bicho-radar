@@ -203,7 +203,7 @@ function updateHistoryAuthUI() {
       badgeContainer.innerHTML = `
         <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">
           <span>👑</span>
-          <span class="inline">K. Vinicius</span>
+          <span class="inline">Admin Master</span>
         </div>
       `;
     }
