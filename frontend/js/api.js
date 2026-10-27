@@ -109,6 +109,24 @@ const api = {
     return result;
   },
 
+  async forgotPassword(user) {
+    const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user }),
+    });
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+    if (!res.ok) {
+      throw new Error(data.detail || 'Erro ao processar recuperação de senha.');
+    }
+    return data;
+  },
+
   async loginGoogle(payload) {
     payload = payload || {};
     payload.device_id = getOrCreateDeviceId();
@@ -354,6 +372,19 @@ const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Erro ao excluir testador.' }));
       throw new Error(err.detail || 'Erro ao excluir testador.');
+    }
+    return await res.json();
+  },
+
+  async resetTenantPassword(id, password = null) {
+    const res = await fetch(`${API_BASE}/admin/tenants/${id}/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ password }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro ao redefinir senha.' }));
+      throw new Error(err.detail || 'Erro ao redefinir senha.');
     }
     return await res.json();
   },
