@@ -446,3 +446,79 @@ def complete_profile(payload: CompleteProfileModel, tenant: Dict[str, Any] = Dep
 
     return {"status": "ok", "tenant": tenant}
 
+
+import urllib.parse
+
+
+class ForgotPasswordRequest(BaseModel):
+    user: str
+
+
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest):
+    """
+    Localiza o cadastro pelo WhatsApp ou E-mail e retorna os dados de contato do suporte
+    com link formatado no WhatsApp já identificado com o nome e número do usuário.
+    """
+    raw_user = (payload.user or "").strip()
+    if not raw_user:
+        raise HTTPException(status_code=400, detail="Por favor, informe seu WhatsApp ou e-mail cadastrado.")
+
+    digits = re.sub(r"\D", "", raw_user)
+    tenant = None
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        if digits and len(digits) >= 10:
+            cursor.execute("""
+                SELECT id, name, phone, email, tenant_key, password, role, status
+                FROM tenants
+                WHERE REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?
+                   OR REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?
+                   OR REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?
+                ORDER BY id DESC LIMIT 1
+            """, (digits, digits[-11:] if len(digits) > 11 else digits, f"%{digits[-9:]}%"))
+            row = cursor.fetchone()
+            if row:
+                tenant = dict(row)
+
+        if not tenant and "@" in raw_user:
+            cursor.execute("""
+                SELECT id, name, phone, email, tenant_key, password, role, status
+                FROM tenants
+                WHERE LOWER(COALESCE(email, '')) = ?
+                ORDER BY id DESC LIMIT 1
+            """, (raw_user.lower(),))
+            row = cursor.fetchone()
+            if row:
+                tenant = dict(row)
+
+    from ..database import get_system_setting
+    support_wa = (get_system_setting("support_whatsapp", "") or "11984684263").strip()
+    clean_support = re.sub(r"\D", "", support_wa)
+    if not clean_support.startswith("55") and len(clean_support) >= 10:
+        clean_support = "55" + clean_support
+
+    if not tenant:
+        default_support_url = f"https://wa.me/{clean_support}?text={urllib.parse.quote('Olá! Não estou conseguindo acessar o Radar 5x5 Pro e gostaria de ajuda com meu login.')}"
+        return {
+            "found": False,
+            "message": "Nenhum cadastro localizado com este número. Verifique se digitou seu DDD ou fale diretamente com nosso suporte.",
+            "support_whatsapp": clean_support,
+            "support_url": default_support_url
+        }
+
+    user_name = tenant.get("name") or "Cliente"
+    user_phone = tenant.get("phone") or raw_user
+    wa_msg = f"Olá Kaique! Sou {user_name}, cadastrado(a) no Radar 5x5 Pro com o WhatsApp {user_phone}. Esqueci minha senha de acesso e gostaria de recuperá-la/redefini-la."
+    wa_url = f"https://wa.me/{clean_support}?text={urllib.parse.quote(wa_msg)}"
+
+    return {
+        "found": True,
+        "name": user_name,
+        "phone": user_phone,
+        "support_whatsapp": clean_support,
+        "whatsapp_url": wa_url,
+        "message": f"Cadastro de {user_name} localizado com sucesso!"
+    }
+
