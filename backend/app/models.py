@@ -273,6 +273,8 @@ class TenantCreateModel(BaseModel):
 class TenantUpdateModel(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
+    password: Optional[str] = None
+    tenant_key: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
     expires_at: Optional[str] = None
