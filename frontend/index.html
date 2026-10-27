@@ -585,10 +585,14 @@
             <span>🔓</span> <span>Entrar no Radar 5×5 Pro</span>
           </button>
 
-          <div class="text-center pt-2">
-            <button type="button" onclick="openWhatsAppSupport('Esqueci minha senha de acesso ao Radar 5x5 Pro.')"
-              class="text-[11px] text-slate-400 hover:text-amber-300 transition-colors inline-flex items-center gap-1 cursor-pointer">
-              <span>Esqueceu sua senha?</span> <span class="text-amber-400 underline font-semibold">Chamar Suporte no WhatsApp</span>
+          <div class="pt-2.5 flex flex-col items-center gap-2">
+            <button type="button" onclick="openForgotPasswordModal()"
+              class="w-full py-2.5 px-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/60 text-slate-200 hover:text-amber-300 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98">
+              <span>🔑</span> <span>Esqueci Minha Senha / Recuperar Acesso</span>
+            </button>
+            <button type="button" onclick="openWhatsAppSupport('Olá Kaique! Preciso de ajuda com meu acesso no Radar 5x5 Pro.')"
+              class="text-[11px] text-slate-400 hover:text-emerald-400 transition-colors inline-flex items-center gap-1 cursor-pointer">
+              <span>Dúvidas ou problemas?</span> <span class="text-emerald-400 underline font-semibold">Chamar Suporte no WhatsApp</span>
             </button>
           </div>
         </form>
@@ -2883,6 +2887,57 @@
 
   <script src="/js/api.js?v=1793032831"></script>
   <script src="/js/app.js?v=1793041730"></script>
+
+  <!-- Modal Recuperar Senha -->
+  <div id="modal-forgot-password" class="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-md hidden">
+    <div class="card-glass max-w-md w-full p-5 sm:p-7 rounded-3xl border border-amber-500/40 shadow-2xl space-y-4 bg-slate-900/95 relative animate-in fade-in zoom-in-95 duration-200 text-left">
+      <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xl shrink-0 shadow-md">
+            🔑
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-black text-white">Recuperar Minha Senha</h3>
+            <p class="text-[11px] text-slate-400">Digite seu WhatsApp para localizar seu cadastro</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeForgotPasswordModal()"
+          class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition-colors cursor-pointer shrink-0">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-forgot-password" onsubmit="handleForgotPasswordSubmit(event)" novalidate class="space-y-3.5">
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+            Seu WhatsApp com DDD
+          </label>
+          <input type="tel" id="forgot-input-user" required placeholder="(11) 98888-8888" oninput="formatPhoneInput(this)"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-semibold focus:border-amber-500 focus:outline-none transition-colors" />
+        </div>
+
+        <div id="forgot-status-msg" class="hidden p-3 rounded-xl text-xs font-medium"></div>
+
+        <div id="forgot-action-container" class="hidden space-y-2 pt-1">
+          <!-- Botão WhatsApp com mensagem pré-preenchida -->
+        </div>
+
+        <button type="submit" id="btn-submit-forgot"
+          class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2">
+          <span>🔍</span> <span>Localizar Meu Cadastro</span>
+        </button>
+      </form>
+
+      <div class="pt-2 text-center border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <button type="button" onclick="closeForgotPasswordModal()" class="hover:text-amber-300 transition-colors cursor-pointer">
+          ← Voltar para o Login
+        </button>
+        <button type="button" onclick="openWhatsAppSupport('Olá Kaique! Preciso de suporte com minha senha.')" class="hover:text-emerald-400 transition-colors cursor-pointer text-[11px]">
+          Falar com Suporte 💬
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal Concluir Cadastro Pós-Google (WhatsApp + Senha Opcional) -->
   <div id="modal-complete-profile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
