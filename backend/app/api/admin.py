@@ -4,6 +4,7 @@ Todas as rotas exigem autenticação do Administrador Master.
 """
 
 from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from ..engine.weights import get_active_weights, update_active_weights
 from ..engine.evaluator import reevaluate_all_snapshots
@@ -218,6 +219,17 @@ def update_tenant(tenant_id: int, data: TenantUpdateModel):
         if data.name is not None:
             updates.append("name = ?")
             params.append(data.name.strip())
+        if data.password is not None:
+            clean_pass = data.password.strip()
+            if len(clean_pass) < 4:
+                raise HTTPException(status_code=400, detail="A senha deve ter no mínimo 4 caracteres.")
+            updates.append("password = ?")
+            params.append(clean_pass)
+            updates.append("tenant_key = ?")
+            params.append(clean_pass)
+        elif data.tenant_key is not None:
+            updates.append("tenant_key = ?")
+            params.append(data.tenant_key.strip())
         if data.phone is not None:
             updates.append("phone = ?")
             params.append(data.phone.strip())
@@ -298,6 +310,47 @@ def update_tenant(tenant_id: int, data: TenantUpdateModel):
             created_at=updated["created_at"] or "",
             snapshots_count=updated["snapshots_count"] or 0
         )
+
+
+class ResetPasswordRequest(BaseModel):
+    password: Optional[str] = None
+
+
+@router.post("/tenants/{tenant_id}/reset-password")
+def reset_tenant_password(tenant_id: int, payload: Optional[ResetPasswordRequest] = None):
+    """Redefine a senha do testador/cliente para uma nova senha informada ou aleatória de 6 dígitos."""
+    import random
+    new_password = (payload.password.strip() if payload and payload.password and payload.password.strip() else None)
+    if not new_password:
+        new_password = str(random.randint(100000, 999999))
+    elif len(new_password) < 4:
+        raise HTTPException(status_code=400, detail="A senha deve ter no mínimo 4 caracteres.")
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Testador não encontrado.")
+
+        cursor.execute("""
+            UPDATE tenants 
+            SET password = ?, tenant_key = ?
+            WHERE id = ?
+        """, (new_password, new_password, tenant_id))
+        conn.commit()
+
+        cursor.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,))
+        updated = dict(cursor.fetchone())
+
+    return {
+        "status": "ok",
+        "tenant_id": tenant_id,
+        "name": updated["name"],
+        "phone": updated.get("phone"),
+        "new_password": new_password,
+        "message": f"Senha de {updated['name']} alterada para '{new_password}' com sucesso!"
+    }
 
 
 @router.delete("/tenants/{tenant_id}")
