@@ -113,7 +113,7 @@ window.formatPhoneInput = function(input) {
 };
 
 window.openWhatsAppSupport = function(msg) {
-  let num = (window._publicSettings?.support_whatsapp || '11941083720').replace(/\D/g, '');
+  let num = (window._publicSettings?.support_whatsapp || '11984684263').replace(/\D/g, '');
   if (!num.startsWith('55') && num.length >= 10) num = '55' + num;
   const text = encodeURIComponent(msg || 'Olá! Gostaria de ajuda com meu acesso no Radar 5×5 Pro.');
   window.open(`https://wa.me/${num}?text=${text}`, '_blank');
@@ -1604,7 +1604,7 @@ function updateHomeScreenData() {
 
   if (userNameEl) {
     if (isMaster) {
-      userNameEl.innerHTML = `Kaique Vinicius <span class="ml-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold font-sans align-middle shadow-sm">👑 Master</span>`;
+      userNameEl.innerHTML = `Administrador <span class="ml-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold font-sans align-middle shadow-sm">👑 Master</span>`;
     } else if (tenant && tenant.name) {
       userNameEl.textContent = tenant.name;
     } else {
@@ -6329,7 +6329,7 @@ async function initTenantAuth() {
         document.documentElement.classList.add('is-authenticated');
         updateAuthUI();
         updateHomeScreenData();
-        const displayName = (tenant.role === 'admin' || (tenant.name && tenant.name.includes('Vinicius'))) ? 'Kaique Vinicius (Master Admin)' : (tenant.name || 'Testador');
+        const displayName = (tenant.role === 'admin' || (tenant.name && tenant.name.includes('Vinicius'))) ? 'Administrador Master' : (tenant.name || 'Testador');
         showToast(`Olá, ${displayName}! Acesso ativado com sucesso.`, 'success');
         const cleanUrl = new URL(window.location);
         cleanUrl.searchParams.delete('key');
@@ -6445,7 +6445,7 @@ function updateAuthUI() {
       
       
       
-      if (drawerUserLabel) drawerUserLabel.textContent = 'Kaique Vinicius (Master Vitalício)';
+      if (drawerUserLabel) drawerUserLabel.textContent = 'Administrador Master';
       if (btnHeaderPlans) btnHeaderPlans.classList.add('hidden');
       if (badgeContainer) {
         badgeContainer.innerHTML = `
@@ -8060,7 +8060,7 @@ window.subscribePlan = async function(planKey, method = 'mercadopago') {
         if (res.ok) settings = await res.json();
       } catch (e) {}
     }
-    let whatsappNum = (settings?.support_whatsapp || '11941083720').replace(/\D/g, '');
+    let whatsappNum = (settings?.support_whatsapp || '11984684263').replace(/\D/g, '');
     if (!whatsappNum.startsWith('55') && whatsappNum.length >= 10) whatsappNum = '55' + whatsappNum;
     const currentUser = api.getCurrentTenant();
     const userName = currentUser?.name ? ` Me chamo ${currentUser.name}.` : '';
