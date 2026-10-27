@@ -897,6 +897,11 @@ window.renderFilteredClientsList = function() {
                 class="font-mono font-black text-amber-200 bg-slate-950 px-2 py-0.5 rounded border border-amber-500/40 hover:border-amber-300 hover:text-white transition-colors cursor-pointer text-xs shadow-sm">
                 ${userPass} 📋
               </button>
+              <button type="button" onclick="openResetPasswordModal(${t.id}, '${escapeJsString(t.name)}', '${userPass}', '${t.phone || ''}')"
+                title="Trocar ou gerar nova senha para este cliente"
+                class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 hover:border-amber-400 font-bold cursor-pointer transition-colors">
+                ✏️ Trocar
+              </button>
             </span>
             <span class="text-slate-700">•</span>
             <span>Uso: ${usageBadge}</span>
@@ -930,6 +935,12 @@ window.renderFilteredClientsList = function() {
                 <span>⏳</span> <span>+1d Teste</span>
               </button>
             ` : ''}
+
+            <button type="button" onclick="openResetPasswordModal(${t.id}, '${escapeJsString(t.name)}', '${userPass}', '${t.phone || ''}')"
+              class="px-2 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 text-amber-300 border border-amber-800/70 font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+              title="Trocar ou gerar nova senha">
+              <span>🔑</span> <span>Trocar Senha</span>
+            </button>
 
             <button type="button" onclick="copyTenantWhatsApp('${t.tenant_key}', '${escapeJsString(t.name)}', this, '${t.phone || ''}', '${userPass}')"
               class="px-2.5 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
@@ -1904,3 +1915,78 @@ window.clearFinancialData = async function() {
     showToast("Erro ao zerar dados: " + err.message, "error");
   }
 };
+
+// ============================================================================
+// MODAL: REDEFINIÇÃO DE SENHA DO CLIENTE
+// ============================================================================
+let currentResetTenant = null;
+
+window.openResetPasswordModal = function(id, name, currentPass, phone) {
+  currentResetTenant = { id, name, currentPass, phone };
+  const modal = document.getElementById('modal-reset-password');
+  const nameEl = document.getElementById('modal-reset-tenant-name');
+  const infoEl = document.getElementById('modal-reset-tenant-info');
+  const currentPassEl = document.getElementById('modal-reset-current-pass');
+  const newPassInput = document.getElementById('input-reset-new-password');
+  const successBox = document.getElementById('reset-pass-success-box');
+
+  if (nameEl) nameEl.textContent = `Redefinir Senha: ${name}`;
+  if (infoEl) infoEl.textContent = phone ? `WhatsApp: ${phone}` : 'Sem telefone cadastrado';
+  if (currentPassEl) currentPassEl.textContent = currentPass || '---';
+  if (newPassInput) newPassInput.value = '';
+  if (successBox) successBox.classList.add('hidden');
+
+  if (modal) modal.classList.remove('hidden');
+};
+
+window.closeResetPasswordModal = function() {
+  const modal = document.getElementById('modal-reset-password');
+  if (modal) modal.classList.add('hidden');
+  currentResetTenant = null;
+};
+
+window.generateRandomPassword = function() {
+  const pin = Math.floor(100000 + Math.random() * 900000).toString();
+  const input = document.getElementById('input-reset-new-password');
+  if (input) input.value = pin;
+};
+
+window.handleConfirmResetPassword = async function() {
+  if (!currentResetTenant) return;
+  const newPassInput = document.getElementById('input-reset-new-password');
+  const newPassword = (newPassInput?.value || '').trim();
+  const btn = document.getElementById('btn-confirm-reset-pass');
+  const successBox = document.getElementById('reset-pass-success-box');
+  const successPassEl = document.getElementById('reset-pass-new-display');
+  const btnWa = document.getElementById('btn-reset-pass-whatsapp');
+
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await api.resetTenantPassword(currentResetTenant.id, newPassword || null);
+    showToast(`Senha de ${currentResetTenant.name} alterada para ${res.new_password}!`, 'success');
+    
+    if (successPassEl) successPassEl.textContent = res.new_password;
+    if (successBox) successBox.classList.remove('hidden');
+
+    if (btnWa) {
+      const cleanPhone = (currentResetTenant.phone || '').replace(/\D/g, '');
+      const loginUrl = window.location.origin;
+      const text = `Olá, ${currentResetTenant.name}!\n\nSua senha de acesso ao Radar 5x5 Pro foi redefinida com sucesso.\n\n🔑 Sua Nova Senha: ${res.new_password}\n🌐 Link de Acesso: ${loginUrl}\n\nBons palpites!`;
+      btnWa.onclick = () => {
+        if (cleanPhone.length >= 8) {
+          window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+        } else {
+          copyToClipboard(text, btnWa, 'Mensagem Copiada!');
+        }
+      };
+    }
+
+    await loadTenantsTable();
+  } catch (err) {
+    showToast(err.message || 'Erro ao alterar senha', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
