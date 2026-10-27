@@ -510,7 +510,7 @@ def forgot_password(payload: ForgotPasswordRequest):
 
     user_name = tenant.get("name") or "Cliente"
     user_phone = tenant.get("phone") or raw_user
-    wa_msg = f"Olá Kaique! Sou {user_name}, cadastrado(a) no Radar 5x5 Pro com o WhatsApp {user_phone}. Esqueci minha senha de acesso e gostaria de recuperá-la/redefini-la."
+    wa_msg = f"Olá, Suporte! Sou {user_name}, cadastrado(a) no Radar 5x5 Pro com o WhatsApp {user_phone}. Esqueci minha senha de acesso e gostaria de recuperá-la/redefini-la."
     wa_url = f"https://wa.me/{clean_support}?text={urllib.parse.quote(wa_msg)}"
 
     return {
