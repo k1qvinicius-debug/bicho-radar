@@ -1,4 +1,4 @@
-"""
+﻿"""
 Módulo de Autenticação e Controle de Acesso Multi-Tenant.
 Gerencia tokens de sessão, identificação de testadores e restrição de acesso ao Administrador Master.
 """
@@ -27,20 +27,89 @@ SECRET_KEY = "bicho-radar-master-auth-secret-2026"
 security = HTTPBearer(auto_error=False)
 
 
-def create_token_for_tenant(tenant: Dict[str, Any]) -> str:
-    """Gera um token assinado para o tenant."""
-    raw = f"{tenant['id']}:{tenant['role']}:{tenant['tenant_key']}"
+def is_tenant_vip(tenant: Optional[Dict[str, Any]]) -> bool:
+    """
+    Verifica se o usuário possui acesso VIP ativo:
+    - Master Admin (Kaique Vinicius)
+    - Assinante com plano pago ativo (mensal, vip, anual, etc.)
+    - Usuário com teste válido não expirado
+    """
+    if not tenant:
+        return False
+    if tenant.get("role") == "admin":
+        return True
+    email = (tenant.get("email") or "").lower()
+    if email in ("k1qvinicius.cs@gmail.com", "k1qvinicius@gmail.com"):
+        return True
+
+    sub_status = tenant.get("subscription_status")
+    if sub_status in ("expired", "suspended"):
+        return False
+
+    trial_info = tenant.get("trial_info") or calculate_trial_info(tenant)
+    if trial_info.get("is_expired"):
+        return False
+
+    return True
+
+
+def create_token_for_tenant(tenant: Dict[str, Any], session_id: Optional[str] = None) -> str:
+    """Gera um token assinado para o tenant, vinculado à sua sessão ativa única."""
+    sess = session_id or tenant.get("current_session_token")
+    if not sess:
+        sess = secrets.token_hex(16)
+        tenant["current_session_token"] = sess
+        try:
+            with get_db_connection() as conn:
+                conn.cursor().execute("UPDATE tenants SET current_session_token = ? WHERE id = ?", (sess, tenant["id"]))
+        except Exception:
+            pass
+    raw = f"{tenant['id']}:{tenant['role']}:{tenant['tenant_key']}:{sess}"
     sig = hmac.new(SECRET_KEY.encode(), raw.encode(), hashlib.sha256).hexdigest()[:24]
     return f"{raw}:{sig}"
 
 
 def verify_token(token: str) -> Optional[Dict[str, Any]]:
-    """Verifica e decodifica um token assinado ou chave direta."""
+    """Verifica e decodifica um token assinado ou chave direta com controle de Sessão Única."""
     if not token:
         return None
 
     token = token.strip()
     parts = token.split(":")
+
+    # Formato moderno com Sessão Única (5 partes: id, role, key, session, sig)
+    if len(parts) == 5:
+        t_id, role, key, sess, sig = parts
+        raw = f"{t_id}:{role}:{key}:{sess}"
+        expected_sig = hmac.new(SECRET_KEY.encode(), raw.encode(), hashlib.sha256).hexdigest()[:24]
+        if hmac.compare_digest(sig, expected_sig):
+            try:
+                tid_int = int(t_id)
+                tenant = get_tenant_by_id(tid_int)
+                if not tenant:
+                    return None
+                email = (tenant.get("email") or "").lower()
+                if tenant.get("role") == "admin" or email in ("k1qvinicius.cs@gmail.com", "k1qvinicius@gmail.com"):
+                    tenant["role"] = "admin"
+                    tenant["plan_type"] = "lifetime"
+                    tenant["subscription_status"] = "active"
+                    return tenant
+
+                # Trava de Sessão Única: apenas para usuários comuns/clientes
+                db_sess = tenant.get("current_session_token")
+                if db_sess and sess != db_sess:
+                    raise HTTPException(
+                        status_code=401,
+                        detail="SESSION_SUPERSEDED: Sua conta foi conectada em outro aparelho. Esta sessão foi encerrada."
+                    )
+                return tenant
+            except HTTPException:
+                raise
+            except Exception:
+                return None
+        return None
+
+    # Formato legado (4 partes: id, role, key, sig) para compatibilidade retroativa
     if len(parts) == 4:
         t_id, role, key, sig = parts
         raw = f"{t_id}:{role}:{key}"
