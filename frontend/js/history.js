@@ -1135,7 +1135,7 @@ window.inspectSnapshot = async function (id) {
             </div>
             <div class="flex items-center gap-2">
               ${rStatusBadge}
-              <button type="button" onclick="openRadar5x5ForDraw('${data.lottery || 'LOOK'}', ${data.draw_id || 'null'})" class="px-2.5 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-[11px] font-bold text-teal-200 hover:text-white flex items-center gap-1 transition-all cursor-pointer">
+              <button type="button" onclick="openRadar5x5ForDraw('${data.lottery || 'LOOK'}', ${data.draw_id || 'null'}, '${data.target_slot || ''}', '${data.target_date || ''}')" class="px-2.5 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-[11px] font-bold text-teal-200 hover:text-white flex items-center gap-1 transition-all cursor-pointer">
                 <span>🔍</span> Ver Análise no Radar 5×5 ➔
               </button>
             </div>
@@ -1871,8 +1871,35 @@ window.navigateToAuditedPrediction = function(lottery, slot, date, hitHundred = 
 };
 
 
-window.openRadar5x5ForDraw = function(lottery, drawId) {
-  if (typeof closeInspectModal === 'function') closeInspectModal();
+window.openRadar5x5ForDraw = function(lottery, drawId, slot, date) {
+  // 1. Fecha o modal de conferência
+  if (typeof window.closeSnapshotModal === 'function') {
+    window.closeSnapshotModal();
+  }
+  const modal = document.getElementById('snapshot-modal');
+  if (modal) modal.classList.add('hidden');
+
+  // 2. Se estiver na página dedicada /historico.html, navega para index.html com parâmetros
+  const isDedicatedHistoryPage = window.location.pathname.includes('historico.html');
+  if (isDedicatedHistoryPage || typeof window.selectApsHistoricalDraw !== 'function') {
+    let targetUrl = '/?tab=aps&lottery=' + encodeURIComponent(lottery || 'LOOK');
+    if (drawId) {
+      targetUrl += '&draw_id=' + encodeURIComponent(drawId);
+    }
+    if (slot) {
+      targetUrl += '&slot=' + encodeURIComponent(slot);
+    }
+    if (date) {
+      targetUrl += '&date=' + encodeURIComponent(date);
+    }
+    window.location.href = targetUrl;
+    return;
+  }
+
+  // 3. Se estiver na SPA (index.html):
+  if (typeof window.switchScreen === 'function') {
+    window.switchScreen('aps');
+  }
   if (typeof window.selectApsHistoricalDraw === 'function') {
     window.selectApsHistoricalDraw(lottery, drawId);
   }
