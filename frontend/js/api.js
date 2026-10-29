@@ -34,6 +34,12 @@ function handleAuthError(status, errData) {
     notifyTrialExpiredIfForbidden(status, errData);
   } else if (status === 401) {
     try {
+      const detail = (errData && errData.detail) ? String(errData.detail) : '';
+      if (detail.includes('SESSION_SUPERSEDED') || detail.includes('outro aparelho') || detail.includes('outro dispositivo')) {
+        if (typeof showToast === 'function') {
+          showToast('⚠️ Sua conta foi conectada em outro aparelho. Esta sessão foi encerrada por segurança.', 'warning', 8000);
+        }
+      }
       if (typeof api !== 'undefined' && typeof api.logout === 'function') {
         api.logout();
       }
