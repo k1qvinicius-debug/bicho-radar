@@ -10242,6 +10242,8 @@ function renderApsMilhares(milharesData) {
   const container = document.getElementById('aps-milhares-cirurgicas-container');
   if (!container || !milharesData) return;
 
+  const selDraw = window.currentApsData && window.currentApsData.selected_draw && !window.currentApsData.selected_draw.is_live ? window.currentApsData.selected_draw : null;
+  const winM1 = selDraw && selDraw.prize_1 ? String(selDraw.prize_1).padStart(4, '0') : null;
   const isVip = window.isUserVip();
   if (!isVip) {
     container.innerHTML = `
@@ -10273,6 +10275,7 @@ function renderApsMilhares(milharesData) {
 
   let html = '';
   milharesData.forEach(item => {
+    const hasHitMilhar = winM1 && (item.milhares || []).includes(winM1);
     const milharesBadges = (item.milhares || []).map(m => `
       <span onclick="copyTextToClipboard('${m}', 'Milhar ${m} copiada!')" class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800 select-all hover:border-amber-400 hover:text-amber-200 transition-all cursor-pointer" title="Clique para copiar">${m}</span>
     `).join('');
@@ -10280,13 +10283,13 @@ function renderApsMilhares(milharesData) {
     const formattedCopy = `${item.emoji || '🐾'} ${item.name} (G${String(item.group).padStart(2, '0')}): ${(item.milhares || []).join(', ')}`;
 
     html += `
-      <div class="rounded-xl ${hasHitCentena ? 'bg-emerald-950/30 border-2 border-emerald-500/80 shadow-emerald-950/40 ring-1 ring-emerald-500/30' : 'bg-slate-950/60 border border-slate-800'} p-3.5 flex flex-col justify-between transition-all">
+      <div class="rounded-xl ${hasHitMilhar ? 'bg-emerald-950/30 border-2 border-emerald-500/80 shadow-emerald-950/40 ring-1 ring-emerald-500/30' : 'bg-slate-950/60 border border-slate-800'} p-3.5 flex flex-col justify-between transition-all">
         <div>
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-1.5">
               <span class="text-lg">${item.emoji || '🐾'}</span>
               <span class="text-xs font-black text-white">${item.name} (G${String(item.group).padStart(2, '0')})</span>
-              ${hasHitCentena ? '<span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 uppercase tracking-tight shadow">🎯 CRAVADA!</span>' : ''}
+              ${hasHitMilhar ? '<span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 uppercase tracking-tight shadow">🎯 CRAVADA!</span>' : ''}
             </div>
             <span class="text-[10px] text-slate-400">Pedras: <strong class="text-amber-300">${(item.pedras || []).join(', ')}</strong></span>
           </div>
