@@ -10050,9 +10050,11 @@ function renderApsEliteAnimals(eliteAnimals) {
   const container = document.getElementById('aps-elite-animals-container');
   if (!container || !eliteAnimals) return;
 
+  const selDraw = window.currentApsData && window.currentApsData.selected_draw && !window.currentApsData.selected_draw.is_live ? window.currentApsData.selected_draw : null;
   const isVip = window.isUserVip();
   let html = '';
   eliteAnimals.forEach((anim, idx) => {
+    const isWinningGroup = selDraw && selDraw.group === anim.group;
     // Se não for VIP, os animais a partir do 2º aparecem bloqueados com convite para assinar
     if (!isVip && idx > 0) {
       html += `
@@ -10081,13 +10083,13 @@ function renderApsEliteAnimals(eliteAnimals) {
     `).join('');
 
     html += `
-      <div class="rounded-xl bg-gradient-to-b from-slate-800/90 to-slate-950 border border-amber-500/40 p-3 shadow-xl relative overflow-hidden flex flex-col justify-between hover:border-amber-400 transition-colors">
-        <div class="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
+      <div class="rounded-xl bg-gradient-to-b ${isWinningGroup ? 'from-emerald-950/40 via-slate-900 to-slate-950 border-2 border-emerald-400 shadow-emerald-950/50 ring-2 ring-emerald-500/40' : 'from-slate-800/90 to-slate-950 border border-amber-500/40'} p-3 shadow-xl relative overflow-hidden flex flex-col justify-between hover:border-amber-400 transition-all">
+        <div class="absolute top-0 right-0 w-16 h-16 ${isWinningGroup ? 'bg-emerald-500/20' : 'bg-amber-500/10'} rounded-full blur-xl pointer-events-none"></div>
         <div>
           <!-- Topo: Badge compacta e Score alinhados sem quebrar -->
           <div class="flex items-center justify-between mb-1.5">
-            <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 tracking-tight uppercase">
-              #${idx + 1} ELITE
+            <span class="text-[9px] font-black px-1.5 py-0.5 rounded ${isWinningGroup ? 'bg-emerald-500 text-slate-950 ring-1 ring-emerald-300 shadow animate-pulse' : 'bg-amber-500 text-slate-950'} tracking-tight uppercase">
+              ${isWinningGroup ? '🎯 1º PRÊMIO DEU ELE!' : '#' + (idx + 1) + ' ELITE'}
             </span>
             <span class="text-[11px] font-mono font-bold text-amber-300">
               ${anim.aps_score} pts
@@ -10144,6 +10146,9 @@ function renderApsCentenas(centenasData) {
   const container = document.getElementById('aps-centenas-cirurgicas-container');
   if (!container || !centenasData) return;
 
+  const selDraw = window.currentApsData && window.currentApsData.selected_draw && !window.currentApsData.selected_draw.is_live ? window.currentApsData.selected_draw : null;
+  const winC1 = selDraw && selDraw.prize_1 ? String(selDraw.prize_1).slice(-3) : null;
+
   const isVip = window.isUserVip();
   if (!isVip) {
     container.innerHTML = `
@@ -10176,17 +10181,20 @@ function renderApsCentenas(centenasData) {
 
   let html = '';
   centenasData.forEach(item => {
-    const centenasBadges = (item.centenas || []).map(c => `
-      <span class="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800 select-all hover:border-amber-400/50 transition-all">${c}</span>
-    `).join('');
+    const hasHitCentena = winC1 && (item.centenas || []).includes(winC1);
+    const centenasBadges = (item.centenas || []).map(c => {
+      const isHit = winC1 && c === winC1;
+      return `<span class="font-mono text-xs ${isHit ? 'font-black px-2.5 py-1 rounded bg-emerald-500 text-slate-950 border border-emerald-300 ring-2 ring-emerald-400 select-all shadow-lg animate-pulse' : 'font-bold px-2 py-1 rounded bg-slate-950 text-amber-300 border border-slate-800'} select-all hover:border-amber-400/50 transition-all">${isHit ? '🎯 ' + c : c}</span>`;
+    }).join('');
 
     html += `
-      <div class="rounded-xl bg-slate-950/60 border border-slate-800 p-3.5 flex flex-col justify-between">
+      <div class="rounded-xl ${hasHitCentena ? 'bg-emerald-950/30 border-2 border-emerald-500/80 shadow-emerald-950/40 ring-1 ring-emerald-500/30' : 'bg-slate-950/60 border border-slate-800'} p-3.5 flex flex-col justify-between transition-all">
         <div>
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-1.5">
               <span class="text-lg">${item.emoji || '🐾'}</span>
               <span class="text-xs font-black text-white">${item.name} (G${String(item.group).padStart(2, '0')})</span>
+              ${hasHitCentena ? '<span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 uppercase tracking-tight shadow">🎯 CRAVADA!</span>' : ''}
             </div>
             <span class="text-[10px] text-slate-400">Pedras: <strong class="text-amber-300">${(item.pedras || []).join(', ')}</strong></span>
           </div>
@@ -10272,12 +10280,13 @@ function renderApsMilhares(milharesData) {
     const formattedCopy = `${item.emoji || '🐾'} ${item.name} (G${String(item.group).padStart(2, '0')}): ${(item.milhares || []).join(', ')}`;
 
     html += `
-      <div class="rounded-xl bg-slate-950/60 border border-slate-800 p-3.5 flex flex-col justify-between">
+      <div class="rounded-xl ${hasHitCentena ? 'bg-emerald-950/30 border-2 border-emerald-500/80 shadow-emerald-950/40 ring-1 ring-emerald-500/30' : 'bg-slate-950/60 border border-slate-800'} p-3.5 flex flex-col justify-between transition-all">
         <div>
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-1.5">
               <span class="text-lg">${item.emoji || '🐾'}</span>
               <span class="text-xs font-black text-white">${item.name} (G${String(item.group).padStart(2, '0')})</span>
+              ${hasHitCentena ? '<span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 uppercase tracking-tight shadow">🎯 CRAVADA!</span>' : ''}
             </div>
             <span class="text-[10px] text-slate-400">Pedras: <strong class="text-amber-300">${(item.pedras || []).join(', ')}</strong></span>
           </div>
