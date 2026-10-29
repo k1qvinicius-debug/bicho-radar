@@ -88,6 +88,7 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
             hit_g1_aps = 0
             hits_g_cercado_aps = 0
             hit_c1_aps = 0
+            hit_mc_c1_aps = 0
             hit_m1_aps = 0
             hits_m_cercado_aps = 0
             hit_terno_aps = False
@@ -105,8 +106,11 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
                     hit_g1_aps = 1
                 hits_g_cercado_aps = sum(1 for g in act_all_g if g in aps_elite_groups)
 
-                if act_c1 in aps_centenas or (act_g1 in aps_elite_groups and any(act_m1[-3:] == m[-3:] for m in aps_mc_60)):
+                # Acerto estrito da Centena Cirúrgica apenas se constar na lista de centenas geradas
+                if act_c1 in aps_centenas:
                     hit_c1_aps = 1
+                elif any(act_m1[-3:] == m[-3:] for m in aps_mc_60):
+                    hit_mc_c1_aps = 1
 
                 if act_m1 in aps_mc_60:
                     hit_m1_aps = 1
@@ -202,6 +206,7 @@ def evaluate_draw_against_snapshots(draw_id: int) -> List[Dict[str, Any]]:
                     "active": True,
                     "hit_grupo_1st": bool(hit_g1_aps),
                     "hit_centena_1st": bool(hit_c1_aps),
+                    "hit_mc_centena_1st": bool(hit_mc_c1_aps),
                     "hit_milhar_1st": bool(hit_m1_aps),
                     "hit_terno": bool(hit_terno_aps),
                     "hit_terno_val": hit_terno_val,
