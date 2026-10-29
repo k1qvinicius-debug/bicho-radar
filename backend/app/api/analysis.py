@@ -1064,26 +1064,111 @@ def get_recent_bingos():
 def get_aps_analysis_endpoint(
     lottery: str = Query("NACIONAL", description="Código da loteria (ex: NACIONAL, LOOK, RJ, FEDERAL, SP)"),
     date: Optional[str] = Query(None, description="Data base (YYYY-MM-DD)"),
+    draw_id: Optional[int] = Query(None, description="ID do sorteio alvo para voltar no tempo"),
     tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
     """
     Retorna a análise do Método APS (Radar 5x5).
+    Suporta navegação histórica através do parâmetro draw_id (para voltar sorteios anteriores e auditar).
     Usuários VIP / Assinantes ativos recebem todas as Milhares Cirúrgicas, 12 Ternos e 60 MC.
-    Usuários não autenticados ou expirados recebem a grade/pedras com as milhares bloqueadas no servidor.
     """
     from ..engine.aps_engine import calculate_full_aps_analysis
     from ..auth import is_tenant_vip
+    from ..database import get_db_connection
+    from ..domain import get_group_for_number, get_animal_info
+
+    effective_lottery = (lottery or "NACIONAL").upper()
+    target_before_id = draw_id
+    selected_draw_info = None
+
+    if draw_id:
+        try:
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT * FROM draw_results WHERE id = ?", (draw_id,))
+                d_row = cur.fetchone()
+                if d_row:
+                    d_dict = dict(d_row)
+                    effective_lottery = (d_dict.get("lottery") or effective_lottery).upper()
+                    date = d_dict.get("draw_date")
+                    g1 = get_group_for_number(d_dict.get("prize_1", ""))
+                    anim1 = get_animal_info(g1)
+                    selected_draw_info = {
+                        "id": d_dict["id"],
+                        "lottery": effective_lottery,
+                        "slot": d_dict.get("slot"),
+                        "draw_date": d_dict.get("draw_date"),
+                        "prize_1": d_dict.get("prize_1"),
+                        "prize_2": d_dict.get("prize_2"),
+                        "prize_3": d_dict.get("prize_3"),
+                        "prize_4": d_dict.get("prize_4"),
+                        "prize_5": d_dict.get("prize_5"),
+                        "group_1": g1,
+                        "animal_1": anim1,
+                        "is_live": False
+                    }
+        except Exception:
+            pass
+
     try:
-        data = calculate_full_aps_analysis(lottery=lottery, target_date=date)
+        data = calculate_full_aps_analysis(lottery=effective_lottery, target_date=date, before_id=target_before_id)
         is_vip = is_tenant_vip(tenant)
         data["is_vip"] = is_vip
         if not is_vip:
-            # Trava de Segurança no Backend: remove as milhares cirúrgicas, ternos e fechamento 60 MC
             if "milhares_cirurgicas" in data and isinstance(data["milhares_cirurgicas"], list):
                 for item in data["milhares_cirurgicas"]:
                     item["milhares"] = []
             data["ternos_de_dezena_12"] = []
             data["fechamento_60_mc"] = []
+
+        # Lista de sorteios recentes para a timeline do Radar 5x5
+        recent_draws_list = []
+        try:
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                if effective_lottery == "FEDERAL":
+                    cur.execute("""
+                        SELECT id, draw_date, slot, lottery, prize_1
+                        FROM draw_results
+                        WHERE (lottery = 'FEDERAL' OR slot = 'FED')
+                        ORDER BY draw_date DESC, id DESC
+                        LIMIT 8
+                    """)
+                elif effective_lottery == "RJ":
+                    cur.execute("""
+                        SELECT id, draw_date, slot, lottery, prize_1
+                        FROM draw_results
+                        WHERE (lottery = 'RJ' OR lottery IS NULL OR slot = 'FED')
+                        ORDER BY draw_date DESC, id DESC
+                        LIMIT 8
+                    """)
+                else:
+                    cur.execute("""
+                        SELECT id, draw_date, slot, lottery, prize_1
+                        FROM draw_results
+                        WHERE lottery = ?
+                        ORDER BY draw_date DESC, id DESC
+                        LIMIT 8
+                    """, (effective_lottery,))
+                for r in cur.fetchall():
+                    rd = dict(r)
+                    g = get_group_for_number(rd.get("prize_1", ""))
+                    a = get_animal_info(g)
+                    recent_draws_list.append({
+                        "id": rd["id"],
+                        "slot": rd.get("slot"),
+                        "date": rd.get("draw_date"),
+                        "prize_1": rd.get("prize_1"),
+                        "group": g,
+                        "animal_name": a["name"],
+                        "animal_emoji": a["emoji"]
+                    })
+        except Exception:
+            recent_draws_list = []
+
+        data["selected_draw"] = selected_draw_info or {"is_live": True}
+        data["recent_draws_list"] = recent_draws_list
+
         return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao processar Radar 5x5: {str(e)}")
