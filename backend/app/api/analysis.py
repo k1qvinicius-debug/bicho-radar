@@ -1063,28 +1063,47 @@ def get_recent_bingos():
 @router.get("/aps-method", response_model=Dict[str, Any])
 def get_aps_analysis_endpoint(
     lottery: str = Query("NACIONAL", description="Código da loteria (ex: NACIONAL, LOOK, RJ, FEDERAL, SP)"),
-    date: Optional[str] = Query(None, description="Data base (YYYY-MM-DD)")
+    date: Optional[str] = Query(None, description="Data base (YYYY-MM-DD)"),
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
     """
-    Retorna a análise completa do Método APS (Apostando com Sabedoria):
-    Grade 5x5, Ausências de Linhas e Colunas, Ciclo D3, Pedras de Centena Líderes,
-    Bichos de Elite, Centenas Cirúrgicas, 12 Ternos de Dezena e Fechamento 60 MC.
+    Retorna a análise do Método APS (Radar 5x5).
+    Usuários VIP / Assinantes ativos recebem todas as Milhares Cirúrgicas, 12 Ternos e 60 MC.
+    Usuários não autenticados ou expirados recebem a grade/pedras com as milhares bloqueadas no servidor.
     """
     from ..engine.aps_engine import calculate_full_aps_analysis
+    from ..auth import is_tenant_vip
     try:
-        return calculate_full_aps_analysis(lottery=lottery, target_date=date)
+        data = calculate_full_aps_analysis(lottery=lottery, target_date=date)
+        is_vip = is_tenant_vip(tenant)
+        data["is_vip"] = is_vip
+        if not is_vip:
+            # Trava de Segurança no Backend: remove as milhares cirúrgicas, ternos e fechamento 60 MC
+            if "milhares_cirurgicas" in data and isinstance(data["milhares_cirurgicas"], list):
+                for item in data["milhares_cirurgicas"]:
+                    item["milhares"] = []
+            data["ternos_de_dezena_12"] = []
+            data["fechamento_60_mc"] = []
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao processar Radar 5x5: {str(e)}")
 
 
 @router.post("/aps-simulate", response_model=Dict[str, Any])
 def simulate_aps_endpoint(
-    data: Dict[str, Any]
+    data: Dict[str, Any],
+    tenant: Optional[Dict[str, Any]] = Depends(get_current_tenant_optional),
 ):
     """
-    Simulador ao vivo do Método APS: recebe prêmios manuais e gera inversão,
-    12 ternos e 60 MC instantaneamente.
+    Simulador ao vivo do Método APS: gera inversão, 12 ternos e 60 MC.
+    Exige acesso VIP ativo.
     """
+    from ..auth import is_tenant_vip
+    if not is_tenant_vip(tenant):
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso exclusivo para membros VIP. Ative seu plano para utilizar o simulador de ternos e fechamento."
+        )
     from ..engine.aps_engine import generate_aps_inversion_and_ternos
     prizes = data.get("prizes", [])
     top_pedras = data.get("top_pedras", [8, 6, 3])
