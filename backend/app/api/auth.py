@@ -4,6 +4,7 @@ Endpoints de Autenticação para Testadores e Administrador Master.
 """
 
 import re
+import secrets
 from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Dict, Any, Optional
 from ..database import get_db_connection
@@ -125,20 +126,23 @@ def login(payload: LoginRequestModel, request: Request):
             detail="Esta conta está suspensa ou desativada. Fale com o administrador."
         )
 
-    # Atualiza IP e device_id do tenant
+    # Atualiza IP, device_id e current_session_token (Sessão Única)
+    session_token = secrets.token_hex(16)
+    tenant["current_session_token"] = session_token
     try:
         with get_db_connection() as conn:
             conn.cursor().execute("""
                 UPDATE tenants 
                 SET last_ip = COALESCE(?, last_ip),
-                    device_id = COALESCE(?, device_id)
+                    device_id = COALESCE(?, device_id),
+                    current_session_token = ?
                 WHERE id = ?
-            """, (ip, payload.device_id, tenant["id"]))
+            """, (ip, payload.device_id, session_token, tenant["id"]))
     except Exception:
         pass
 
     update_tenant_activity(tenant["id"])
-    token = create_token_for_tenant(tenant)
+    token = create_token_for_tenant(tenant, session_id=session_token)
     trial_info = tenant.get("trial_info") or calculate_trial_info(tenant)
 
     return LoginResponseModel(
@@ -206,8 +210,15 @@ def login_google(payload: LoginRequestModel, request: Request):
             detail="Esta conta está suspensa ou desativada. Fale com o administrador."
         )
 
+    session_token = secrets.token_hex(16)
+    tenant["current_session_token"] = session_token
+    try:
+        with get_db_connection() as conn:
+            conn.cursor().execute("UPDATE tenants SET current_session_token = ? WHERE id = ?", (session_token, tenant["id"]))
+    except Exception:
+        pass
     update_tenant_activity(tenant["id"])
-    token = create_token_for_tenant(tenant)
+    token = create_token_for_tenant(tenant, session_id=session_token)
     trial_info = calculate_trial_info(tenant)
 
     return LoginResponseModel(
@@ -268,8 +279,15 @@ def register(payload: RegisterRequestModel, request: Request):
         if tenant.get("status") != "active":
             raise HTTPException(status_code=403, detail="Esta conta está suspensa ou desativada.")
 
+        session_token = secrets.token_hex(16)
+        tenant["current_session_token"] = session_token
+        try:
+            with get_db_connection() as conn:
+                conn.cursor().execute("UPDATE tenants SET current_session_token = ? WHERE id = ?", (session_token, tenant["id"]))
+        except Exception:
+            pass
         update_tenant_activity(tenant["id"])
-        token = create_token_for_tenant(tenant)
+        token = create_token_for_tenant(tenant, session_id=session_token)
         trial_info = calculate_trial_info(tenant)
 
         return LoginResponseModel(
