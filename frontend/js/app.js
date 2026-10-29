@@ -254,6 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentLottery = paramLottery.toUpperCase();
     localStorage.setItem('bicho_active_lottery', currentLottery);
     window.currentLottery = currentLottery;
+    window.currentApsLottery = currentLottery;
   } else {
     const savedLot = localStorage.getItem('bicho_active_lottery');
     if (savedLot && validLots.includes(savedLot.toUpperCase())) {
@@ -9798,6 +9799,21 @@ window.selectApsHistoricalDraw = function(lottery, drawId) {
 window.resetApsToLive = function() {
   window.currentApsDrawId = null;
   renderApsScreen(true);
+};
+
+window.openRadar5x5ForDraw = function(lottery, drawId, slot, date) {
+  if (typeof window.closeSnapshotModal === 'function') {
+    window.closeSnapshotModal();
+  }
+  const modal = document.getElementById('snapshot-modal');
+  if (modal) modal.classList.add('hidden');
+
+  if (typeof window.switchScreen === 'function') {
+    window.switchScreen('aps');
+  }
+  if (typeof window.selectApsHistoricalDraw === 'function') {
+    window.selectApsHistoricalDraw(lottery, drawId);
+  }
 };
 
 function renderApsAlerts(data) {
