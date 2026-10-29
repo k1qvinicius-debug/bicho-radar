@@ -202,6 +202,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const paramDate = urlParams.get('date');
   const paramHit = urlParams.get('hit');
   const paramGroup = urlParams.get('group');
+  const paramDrawId = urlParams.get('draw_id');
+  if (paramDrawId) {
+    window.currentApsDrawId = parseInt(paramDrawId, 10);
+  }
   const hash = window.location.hash.replace('#', '');
 
   if (paramHit) {
@@ -288,7 +292,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initSlotSelector(currentLottery, window._userSelectedSlot, paramDate);
 
   // 2. Determina tela alvo antes do carregamento inicial (mantém na mesma tela ao atualizar com F5)
-  const validScreens = ['home', 'palpites', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+  const validScreens = ['home', 'palpites', 'aps', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   let savedScreen = null;
   try { savedScreen = localStorage.getItem('bicho_active_screen'); } catch(e) {}
 
@@ -299,6 +303,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Prioridade 2: Parâmetro explícito de tab (ex: ?tab=coluna-data)
   } else if (urlParams.get('tab') && validScreens.includes(urlParams.get('tab'))) {
     targetScreen = urlParams.get('tab');
+  } else if (paramDrawId) {
+    targetScreen = 'aps';
   // Prioridade 3: Tela salva no localStorage da navegação anterior do usuário
   } else if (savedScreen && validScreens.includes(savedScreen)) {
     targetScreen = savedScreen;
@@ -327,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Suporte ao botão voltar/avançar do navegador entre as telas
 window.addEventListener('hashchange', () => {
-  const validScreens = ['home', 'palpites', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
+  const validScreens = ['home', 'palpites', 'aps', 'coluna-data', 'cruz', 'puxadas', 'atrasados', 'resultados', 'milhares-atrasadas', 'centena-master', 'matriz'];
   const hash = window.location.hash.replace('#', '');
   if (validScreens.includes(hash)) {
     switchScreen(hash, false);
@@ -9564,6 +9570,7 @@ window.currentApsData = null;
 
 function switchApsLottery(lottery) {
   window.currentApsLottery = lottery || 'NACIONAL';
+  window.currentApsDrawId = null;
   
   // Atualiza pílulas do seletor
   const pills = document.querySelectorAll('.aps-lot-pill');
@@ -9640,6 +9647,8 @@ async function executeApsSimulation() {
 }
 window.executeApsSimulation = executeApsSimulation;
 
+window.currentApsDrawId = null;
+
 async function renderApsScreen(forceRefresh = false) {
   const container = document.getElementById('view-aps');
   if (!container) return;
@@ -9648,8 +9657,11 @@ async function renderApsScreen(forceRefresh = false) {
   if (refreshBtn) refreshBtn.innerHTML = '<span>⏳</span> Carregando...';
 
   try {
-    const data = await api.getApsMethod(window.currentApsLottery);
+    const data = await api.getApsMethod(window.currentApsLottery, null, window.currentApsDrawId);
     window.currentApsData = data;
+
+    // 0. Renderiza Timeline / Seletor de Histórico do Radar 5x5
+    renderApsDrawTimeline(data);
 
     // 1. Renderiza Alertas de Linha e Saturação
     renderApsQuickTarget(data);
@@ -9687,6 +9699,106 @@ async function renderApsScreen(forceRefresh = false) {
   }
 }
 window.renderApsScreen = renderApsScreen;
+
+function renderApsDrawTimeline(data) {
+  const container = document.getElementById('aps-draws-timeline');
+  const banner = document.getElementById('aps-historical-banner');
+  const indicator = document.getElementById('aps-mode-indicator');
+  if (!container) return;
+
+  const draws = data.recent_draws_list || [];
+  const selected = data.selected_draw || {};
+  const isHistorical = !selected.is_live && selected.id;
+
+  if (indicator) {
+    if (isHistorical) {
+      indicator.className = 'text-[10px] font-black text-amber-300 bg-amber-950/90 border border-amber-500/60 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm';
+      indicator.innerHTML = `<span>🕒</span> <span>Histórico: ${selected.slot}</span>`;
+    } else {
+      indicator.className = 'text-[10px] font-black text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm';
+      indicator.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> <span>Ao Vivo (Próximo)</span>`;
+    }
+  }
+
+  let pillsHtml = `
+    <button type="button" onclick="resetApsToLive()" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${!isHistorical ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md font-black' : 'bg-slate-900/90 text-slate-300 border-slate-700 hover:text-white hover:border-slate-500'}">
+      <span class="w-2 h-2 rounded-full ${!isHistorical ? 'bg-slate-950 animate-pulse' : 'bg-emerald-400'}"></span>
+      <span>Ao Vivo (Próximo)</span>
+    </button>
+  `;
+
+  draws.forEach(d => {
+    const isThisSelected = isHistorical && Number(selected.id) === Number(d.id);
+    pillsHtml += `
+      <button type="button" onclick="selectApsHistoricalDraw('${data.lottery}', ${d.id})" class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${isThisSelected ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md font-black ring-2 ring-amber-400/50' : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:border-slate-500 hover:text-white'}">
+        <span class="${isThisSelected ? 'text-slate-950 font-black' : 'text-amber-400'}">${d.slot}</span>
+        <span class="font-mono text-[11px] ${isThisSelected ? 'text-slate-900 font-bold' : 'text-slate-200'}">${d.prize_1}</span>
+        <span>${d.animal_emoji || '🐾'}</span>
+      </button>
+    `;
+  });
+
+  container.innerHTML = pillsHtml;
+
+  if (banner) {
+    if (isHistorical) {
+      banner.classList.remove('hidden');
+      banner.innerHTML = `
+        <div class="flex items-start sm:items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg shrink-0">
+            🕒
+          </div>
+          <div class="space-y-0.5">
+            <div class="text-xs font-black text-amber-200 flex items-center gap-2 flex-wrap">
+              <span>Leitura Histórica do Radar 5×5 para: <strong class="text-white">${selected.lottery} (${selected.slot}) • ${selected.draw_date}</strong></span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">Auditado Antes do Sorteio</span>
+            </div>
+            <div class="text-[11px] text-slate-300 flex items-center gap-1.5 flex-wrap">
+              <span>Resultado Ocorrido:</span>
+              <span class="font-mono font-black text-white bg-slate-950 px-1.5 py-0.5 rounded border border-slate-700">1º: ${selected.prize_1}</span>
+              <span class="text-amber-300 font-bold">${selected.animal_1?.emoji || ''} ${selected.animal_1?.name || ''}</span>
+              <span class="text-slate-500">•</span>
+              <span class="text-slate-400">2º ${selected.prize_2} • 3º ${selected.prize_3} • 4º ${selected.prize_4} • 5º ${selected.prize_5}</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" onclick="resetApsToLive()" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer whitespace-nowrap self-end sm:self-center active:scale-95">
+          🔄 Voltar p/ Ao Vivo
+        </button>
+      `;
+    } else {
+      banner.classList.add('hidden');
+      banner.innerHTML = '';
+    }
+  }
+}
+window.renderApsDrawTimeline = renderApsDrawTimeline;
+
+window.selectApsHistoricalDraw = function(lottery, drawId) {
+  if (lottery) {
+    window.currentApsLottery = lottery;
+    const pills = document.querySelectorAll('.aps-lot-pill');
+    pills.forEach(p => {
+      const lot = p.getAttribute('data-aps-lot');
+      if (lot === window.currentApsLottery) {
+        p.className = 'aps-lot-pill px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer bg-amber-500 text-slate-950 border-amber-400 shadow-sm';
+      } else {
+        p.className = 'aps-lot-pill px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer bg-slate-800/90 text-slate-300 border-slate-700 hover:text-white';
+      }
+    });
+  }
+  window.currentApsDrawId = drawId;
+  const viewAps = document.getElementById('view-aps');
+  if (viewAps && viewAps.classList.contains('hidden') && typeof window.switchScreen === 'function') {
+    window.switchScreen('aps');
+  }
+  renderApsScreen(true);
+};
+
+window.resetApsToLive = function() {
+  window.currentApsDrawId = null;
+  renderApsScreen(true);
+};
 
 function renderApsAlerts(data) {
   const container = document.getElementById('aps-alerts-container');
