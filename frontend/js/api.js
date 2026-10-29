@@ -932,9 +932,10 @@ const api = {
   // =========================================================================
   // MÉTODO APS (APOSTANDO COM SABEDORIA)
   // =========================================================================
-  async getApsMethod(lottery = 'NACIONAL', date = null) {
+  async getApsMethod(lottery = 'NACIONAL', date = null, drawId = null) {
     let url = `${API_BASE}/analysis/aps-method?lottery=${encodeURIComponent(lottery)}`;
     if (date) url += `&date=${encodeURIComponent(date)}`;
+    if (drawId) url += `&draw_id=${encodeURIComponent(drawId)}`;
     const res = await fetch(url, {
       headers: { ...getAuthHeaders() },
     });
