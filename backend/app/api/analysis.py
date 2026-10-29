@@ -405,7 +405,7 @@ def get_snapshot_details(snapshot_id: str):
         row = None
         if target_snap_id:
             cursor.execute("""
-                SELECT s.*, e.hit_rate_score, e.evaluated_at, e.details_json,
+                SELECT s.*, e.draw_id AS draw_id, e.hit_rate_score, e.evaluated_at, e.details_json,
                        d.prize_1, d.prize_2, d.prize_3, d.prize_4, d.prize_5
                 FROM analysis_snapshots s
                 LEFT JOIN analysis_evaluations e ON s.id = e.snapshot_id
@@ -418,6 +418,18 @@ def get_snapshot_details(snapshot_id: str):
             raise HTTPException(status_code=404, detail="Snapshot não encontrado.")
 
         data = dict(row)
+        if not data.get("draw_id") and data.get("target_date") and data.get("target_slot"):
+            try:
+                lot = data.get("lottery") or "LOOK"
+                if lot == "FEDERAL":
+                    cursor.execute("SELECT id FROM draw_results WHERE (lottery = 'FEDERAL' OR slot = 'FED') AND draw_date = ? LIMIT 1", (data["target_date"],))
+                else:
+                    cursor.execute("SELECT id FROM draw_results WHERE lottery = ? AND slot = ? AND draw_date = ? LIMIT 1", (lot, data["target_slot"], data["target_date"]))
+                fdr = cursor.fetchone()
+                if fdr:
+                    data["draw_id"] = fdr["id"]
+            except Exception:
+                pass
         data["predictions"] = json.loads(data["predictions_json"]) if data.get("predictions_json") else {}
         data["weights_used"] = json.loads(data["weights_used_json"]) if data.get("weights_used_json") else {}
         data["evaluation_details"] = json.loads(data["details_json"]) if data.get("details_json") else None
