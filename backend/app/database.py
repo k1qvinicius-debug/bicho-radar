@@ -1,4 +1,4 @@
-"""
+﻿"""
 Camada de Banco de Dados Híbrida (Supabase PostgreSQL + SQLite Fallback) para o Bicho Analytics.
 Gerencia conexões, compatibilidade de dialeto, inicialização de tabelas, migrações e transações.
 """
@@ -397,6 +397,7 @@ def init_db() -> None:
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS registration_ip TEXT;")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS last_ip TEXT;")
             cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS device_id TEXT;")
+            cursor.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS current_session_token TEXT;")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tenants_reg_ip ON tenants(registration_ip);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tenants_device_id ON tenants(device_id);")
 
@@ -597,6 +598,8 @@ def init_db() -> None:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN last_ip TEXT")
             if "device_id" not in tenant_cols:
                 cursor.execute("ALTER TABLE tenants ADD COLUMN device_id TEXT")
+            if "current_session_token" not in tenant_cols:
+                cursor.execute("ALTER TABLE tenants ADD COLUMN current_session_token TEXT")
 
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS pattern_breaks_history (
