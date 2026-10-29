@@ -1116,6 +1116,7 @@ window.inspectSnapshot = async function (id) {
       const rHits = [];
       if (r5.hit_milhar_1st) rHits.push('👑 Milhar Cravada no 1º Prêmio (Fechamento 60 MC)');
       if (r5.hit_centena_1st) rHits.push('💎 Centena Cirúrgica Cravada no 1º Prêmio');
+      if (r5.hit_mc_centena_1st && !r5.hit_centena_1st && !r5.hit_milhar_1st) rHits.push('⚡ Centena Presente no Fechamento 60 MC');
       if (r5.hit_grupo_1st) rHits.push('🎯 Grupo de Elite Cravado no 1º Prêmio');
       if (r5.hit_terno) rHits.push(`✨ Terno de Dezena Premiado no Cercado (${r5.hit_terno_val})`);
       if (r5.hits_cercado_count > 0 && !r5.hit_grupo_1st) rHits.push(`✅ ${r5.hits_cercado_count}x Grupo(s) do Radar 5×5 no Cercado`);
@@ -1127,12 +1128,17 @@ window.inspectSnapshot = async function (id) {
 
       radar5x5SectionHtml = `
         <div class="p-3.5 rounded-xl bg-gradient-to-r from-teal-500/15 via-emerald-500/10 to-slate-900 border border-teal-500/30 my-2.5">
-          <div class="flex items-center justify-between gap-2 mb-2">
+          <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
             <div class="flex items-center gap-2">
               <span class="text-xl">🎯</span>
               <h4 class="font-black text-teal-300 text-xs sm:text-sm uppercase tracking-wide">Desempenho no RADAR 5×5 PRO</h4>
             </div>
-            ${rStatusBadge}
+            <div class="flex items-center gap-2">
+              ${rStatusBadge}
+              <button type="button" onclick="openRadar5x5ForDraw('${data.lottery || 'LOOK'}', ${data.draw_id || 'null'})" class="px-2.5 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-[11px] font-bold text-teal-200 hover:text-white flex items-center gap-1 transition-all cursor-pointer">
+                <span>🔍</span> Ver Análise no Radar 5×5 ➔
+              </button>
+            </div>
           </div>
           <div class="text-xs text-slate-200 space-y-1">
             <div><strong>Animais de Elite da Grade 5×5:</strong> ${(r5.elite_groups || []).map(g => {
@@ -1861,5 +1867,13 @@ window.navigateToAuditedPrediction = function(lottery, slot, date, hitHundred = 
     window.navigateToAuditedPredictionSpa(lot, slt, dt, hitHundred, hitGroup);
   } else {
     window.location.href = url;
+  }
+};
+
+
+window.openRadar5x5ForDraw = function(lottery, drawId) {
+  if (typeof closeInspectModal === 'function') closeInspectModal();
+  if (typeof window.selectApsHistoricalDraw === 'function') {
+    window.selectApsHistoricalDraw(lottery, drawId);
   }
 };
