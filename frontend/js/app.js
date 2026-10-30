@@ -10599,8 +10599,17 @@ function renderApsQuickTarget(data) {
   const top3 = (data.elite_animals || []).slice(0, 3);
   const topPedras = data.pedras_analysis?.top_pedras || [8, 6, 3];
   const p1 = topPedras[0] !== undefined ? topPedras[0] : 8;
-  const ternos = data.ternos_de_dezena_12 || [];
-  const topTerno = ternos[0] || '02 - 34 - 52';
+  // Terno de Ouro: Puxa 1 dezena forte de cada um dos 3 Bichos de Ouro da rodada
+  let topTerno = '';
+  if (top3.length >= 3) {
+    const d1 = (top3[0].tens || [])[0] || '';
+    const d2 = (top3[1].tens || [])[0] || '';
+    const d3 = (top3[2].tens || [])[0] || '';
+    topTerno = `${d1} - ${d2} - ${d3}`;
+  } else {
+    const ternos = data.ternos_de_dezena_12 || [];
+    topTerno = ternos[0] || '02 - 34 - 52';
+  }
 
   const isVip = window.isUserVip();
 
@@ -10663,7 +10672,7 @@ function renderApsQuickTarget(data) {
       <div class="font-mono text-xs font-black text-emerald-300 tracking-wider pt-0.5">
         ${topTerno}
       </div>
-      <div class="text-[10px] text-slate-500 mt-1">Extraído das pontas e meio do último resultado</div>
+      <div class="text-[10px] text-slate-400 mt-1">1 dezena chave de cada Bicho de Ouro (#1, #2 e #3)</div>
     `;
   }
 
@@ -10712,7 +10721,16 @@ function copyApsQuickTarget() {
   const top3 = (d.elite_animals || []).slice(0, 3);
   const topPedras = d.pedras_analysis?.top_pedras || [8, 6, 3];
   const p1 = topPedras[0];
-  const terno = (d.ternos_de_dezena_12 || [])[0] || '';
+  
+  let terno = '';
+  if (top3.length >= 3) {
+    const d1 = (top3[0].tens || [])[0] || '';
+    const d2 = (top3[1].tens || [])[0] || '';
+    const d3 = (top3[2].tens || [])[0] || '';
+    terno = `${d1} - ${d2} - ${d3}`;
+  } else {
+    terno = (d.ternos_de_dezena_12 || [])[0] || '';
+  }
 
   const goldCentenas = [];
   top3.forEach(a => {
@@ -10733,7 +10751,9 @@ function copyApsQuickTarget() {
     ...(slotLine ? [slotLine] : []),
     `🐾 Bichos: ${top3.map(a => `${a.name} (G${String(a.group).padStart(2,'0')})`).join(', ')}`,
     `💎 Centenas Fortes: ${goldCentenas.join(' - ')}`,
-    `🎲 Terno de Dezena: ${terno}`
+    `🎲 Terno de Dezena: ${terno}`,
+    '',
+    '📊 Gerado por: Radar 5×5 Pro'
   ].join('\n');
 
   copyTextToClipboard(msg, 'Palpite de Ouro copiado com horário do sorteio alvo!');
