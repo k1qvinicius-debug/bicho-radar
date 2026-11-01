@@ -10847,8 +10847,8 @@ const APS_LOTTERY_SCHEDULES = {
     name: 'Loteria Federal',
     shortName: 'Federal',
     slots: [
-      { code: 'FED-11', name: 'Federal 11h', time: '11:00' },
-      { code: 'FED-19', name: 'Federal 19h', time: '19:00' }
+      { code: 'FED-11', name: 'Federal 11h (Domingo)', time: '11:00' },
+      { code: 'FED-19', name: 'Federal 19h (Quarta/Sábado)', time: '19:00' }
     ]
   }
 };
@@ -10875,63 +10875,82 @@ function getApsUpcomingSlotInfo(lotteryCode) {
 
   // Trata caso especial de Loteria Federal (com suporte a Domingos e Calendário Eleitoral)
   if (normCode === 'FEDERAL') {
-    const isFederalDay = (dayOfWeek === 3 || dayOfWeek === 6 || dayOfWeek === 0);
-    
-    // Identifica horários de hoje se for dia de Federal
-    if (isFederalDay) {
-      // Domingo pode ter sorteio às 11h e/ou 19h
-      const potentialTimes = (dayOfWeek === 0) ? [11 * 60, 19 * 60] : [19 * 60];
-      let targetMins = null;
-      for (const t of potentialTimes) {
-        if (t > (curTotalMins + 2)) {
-          targetMins = t;
-          break;
-        }
-      }
+    const isSunday = (dayOfWeek === 0);
+    const isWednesday = (dayOfWeek === 3);
+    const isSaturday = (dayOfWeek === 6);
+    const isFederalDay = isSunday || isWednesday || isSaturday;
 
-      if (targetMins !== null) {
+    // Horários oficiais de hoje para a Federal:
+    // Domingo: APENAS 11:00 (NÃO existe Federal às 19:00 no domingo!)
+    // Quarta-feira: 19:00
+    // Sábado: 19:00
+    let todaySlots = [];
+    if (isSunday) {
+      todaySlots = [{ code: 'FED-11', name: 'Federal 11h', time: '11:00' }];
+    } else if (isWednesday) {
+      todaySlots = [{ code: 'FED-19', name: 'Federal 19h (Quarta)', time: '19:00' }];
+    } else if (isSaturday) {
+      todaySlots = [{ code: 'FED-19', name: 'Federal 19h (Sábado)', time: '19:00' }];
+    }
+
+    if (isFederalDay) {
+      // Domingo corre estritamente às 11:00. Quarta e Sábado às 19:00.
+      const targetMins = isSunday ? 11 * 60 : 19 * 60;
+
+      if (targetMins > (curTotalMins + 2)) {
         const diff = targetMins - curTotalMins;
         const h = Math.floor(diff / 60);
         const m = diff % 60;
-        const targetTimeStr = targetMins === 11 * 60 ? '11:00' : '19:00';
-        const targetNameStr = targetMins === 11 * 60 ? 'Federal 11h (Domingo)' : (dayOfWeek === 0 ? 'Federal 19h (Domingo)' : (dayOfWeek === 3 ? 'Federal (Quarta)' : 'Federal (Sábado)'));
+        const targetTimeStr = isSunday ? '11:00' : '19:00';
+        const targetNameStr = isSunday ? 'Federal 11h (Domingo)' : (isWednesday ? 'Federal 19h (Quarta)' : 'Federal 19h (Sábado)');
         return {
           lotteryCode: normCode,
           lotteryName: sched.name,
           shortName: sched.shortName,
           targetTime: targetTimeStr,
           targetName: targetNameStr,
-          targetCode: targetMins === 11 * 60 ? 'FED-11' : 'FED-19',
+          targetCode: isSunday ? 'FED-11' : 'FED-19',
           countdown: h === 0 ? `Faltam ${m} min` : (m > 0 ? `Faltam ${h}h ${m}m` : `Faltam ${h}h`),
           diffMinutes: diff,
           isToday: true,
           isTomorrow: false,
-          allSlots: sched.slots,
+          allSlots: todaySlots,
           currentTotalMins: curTotalMins
         };
       }
     }
 
-    // Se já passou hoje ou não corre hoje:
-    // Semana que vem: Sábado 24/10 corre Federal (Eleições no Domingo 25/10)
+    // Se já passou hoje ou hoje não é dia de Federal:
     let nextDayName = 'Quarta';
+    let nextDayTime = '19:00';
+    let nextDaySlot = 'FED-19';
+
     if (dayOfWeek === 0 || dayOfWeek === 1 || dayOfWeek === 2) {
       nextDayName = 'Quarta';
-    } else {
+      nextDayTime = '19:00';
+      nextDaySlot = 'FED-19';
+    } else if (dayOfWeek === 3 || dayOfWeek === 4 || dayOfWeek === 5) {
       nextDayName = 'Sábado';
+      nextDayTime = '19:00';
+      nextDaySlot = 'FED-19';
+    } else if (dayOfWeek === 6) {
+      nextDayName = 'Domingo';
+      nextDayTime = '11:00';
+      nextDaySlot = 'FED-11';
     }
+
     return {
       lotteryCode: normCode,
       lotteryName: sched.name,
       shortName: sched.shortName,
-      targetTime: '19:00',
+      targetTime: nextDayTime,
       targetName: `Federal (${nextDayName})`,
-      targetCode: 'FED-19',
-      countdown: `Próximo: ${nextDayName} às 19:00`,
+      targetCode: nextDaySlot,
+      countdown: `Próximo: ${nextDayName} às ${nextDayTime}`,
       diffMinutes: 9999,
       isToday: false,
-      isTomorrow: false,
-      allSlots: sched.slots,
+      isTomorrow: (dayOfWeek === 2 || dayOfWeek === 5 || (dayOfWeek === 6 && nextDayName === 'Domingo')),
+      allSlots: todaySlots.length > 0 ? todaySlots : [{ code: nextDaySlot, name: `Federal ${nextDayTime}`, time: nextDayTime }],
       currentTotalMins: curTotalMins
     };
   }
@@ -11012,7 +11031,7 @@ function updateApsNextSlotUI(lotteryCode) {
 
   const badgeEl = document.getElementById('aps-target-slot-live-badge');
   if (badgeEl) {
-    if (info.isTomorrow) {
+    if (info.isTomorrow || !info.isToday) {
       badgeEl.textContent = 'ENCERRADO HOJE';
       badgeEl.className = 'px-1.5 py-0.5 rounded text-[9px] font-black bg-slate-700 text-slate-300 uppercase tracking-wide';
     } else if (info.diffMinutes && info.diffMinutes <= 30) {
